@@ -1,6 +1,7 @@
 import type { Track } from '../types';
 import { lesson, match, mcq, num, planned, tf } from './q';
 import { acceleration, bernoulli, continuity, drag, friction, gasLaws, momentum, torque } from './physics2';
+import { displacement, gravity, power, quantities, scalarsVectors, siUnits, temperature } from './physics3';
 
 const speed = lesson('Speed and velocity', {
   id: 'phys-speed', title: 'Speed and Velocity', minutes: 9, level: 1,
@@ -372,12 +373,12 @@ export const physicsTrack: Track = {
   id: 'physics', title: 'Physics', short: 'Physics', color: '#12a594',
   blurb: 'Forces, pressure, energy and the real physics of flight — explained from zero.',
   modules: [
-    { id: 'phys-basics', title: 'Quantities and Units', lessons: planned('phys', ['Physical Quantities', 'SI Units', 'Scalars and Vectors']) },
-    { id: 'phys-motion', title: 'Motion', lessons: [speed, acceleration, ...planned('phys', ['Distance and Displacement'])] },
-    { id: 'phys-forces', title: 'Forces', lessons: [newton, weight, friction, momentum, ...planned('phys', ['Gravity'])] },
+    { id: 'phys-basics', title: 'Quantities and Units', lessons: [quantities, siUnits, scalarsVectors] },
+    { id: 'phys-motion', title: 'Motion', lessons: [speed, acceleration, displacement] },
+    { id: 'phys-forces', title: 'Forces', lessons: [newton, weight, friction, momentum, gravity] },
     { id: 'phys-fluids', title: 'Pressure and Fluids', lessons: [pressure, density, atmos, continuity, bernoulli, ...planned('phys', ['Viscosity and Boundary Layers'])] },
-    { id: 'phys-energy-m', title: 'Work and Energy', lessons: [energy, ...planned('phys', ['Power in Depth'])] },
-    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, ...planned('phys', ['Temperature', 'Heat', 'Thermodynamics'])] },
+    { id: 'phys-energy-m', title: 'Work and Energy', lessons: [energy, power] },
+    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, temperature, ...planned('phys', ['Heat', 'Thermodynamics'])] },
     { id: 'phys-waves', title: 'Waves and Sound', lessons: planned('phys', ['Waves', 'Sound']) },
     { id: 'phys-electric', title: 'Electricity and Magnetism', lessons: planned('phys', ['Electricity', 'Magnetism', 'Basic Circuits']) },
     { id: 'phys-rotation', title: 'Rotation and Balance', lessons: [torque, ...planned('phys', ['Rotational Motion', 'Equilibrium', 'Centre of Gravity'])] },
