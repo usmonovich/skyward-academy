@@ -10,6 +10,8 @@ import { airframe, fuelElectrical, gyroInstruments, pistonEngines, pitotStatic, 
 import { aerodromeMarkings, distressUrgency, licensing, phraseology, rtBasics } from './ppl7';
 import { emergencies, fire, fuelPlanning, preflight, takeoffLanding, vfrPlanning, wake } from './ppl8';
 import { charts, compass, deadReckoning, gnss, radioNav } from './ppl9';
+import { asymmetric, greatCircles, highLift, oneInSixtyPractice, pbn, polars, stabilityControl, vorDmeIls } from './cpl2';
+import { climbCruise, landingPerf, perfLimits, takeoffPerf } from './cpl3';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -266,9 +268,9 @@ export const cplTrack: Track = {
   blurb: 'Advanced theory for commercial operations, built on your PPL knowledge.',
   note: 'CPL theoretical knowledge requirements differ by authority. EASA CPL(A) follows the learning objectives published with Part-FCL (AMC1 FCL.310); the FAA Commercial Pilot knowledge areas are in 14 CFR §61.125. Each lesson begins with a short prerequisite review.',
   modules: [
-    { id: 'cpl-nav', title: 'Advanced Navigation', lessons: [windCorrection, ...planned('cpl', ['The 1-in-60 Rule in Practice', 'Great Circles and Rhumb Lines', 'Radio Navigation: VOR, DME and ILS', 'Area Navigation and PBN'])] },
-    { id: 'cpl-aero', title: 'Advanced Aerodynamics', lessons: planned('cpl', ['Lift and Drag Polars', 'Stability and Control', 'High-Lift Devices', 'Asymmetric Thrust']) },
-    { id: 'cpl-perf', title: 'Aircraft Performance and Limitations', lessons: planned('cpl', ['Take-off Performance', 'Climb and Cruise Performance', 'Landing Performance', 'Performance Limitations']) },
+    { id: 'cpl-nav', title: 'Advanced Navigation', lessons: [windCorrection, oneInSixtyPractice, greatCircles, vorDmeIls, pbn] },
+    { id: 'cpl-aero', title: 'Advanced Aerodynamics', lessons: [polars, stabilityControl, highLift, asymmetric] },
+    { id: 'cpl-perf', title: 'Aircraft Performance and Limitations', lessons: [takeoffPerf, climbCruise, landingPerf, perfLimits] },
     { id: 'cpl-plan', title: 'Flight and Fuel Planning', lessons: planned('cpl', ['Commercial Fuel Planning', 'Flight Planning and Monitoring', 'Mass and Balance for Larger Aircraft']) },
     { id: 'cpl-met', title: 'Advanced Meteorology', lessons: planned('cpl', ['Upper Winds and Jet Streams', 'Icing in Depth', 'Significant Weather Charts', 'Weather-Related Decisions']) },
     { id: 'cpl-systems', title: 'Aircraft Systems and Powerplants', lessons: planned('cpl', ['Powerplants', 'Electrical Systems', 'Hydraulic Systems', 'Flight Instruments and EFIS', 'Pressurisation Basics']) },

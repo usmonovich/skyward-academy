@@ -399,6 +399,18 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Altitude', facts: [['GNSS gives', 'Geometric height'], ['Fly by', 'The barometric altimeter']], text: 'The two are not the same.' },
     ],
   },
+  {
+    id: 'pbn', title: 'Performance-based navigation',
+    note: 'A summary of concepts from ICAO PBN guidance, written from memory. Approval to fly any specification depends on aircraft equipment, operator approval and crew training.',
+    items: [
+      { name: 'RNAV 5', facts: [['Accuracy', 'Within 5 NM for 95% of the time'], ['Alerting', 'Not required'], ['Typical use', 'En-route']], text: 'The basic en-route area navigation standard in many regions.' },
+      { name: 'RNAV 1', facts: [['Accuracy', 'Within 1 NM for 95% of the time'], ['Alerting', 'Not required'], ['Typical use', 'Departures and arrivals']], text: 'Used for standard instrument departures and arrivals.' },
+      { name: 'RNP 1', facts: [['Accuracy', 'Within 1 NM for 95% of the time'], ['Alerting', 'On-board monitoring and alerting required'], ['Typical use', 'Departures and arrivals with limited surveillance']], text: 'As RNAV 1, but the aircraft must warn the crew if accuracy is lost.' },
+      { name: 'RNP approach', facts: [['Minima', 'LNAV, LNAV/VNAV or LPV'], ['Depends on', 'Equipment and augmentation']], text: 'A satellite-based instrument approach.' },
+      { name: 'Fly-by waypoint', facts: [['Turn', 'Begins before the waypoint']], text: 'The aircraft cuts the corner and joins the next leg smoothly.' },
+      { name: 'Fly-over waypoint', facts: [['Turn', 'Begins after passing overhead']], text: 'Used where an early turn would leave protected airspace.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);

@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 283 unit tests
+npm test           # 307 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,14 +100,14 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (283, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (307, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
 - Guest start and profile creation; dashboard; every page at desktop and phone width with no horizontal overflow.
 - Pressure lesson end to end: experiment, tutor, practice, a failed assessment (mission stays locked), a passed one, mission, rewards, next lesson unlocked, progress saved.
-- All 123 lesson assessments answered to 100% through the real controls (all five question types).
-- All 125 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
+- All 135 lesson assessments answered to 100% through the real controls (all five question types).
+- All 137 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
 - Aviation English: all quiz exercises, phonetic alphabet, numbers (text alternative), listening (transcript alternative), and the ATC simulator with typed transmissions (wrong, "say again", and correct readbacks).
 - Dictionary, flashcards with all four grades, formula calculator, aircraft pages, cockpit explorer, mistake queue and revision.
 - Exam Center in examination and practice mode, bookmarking, unanswered-question warning, results by topic, history.
@@ -131,6 +131,8 @@ Bugs found and fixed during this testing: "holding point" misread by the ATC nor
 On 12 Nov 2026 the US rules quoted in the PPL human-performance lessons were read against the Cornell LII copy of 14 CFR: §91.211 (supplemental oxygen: above 12,500 ft for more than 30 minutes, above 14,000 ft at all times, above 15,000 ft for every occupant) and §91.17 (8 hours, 0.04 alcohol concentration). The other figures in the PPL Phase A and Phase B lessons (ICAO Annex 1 ages and hours, transponder codes, FAA handbook load factors, time of useful consciousness, diving intervals) were written from memory and are not yet verified.
 
 Also on 12 Nov 2026, for the final PPL batch: 14 CFR §§61.23, 61.57, 61.109, 91.125 and 91.151 (Cornell LII copy) for United States experience, medical validity, recent experience, light signals and VFR fuel reserves; the original text of Regulation (EU) No 1178/2011 for FCL.210.A (45 hours, 25 dual, 10 solo, 270 km cross-country), FCL.205.A (privileges), FCL.060 (three take-offs and landings in 90 days) and MED.A.045 (Class 2 validity); and the original text of Regulation (EU) No 923/2012 for Appendix 1 light signals and signal-area markings and Appendix 3 VFR cruising levels. Later amendments to the two EU regulations were not compared. Not verified in that batch: ICAO wake turbulence categories, UK CAA runway performance factors, radiotelephony phraseology and readback items, VOR and DME details, and RAIM satellite counts.
+
+The first CPL batch (advanced navigation, aerodynamics and performance) was written from memory of standard references and is not verified. Figures to check there include ILS sensitivities and the Category I decision height, PBN specification definitions, the 0.76 and 1.32 speed factors, the V_MC conditions, screen heights, the 60% and 70% landing distance fractions, and the hydroplaning estimate.
 
 On 11 November 2026 the figures in the six PPL meteorology and air-law lessons were checked against public official texts.
 
@@ -157,17 +159,17 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 
 ## Feature status
 
-**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 123 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 125 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (87 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with seven exercises and seven ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
+**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 135 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 137 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (98 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with seven exercises and seven ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
 
 **Partial:**
 
-- **Curriculum.** 123 lessons are complete: 30 mathematics, 36 physics and 55 PPL (all three tracks are complete), 1 CPL, 1 ATPL. The other 79 syllabus lessons are titles marked "In development". English stages 2, 3, 6, 7 and 8 have topics but no exercises.
+- **Curriculum.** 135 lessons are complete: 30 mathematics, 36 physics and 55 PPL (all three tracks are complete), 13 CPL, 1 ATPL. The other 67 syllabus lessons are titles marked "In development". English stages 2, 3, 6, 7 and 8 have topics but no exercises.
 - **Content review.** Every lesson was drafted with AI assistance and is labelled as pending expert review. No qualified instructor has checked it.
 - **Sources.** Four entries in the source register were read and are marked verified (see Content verification). The rest were written from memory and are marked "Not yet verified".
 - **Accounts.** Email accounts and cross-device sync are implemented with Supabase but untested end to end (see Cloud accounts and sync). Without configuration, profiles live in the browser.
 - **Admin.** No access control. Lessons, glossary terms and missions can be edited; new subjects, modules, formulas and uploaded illustrations cannot.
 - **ATC controller.** A rule-based dialogue engine, not a generative model. Radio-failure procedures are not covered.
 - **Speaking feedback.** Based on the transcript only. Pronunciation is not assessed.
-- **Ranks.** The top rank is reachable well before finishing the current 123 lessons; thresholds need rescaling as lessons are added.
+- **Ranks.** The top rank is reachable well before finishing the current 135 lessons; thresholds need rescaling as lessons are added.
 
 **Not built:** background music and ambient airport audio, recorded human voices, image identification and diagram-labelling question types, short written answers, drag-and-drop (matching and ordering use buttons and menus), server database, analytics service.
