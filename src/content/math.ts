@@ -2,6 +2,7 @@ import type { Track } from '../types';
 import { lesson, mcq, num, order, planned, tf, match } from './q';
 import { angles, arithmetic, estimation, fractions, negatives, percentages, powers, ratios } from './math2';
 import { algebra, decimals, equations, geometry, sciNotation, triangles } from './math3';
+import { calculus, coordinates, fuelMath, functions, gradients, linearRel, oneInSixty, quadratics, rateOfChange, statistics } from './math4';
 
 const SRC = ['si-brochure', 'phak'];
 
@@ -278,8 +279,8 @@ export const mathTrack: Track = {
     { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, sciNotation] },
     { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange] },
     { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, triangles, pythagoras, trig] },
-    { id: 'math-vectors-m', title: 'Vectors and Coordinates', lessons: [vectors, ...planned('math', ['Basic Coordinate Systems'])] },
-    { id: 'math-functions', title: 'Functions and Change', lessons: planned('math', ['Graphs and Functions', 'Linear Relationships', 'Quadratic Relationships', 'Rate of Change', 'Introductory Calculus Concepts', 'Basic Statistics']) },
-    { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, ...planned('math', ['Navigation Calculations and the 1-in-60 Rule', 'Climb and Descent Gradients', 'Fuel and Endurance Calculations'])] },
+    { id: 'math-vectors-m', title: 'Vectors and Coordinates', lessons: [vectors, coordinates] },
+    { id: 'math-functions', title: 'Functions and Change', lessons: [functions, linearRel, quadratics, rateOfChange, calculus, statistics] },
+    { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, oneInSixty, gradients, fuelMath] },
   ],
 };

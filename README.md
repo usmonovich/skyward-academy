@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 133 unit tests
+npm test           # 153 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,14 +100,14 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (133, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (153, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
 - Guest start and profile creation; dashboard; every page at desktop and phone width with no horizontal overflow.
 - Pressure lesson end to end: experiment, tutor, practice, a failed assessment (mission stays locked), a passed one, mission, rewards, next lesson unlocked, progress saved.
-- All 48 lesson assessments answered to 100% through the real controls (all five question types).
-- All 50 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
+- All 58 lesson assessments answered to 100% through the real controls (all five question types).
+- All 60 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
 - Aviation English: all quiz exercises, phonetic alphabet, numbers (text alternative), listening (transcript alternative), and the ATC simulator with typed transmissions (wrong, "say again", and correct readbacks).
 - Dictionary, flashcards with all four grades, formula calculator, aircraft pages, cockpit explorer, mistake queue and revision.
 - Exam Center in examination and practice mode, bookmarking, unanswered-question warning, results by topic, history.
@@ -153,17 +153,17 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 
 ## Feature status
 
-**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 48 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 50 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (42 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with seven exercises and seven ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
+**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 58 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 60 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (52 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with seven exercises and seven ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
 
 **Partial:**
 
-- **Curriculum.** 48 lessons are complete: 20 mathematics, 16 physics, 10 PPL, 1 CPL, 1 ATPL. The other 154 syllabus lessons are titles marked "In development". English stages 2, 3, 6, 7 and 8 have topics but no exercises.
+- **Curriculum.** 58 lessons are complete: 30 mathematics (the full mathematics track), 16 physics, 10 PPL, 1 CPL, 1 ATPL. The other 144 syllabus lessons are titles marked "In development". English stages 2, 3, 6, 7 and 8 have topics but no exercises.
 - **Content review.** Every lesson was drafted with AI assistance and is labelled as pending expert review. No qualified instructor has checked it.
 - **Sources.** Four entries in the source register were read and are marked verified (see Content verification). The rest were written from memory and are marked "Not yet verified".
 - **Accounts.** Email accounts and cross-device sync are implemented with Supabase but untested end to end (see Cloud accounts and sync). Without configuration, profiles live in the browser.
 - **Admin.** No access control. Lessons, glossary terms and missions can be edited; new subjects, modules, formulas and uploaded illustrations cannot.
 - **ATC controller.** A rule-based dialogue engine, not a generative model. Radio-failure procedures are not covered.
 - **Speaking feedback.** Based on the transcript only. Pronunciation is not assessed.
-- **Ranks.** The top rank is reachable well before finishing the current 48 lessons; thresholds need rescaling as lessons are added.
+- **Ranks.** The top rank is reachable well before finishing the current 58 lessons; thresholds need rescaling as lessons are added.
 
 **Not built:** background music and ambient airport audio, recorded human voices, image identification and diagram-labelling question types, short written answers, drag-and-drop (matching and ordering use buttons and menus), server database, analytics service.
