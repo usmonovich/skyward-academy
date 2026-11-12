@@ -177,6 +177,97 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Mayday / Pan-Pan', facts: [['Mayday', 'Distress: grave and imminent danger'], ['Pan-Pan', 'Urgency: a serious situation, not yet distress']], text: 'Spoken three times at the start of the call.' },
     ],
   },
+  {
+    id: 'hypoxia', title: 'Types of hypoxia',
+    note: 'The four types described in FAA guidance. More than one can act at the same time.',
+    items: [
+      { name: 'Hypoxic hypoxia', facts: [['Cause', 'Not enough oxygen available to the lungs'], ['Typical case', 'Flight at altitude without supplemental oxygen']], text: 'The type most relevant to pilots. Lower pressure delivers less oxygen with each breath.' },
+      { name: 'Hypemic hypoxia', facts: [['Cause', 'The blood cannot carry enough oxygen'], ['Typical case', 'Carbon monoxide; blood loss or donation; anaemia']], text: 'Carbon monoxide binds to the blood much more readily than oxygen.' },
+      { name: 'Stagnant hypoxia', facts: [['Cause', 'Blood is not flowing properly'], ['Typical case', 'Pulling g; extreme cold; a restricted limb']], text: 'Oxygen-rich blood does not reach the tissues that need it.' },
+      { name: 'Histotoxic hypoxia', facts: [['Cause', 'The cells cannot use the oxygen delivered'], ['Typical case', 'Alcohol and some drugs']], text: 'Enough oxygen is carried, but the tissues cannot take it up.' },
+    ],
+  },
+  {
+    id: 'illusions', title: 'Illusions in flight',
+    note: 'Simplified descriptions. The defence is the same in each case: cross-check instruments and approach aids.',
+    items: [
+      { name: 'Narrow runway', facts: [['You feel', 'Too high'], ['Tendency', 'A low approach']], text: 'A narrower runway than usual looks further away.' },
+      { name: 'Wide runway', facts: [['You feel', 'Too low'], ['Tendency', 'A high approach and late flare']], text: 'A wider runway than usual looks closer.' },
+      { name: 'Up-sloping runway', facts: [['You feel', 'Too high'], ['Tendency', 'A low approach']], text: 'The runway appears steeper in the windscreen.' },
+      { name: 'Down-sloping runway', facts: [['You feel', 'Too low'], ['Tendency', 'A high approach']], text: 'The opposite of the up-slope illusion.' },
+      { name: 'Black-hole approach', facts: [['Where', 'Over dark, featureless ground at night'], ['Tendency', 'Flying too low']], text: 'With only the runway lights visible there are no cues to height.' },
+      { name: 'The leans', facts: [['Cause', 'A slow, unnoticed roll followed by a correction'], ['You feel', 'Banked when level']], text: 'The balance organs miss gradual movement.' },
+      { name: 'Somatogravic illusion', facts: [['Cause', 'Rapid acceleration'], ['You feel', 'Pitching up']], text: 'The temptation is to push the nose down, towards the ground.' },
+    ],
+  },
+  {
+    id: 'fitness', title: 'Fitness to fly',
+    note: 'General guidance. Regulations and medical advice for your own situation take priority.',
+    items: [
+      { name: 'Acute fatigue', facts: [['Cause', 'A short night or a long day'], ['Cure', 'Rest and sleep']], text: 'Slower reactions and lapses of attention.' },
+      { name: 'Chronic fatigue', facts: [['Cause', 'Repeated incomplete recovery'], ['Cure', 'A longer break']], text: 'Not fixed by one good night. Often goes unrecognised.' },
+      { name: 'Stress', facts: [['Moderate', 'Improves alertness'], ['Excessive', 'Overloads attention']], text: 'Stress from life on the ground adds to stress in the air.' },
+      { name: 'Alcohol', facts: [['Effect', 'Impaired judgement and coordination'], ['At altitude', 'Effects increase']], text: 'Regulations set minimum times and limits; a hangover also impairs.' },
+      { name: 'Dehydration', facts: [['Signs', 'Headache, tiredness, poor concentration'], ['Prevention', 'Drink water before and during flight']], text: 'Common in hot cockpits and on long flights.' },
+      { name: 'Scuba diving', facts: [['Risk', 'Decompression sickness'], ['FAA guidance', 'Wait 12 to 24 hours before flying']], text: 'Dissolved nitrogen forms bubbles as cabin pressure falls.' },
+    ],
+  },
+  {
+    id: 'hazardous-attitudes', title: 'Hazardous attitudes and antidotes',
+    note: 'From FAA aeronautical decision-making guidance.',
+    items: [
+      { name: 'Anti-authority', facts: [['Thought', '"Don\'t tell me."'], ['Antidote', '"Follow the rules. They are usually right."']], text: 'Regarding rules and procedures as unnecessary.' },
+      { name: 'Impulsivity', facts: [['Thought', '"Do something, quickly."'], ['Antidote', '"Not so fast. Think first."']], text: 'Acting on the first idea without considering alternatives.' },
+      { name: 'Invulnerability', facts: [['Thought', '"It won\'t happen to me."'], ['Antidote', '"It could happen to me."']], text: 'Believing accidents only happen to others.' },
+      { name: 'Macho', facts: [['Thought', '"I can do it."'], ['Antidote', '"Taking chances is foolish."']], text: 'Taking risks to prove ability.' },
+      { name: 'Resignation', facts: [['Thought', '"What\'s the use?"'], ['Antidote', '"I am not helpless. I can make a difference."']], text: 'Giving up and leaving the outcome to luck or to others.' },
+    ],
+  },
+  {
+    id: 'fronts', title: 'Types of front',
+    note: 'Textbook mid-latitude patterns. Real fronts vary widely.',
+    items: [
+      { name: 'Warm front', facts: [['Slope', 'Shallow'], ['Cloud', 'Cirrus, cirrostratus, altostratus, nimbostratus'], ['Weather', 'Steady rain, low cloud, poor visibility']], text: 'Warm air rides up over cold. The weather arrives slowly and covers a wide area.' },
+      { name: 'Cold front', facts: [['Slope', 'Steep'], ['Cloud', 'Cumulus and cumulonimbus'], ['Weather', 'Heavy showers, possible thunderstorms, gusts']], text: 'Cold air undercuts warm. A narrow band of intense weather, then clearer, colder air.' },
+      { name: 'Occluded front', facts: [['Forms when', 'A cold front catches a warm front'], ['Weather', 'A mixture of both types']], text: 'The warm air is lifted clear of the surface.' },
+      { name: 'Stationary front', facts: [['Movement', 'Little or none'], ['Weather', 'Can persist for days']], text: 'Neither air mass is replacing the other.' },
+    ],
+  },
+  {
+    id: 'airframe', title: 'Airframe structure',
+    note: 'General terms for conventional light aircraft.',
+    items: [
+      { name: 'Truss', facts: [['Loads carried by', 'A framework of tubes'], ['Covering', 'Fabric or light skin']], text: 'Strong and easy to repair; common on older and bush aircraft.' },
+      { name: 'Monocoque', facts: [['Loads carried by', 'The skin alone'], ['Like', 'An eggshell']], text: 'Light, but a dent weakens it.' },
+      { name: 'Semi-monocoque', facts: [['Loads carried by', 'Skin plus frames and stringers'], ['Used on', 'Most modern aircraft']], text: 'Damage to one part is shared by the others.' },
+      { name: 'Spar', facts: [['Runs', 'Wing root to tip'], ['Carries', 'Bending loads']], text: 'The main beam of the wing.' },
+      { name: 'Rib', facts: [['Runs', 'Leading edge to trailing edge'], ['Gives', 'The aerofoil shape']], text: 'Passes loads from the skin to the spars.' },
+      { name: 'Oleo strut', facts: [['Uses', 'Oil and compressed air'], ['Job', 'Absorbs landing shock']], text: 'Check its extension on the walk-round.' },
+    ],
+  },
+  {
+    id: 'engine-strokes', title: 'The four-stroke cycle',
+    note: 'One complete cycle takes two revolutions of the crankshaft.',
+    items: [
+      { name: '1. Intake', facts: [['Piston', 'Moves down'], ['Valves', 'Inlet open']], text: 'The fuel-air mixture is drawn into the cylinder.' },
+      { name: '2. Compression', facts: [['Piston', 'Moves up'], ['Valves', 'Both closed']], text: 'The mixture is squeezed, raising its pressure and temperature.' },
+      { name: '3. Power', facts: [['Piston', 'Driven down'], ['Valves', 'Both closed']], text: 'The spark plugs ignite the mixture; expanding gas does the work.' },
+      { name: '4. Exhaust', facts: [['Piston', 'Moves up'], ['Valves', 'Exhaust open']], text: 'Burnt gas is pushed out, ready for the next intake.' },
+    ],
+  },
+  {
+    id: 'fuel-system', title: 'Fuel and electrical essentials',
+    note: 'General descriptions. The flight manual describes the actual systems of each aircraft.',
+    items: [
+      { name: 'Aviation gasoline 100LL', facts: [['Colour', 'Blue'], ['Used in', 'Most piston aircraft engines']], text: 'Check the grade at every refuelling.' },
+      { name: 'Jet fuel', facts: [['Colour', 'Clear or straw'], ['Used in', 'Turbine and aviation diesel engines']], text: 'Misfuelling a gasoline engine with jet fuel can cause engine failure.' },
+      { name: 'Water contamination', facts: [['Collects', 'At the lowest points'], ['Found by', 'Draining a sample']], text: 'From condensation in part-filled tanks or from leaking caps.' },
+      { name: 'Gravity feed', facts: [['Typical of', 'High-wing aircraft'], ['Needs', 'Clear tank vents']], text: 'Fuel flows down to the engine without a pump.' },
+      { name: 'Pump feed', facts: [['Typical of', 'Low-wing aircraft'], ['Back-up', 'Electric fuel pump']], text: 'The electric pump is used for starting, take-off and landing.' },
+      { name: 'Alternator', facts: [['Driven by', 'The engine'], ['Supplies', 'Electrical loads and battery charging']], text: 'Its failure shows as a discharge or a low-voltage warning.' },
+      { name: 'Battery', facts: [['Supplies', 'Starting, and back-up power'], ['After alternator failure', 'Limited time only']], text: 'Reduce load to make it last.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);
