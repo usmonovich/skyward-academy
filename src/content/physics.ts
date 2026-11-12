@@ -1,7 +1,9 @@
 import type { Track } from '../types';
-import { lesson, match, mcq, num, planned, tf } from './q';
+import { lesson, match, mcq, num, tf } from './q';
 import { acceleration, bernoulli, continuity, drag, friction, gasLaws, momentum, torque } from './physics2';
 import { displacement, gravity, power, quantities, scalarsVectors, siUnits, temperature } from './physics3';
+import { heat, performance, sound, thermo, thrust, viscosity, waves } from './physics4';
+import { centreOfGravity, circuits, electricity, equilibrium, magnetism, rotational } from './physics5';
 
 const speed = lesson('Speed and velocity', {
   id: 'phys-speed', title: 'Speed and Velocity', minutes: 9, level: 1,
@@ -376,12 +378,12 @@ export const physicsTrack: Track = {
     { id: 'phys-basics', title: 'Quantities and Units', lessons: [quantities, siUnits, scalarsVectors] },
     { id: 'phys-motion', title: 'Motion', lessons: [speed, acceleration, displacement] },
     { id: 'phys-forces', title: 'Forces', lessons: [newton, weight, friction, momentum, gravity] },
-    { id: 'phys-fluids', title: 'Pressure and Fluids', lessons: [pressure, density, atmos, continuity, bernoulli, ...planned('phys', ['Viscosity and Boundary Layers'])] },
+    { id: 'phys-fluids', title: 'Pressure and Fluids', lessons: [pressure, density, atmos, continuity, bernoulli, viscosity] },
     { id: 'phys-energy-m', title: 'Work and Energy', lessons: [energy, power] },
-    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, temperature, ...planned('phys', ['Heat', 'Thermodynamics'])] },
-    { id: 'phys-waves', title: 'Waves and Sound', lessons: planned('phys', ['Waves', 'Sound']) },
-    { id: 'phys-electric', title: 'Electricity and Magnetism', lessons: planned('phys', ['Electricity', 'Magnetism', 'Basic Circuits']) },
-    { id: 'phys-rotation', title: 'Rotation and Balance', lessons: [torque, ...planned('phys', ['Rotational Motion', 'Equilibrium', 'Centre of Gravity'])] },
-    { id: 'phys-flight', title: 'Principles of Flight', lessons: [lift, drag, ...planned('phys', ['Thrust', 'Aircraft Performance Fundamentals'])] },
+    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, temperature, heat, thermo] },
+    { id: 'phys-waves', title: 'Waves and Sound', lessons: [waves, sound] },
+    { id: 'phys-electric', title: 'Electricity and Magnetism', lessons: [electricity, magnetism, circuits] },
+    { id: 'phys-rotation', title: 'Rotation and Balance', lessons: [torque, rotational, equilibrium, centreOfGravity] },
+    { id: 'phys-flight', title: 'Principles of Flight', lessons: [lift, drag, thrust, performance] },
   ],
 };
