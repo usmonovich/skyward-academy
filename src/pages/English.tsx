@@ -118,7 +118,8 @@ function Listening({ ex }: { ex: EnglishExercise }) {
   const [run, setRun] = useState(0);
   const stop = useRef(false);
   useEffect(() => () => { stop.current = true; stopSpeaking(); }, []);
-  const passage = LISTENING[idx];
+  const passages = ex.passages ? LISTENING.filter((x) => ex.passages!.includes(x.id)) : LISTENING;
+  const passage = passages[idx];
   if (!passage) {
     const score = total.n ? total.correct / total.n : 0;
     return <Done id={ex.id} score={score} detail={`${total.correct} of ${total.n} comprehension questions correct.`} onAgain={() => { setIdx(0); setTotal({ correct: 0, n: 0 }); setRun(run + 1); }} />;
@@ -136,7 +137,7 @@ function Listening({ ex }: { ex: EnglishExercise }) {
   return (
     <div className="stack">
       <div className="card">
-        <div className="card-head"><h3>Passage {idx + 1} of {LISTENING.length}: {passage.title}</h3><Chip>{passage.lines.length > 1 ? 'Conversation' : 'Broadcast'}</Chip></div>
+        <div className="card-head"><h3>Passage {idx + 1} of {passages.length}: {passage.title}</h3><Chip>{passage.lines.length > 1 ? 'Conversation' : 'Broadcast'}</Chip></div>
         <div className="row gap wrap">
           {playing ? <Btn kind="soft" icon="pause" onClick={() => { stop.current = true; stopSpeaking(); setPlaying(false); }}>Stop</Btn> : <Btn kind="accent" icon="sound" onClick={play} disabled={!canSpeak()}>Play recording</Btn>}
           <Btn kind="ghost" onClick={() => setTranscript(!transcript)}>{transcript ? 'Hide transcript' : 'Show transcript'}</Btn>
@@ -148,11 +149,11 @@ function Listening({ ex }: { ex: EnglishExercise }) {
         {(transcript || !canSpeak()) && <div className="transcript">{passage.lines.map((l, i) => <p key={i}><strong>{l.who}:</strong> {l.text}</p>)}</div>}
       </div>
       <div className="card">
-        <QuizRunner key={`${idx}-${run}`} questions={passage.questions} hints={false} finishLabel={idx + 1 < LISTENING.length ? 'Next passage' : 'Finish'}
+        <QuizRunner key={`${idx}-${run}`} questions={passage.questions} hints={false} finishLabel={idx + 1 < passages.length ? 'Next passage' : 'Finish'}
           onFinish={(_, c) => {
             const t = { correct: total.correct + c, n: total.n + passage.questions.length };
             setTotal(t); stop.current = true; stopSpeaking(); setPlaying(false); setTranscript(false);
-            if (idx + 1 >= LISTENING.length) actions.english(ex.id, t.correct / t.n, XP.englishExercise);
+            if (idx + 1 >= passages.length) actions.english(ex.id, t.correct / t.n, XP.englishExercise);
             setIdx(idx + 1);
           }} />
       </div>

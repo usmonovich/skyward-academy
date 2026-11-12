@@ -161,11 +161,11 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 
 ## Feature status
 
-**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 154 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 156 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (108 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with seven exercises and seven ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
+**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 154 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 156 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (108 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with 17 exercises across all eight stages (nine quizzes, five listening exercises, alphabet and numbers trainers) and 12 ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
 
 **Partial:**
 
-- **Curriculum.** 154 lessons are complete: 30 mathematics, 36 physics, 55 PPL and 32 CPL (all four tracks are complete), 1 ATPL. The other 48 syllabus lessons are titles marked "In development". English stages 2, 3, 6, 7 and 8 have topics but no exercises.
+- **Curriculum.** 154 lessons are complete: 30 mathematics, 36 physics, 55 PPL and 32 CPL (all four tracks are complete), 1 ATPL. The other 48 syllabus lessons are titles marked "In development". Aviation English now has exercises at every stage, including Level 4, 5 and 6 preparation; the app gives training feedback only and does not assess an ICAO level.
 - **Content review.** Every lesson was drafted with AI assistance and is labelled as pending expert review. No qualified instructor has checked it.
 - **Sources.** Four entries in the source register were read and are marked verified (see Content verification). The rest were written from memory and are marked "Not yet verified".
 - **Accounts.** Email accounts and cross-device sync are implemented with Supabase but untested end to end (see Cloud accounts and sync). Without configuration, profiles live in the browser.

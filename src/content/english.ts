@@ -1,5 +1,6 @@
 import type { Question } from '../types';
 import { match, mcq, num, order, tagQuestions, tf } from './q';
+import { ATC_MORE, LISTENING_MORE, clarify, describing, nuance, paraphrase, questionsQuiz, verbs } from './english2';
 
 export const CALLSIGN = 'Skyward 123';
 
@@ -53,6 +54,7 @@ export const ATC_SCENARIOS: AtcScenario[] = [
     { kind: 'request', style: 'Phraseology with plain language', situation: 'Make an urgency call to Northfield Approach. State the problem, your position and level, and what you need.', required: [{ label: 'PAN PAN', any: ['pan pan'] }, CS, { label: 'Nature of the problem', any: ['passenger', 'medical', 'ill', 'sick', 'unwell'] }, { label: 'Intention or request', any: ['request', 'require', 'need', 'divert', 'diverting'] }], model: 'PAN PAN, PAN PAN, PAN PAN, Northfield Approach, Skyward 123, passenger seriously ill, 25 miles south of Northfield, 5,000 feet, request priority landing.' },
     { kind: 'readback', style: 'Phraseology with plain language', atc: 'Skyward 123, roger PAN, proceed direct Northfield, descend to altitude 3,000 feet, QNH 1011. Report persons on board.', required: [{ label: 'Direct Northfield', any: ['direct'] }, { label: '3,000 feet', any: ['three thousand'] }, { label: 'QNH 1011', any: ['one zero one one'] }, { label: 'Persons on board: four', any: ['four'] }, CS], model: 'Direct Northfield, descend to altitude 3,000 feet, QNH 1011, four persons on board, Skyward 123.' },
   ] },
+  ...ATC_MORE,
 ];
 
 export interface ListeningPassage { id: string; title: string; lines: { who: string; text: string }[]; questions: Question[] }
@@ -76,6 +78,7 @@ export const LISTENING: ListeningPassage[] = [
       mcq('Does the pilot need assistance?', ['No', 'Yes, fire services', 'Yes, medical help', 'The pilot does not answer'], '"Negative assistance".'),
       num('How many minutes does the crew need for the checklist?', 5, 0, 'min', '"About five minutes".'),
     ], 'en-listen-bird-', 'Listening') },
+  ...LISTENING_MORE,
 ];
 
 export const PHONETIC: [string, string][] = [['A', 'Alfa'], ['B', 'Bravo'], ['C', 'Charlie'], ['D', 'Delta'], ['E', 'Echo'], ['F', 'Foxtrot'], ['G', 'Golf'], ['H', 'Hotel'], ['I', 'India'], ['J', 'Juliett'], ['K', 'Kilo'], ['L', 'Lima'], ['M', 'Mike'], ['N', 'November'], ['O', 'Oscar'], ['P', 'Papa'], ['Q', 'Quebec'], ['R', 'Romeo'], ['S', 'Sierra'], ['T', 'Tango'], ['U', 'Uniform'], ['V', 'Victor'], ['W', 'Whiskey'], ['X', 'X-ray'], ['Y', 'Yankee'], ['Z', 'Zulu']];
@@ -113,16 +116,26 @@ const phraseology = tagQuestions([
 ], 'en-phrase-', 'Radiotelephony');
 
 export type ExerciseKind = 'quiz' | 'alphabet' | 'numbers' | 'listening' | 'atc';
-export interface EnglishExercise { id: string; title: string; kind: ExerciseKind; stage: number; minutes: number; blurb: string; questions?: Question[] }
+export interface EnglishExercise { id: string; title: string; kind: ExerciseKind; stage: number; minutes: number; blurb: string; questions?: Question[]; /** Listening exercises: ids of the passages to play. */ passages?: string[] }
 
 export const EN_EXERCISES: EnglishExercise[] = [
   { id: 'en-grammar', title: 'Sentence Basics', kind: 'quiz', stage: 1, minutes: 6, blurb: 'Build correct simple sentences in the present, past and future.', questions: grammar },
+  { id: 'en-verbs', title: 'Verbs and Tenses', kind: 'quiz', stage: 2, minutes: 7, blurb: 'Present, past and future forms of the verbs you use every day.', questions: verbs },
+  { id: 'en-questions', title: 'Questions and Requests', kind: 'quiz', stage: 2, minutes: 6, blurb: 'Ask clear questions and make polite requests.', questions: questionsQuiz },
+  { id: 'en-describe', title: 'Describing Events and Causes', kind: 'quiz', stage: 3, minutes: 8, blurb: 'Link ideas with because, so, although and if; report what was said.', questions: describing },
+  { id: 'en-listen-everyday', title: 'Listening: Briefings and Announcements', kind: 'listening', stage: 3, minutes: 7, blurb: 'Follow a weather briefing and an announcement to passengers in plain English.', passages: ['briefing', 'delay'] },
   { id: 'en-vocab', title: 'Vocabulary Match', kind: 'quiz', stage: 4, minutes: 6, blurb: 'Match aircraft, airport, flight-phase and weather words to their meanings.', questions: vocab },
   { id: 'en-alphabet', title: 'Phonetic Alphabet Trainer', kind: 'alphabet', stage: 4, minutes: 5, blurb: 'Alfa, Bravo, Charlie… spell call signs the aviation way.' },
   { id: 'en-numbers', title: 'Aviation Numbers by Ear', kind: 'numbers', stage: 4, minutes: 6, blurb: 'Listen to headings, levels and frequencies and type what you hear.' },
   { id: 'en-phrase', title: 'Phraseology Challenge', kind: 'quiz', stage: 5, minutes: 8, blurb: 'Order readbacks and choose the correct standard words.', questions: phraseology },
-  { id: 'en-listen', title: 'Listening Missions', kind: 'listening', stage: 5, minutes: 8, blurb: 'Listen to an ATIS broadcast and a non-routine conversation, then answer.' },
-  { id: 'en-atc', title: 'AI Air Traffic Controller', kind: 'atc', stage: 5, minutes: 12, blurb: 'Speak or type your transmissions. The controller reacts to what you say.' },
+  { id: 'en-listen', title: 'Listening Missions', kind: 'listening', stage: 5, minutes: 8, blurb: 'Listen to an ATIS broadcast and a non-routine conversation, then answer.', passages: ['atis', 'birdstrike'] },
+  { id: 'en-atc', title: 'AI Air Traffic Controller', kind: 'atc', stage: 5, minutes: 12, blurb: 'Speak or type your transmissions. Twelve scenarios, from a taxi clearance to a complex emergency.' },
+  { id: 'en-clarify', title: 'Clarify, Confirm, Explain', kind: 'quiz', stage: 6, minutes: 8, blurb: 'Ask for repeats, confirm what you heard and explain a problem in plain language.', questions: clarify },
+  { id: 'en-listen-l4', title: 'Listening: Non-Routine Situations', kind: 'listening', stage: 6, minutes: 8, blurb: 'A landing gear problem and a late runway change.', passages: ['gear', 'runwaychange'] },
+  { id: 'en-paraphrase', title: 'Paraphrase and Complex Structures', kind: 'quiz', stage: 7, minutes: 9, blurb: 'Say the same thing another way, and handle conditionals and formal wording.', questions: paraphrase },
+  { id: 'en-listen-l5', title: 'Listening: Unexpected Events', kind: 'listening', stage: 7, minutes: 9, blurb: 'A smell of burning in the cabin and a laser illumination report.', passages: ['smoke', 'laser'] },
+  { id: 'en-nuance', title: 'Nuance, Register and Implied Meaning', kind: 'quiz', stage: 8, minutes: 9, blurb: 'Hear what is meant as well as what is said, and choose the right register.', questions: nuance },
+  { id: 'en-listen-l6', title: 'Listening: Hints and Informal Speech', kind: 'listening', stage: 8, minutes: 9, blurb: 'A crew that hints before speaking plainly, and a fast, informal tower transmission.', passages: ['hinting', 'fast'] },
 ];
 
 export const EN_STAGES: { n: number; title: string; focus: string; topics: string[] }[] = [
@@ -139,4 +152,4 @@ export const EN_STAGES: { n: number; title: string; focus: string; topics: strin
 export const ICAO_DIMENSIONS = ['Pronunciation', 'Structure', 'Vocabulary', 'Fluency', 'Comprehension', 'Interactions'] as const;
 
 /** Text-only English questions for the Examination Center (listening items need audio, so they stay in their exercise). */
-export const ENGLISH_BANK: Question[] = [...grammar, ...vocab, ...phraseology];
+export const ENGLISH_BANK: Question[] = [...grammar, ...verbs, ...questionsQuiz, ...describing, ...vocab, ...phraseology, ...clarify, ...paraphrase, ...nuance];
