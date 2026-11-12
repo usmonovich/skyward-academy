@@ -504,6 +504,43 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Notification to the commander', facts: [['Lists', 'Dangerous goods on board and their location']], text: 'Needed to handle an in-flight emergency correctly.' },
     ],
   },
+  {
+    id: 'gear-brakes', title: 'Landing gear and brakes',
+    note: 'A generic description of transport aircraft systems, written from memory. Details differ between types.',
+    items: [
+      { name: 'Uplocks and downlocks', facts: [['Uplock', 'Holds the gear retracted'], ['Downlock', 'Holds the gear extended']], text: 'Mechanical locks, so the gear does not rely on hydraulic pressure to stay in position.' },
+      { name: 'Alternate extension', facts: [['Used when', 'Normal extension fails'], ['Works by', 'Releasing the uplocks; gravity and airflow extend the gear']], text: 'Sometimes called free-fall extension.' },
+      { name: 'Anti-skid', facts: [['Does', 'Releases pressure on a wheel about to lock'], ['Gives', 'Maximum braking without skidding']], text: 'Most valuable on wet and slippery runways.' },
+      { name: 'Autobrake', facts: [['Does', 'Applies a selected deceleration automatically'], ['Used for', 'Landing and rejected take-off']], text: 'It frees the crew to control direction.' },
+      { name: 'Fusible plugs', facts: [['Where', 'In the wheels'], ['Do', 'Melt and release tyre pressure when very hot']], text: 'They prevent a tyre from bursting after a heavy stop.' },
+      { name: 'Ram air turbine', facts: [['Deploys', 'Into the airflow when normal power is lost'], ['Provides', 'Emergency hydraulic or electrical power']], text: 'A small windmill that needs airspeed to work.' },
+    ],
+  },
+  {
+    id: 'flight-controls', title: 'Flight control systems',
+    note: 'A generic description, written from memory. Control laws and protections differ between manufacturers.',
+    items: [
+      { name: 'Reversible controls', facts: [['Link', 'Cables and rods'], ['Feel', 'Real air loads felt by the pilot']], text: 'Used on light aircraft and some smaller transports.' },
+      { name: 'Powered controls', facts: [['Moved by', 'Hydraulic actuators'], ['Feel', 'Artificial, often scaled with dynamic pressure']], text: 'No air load comes back to the pilot.' },
+      { name: 'Fly-by-wire', facts: [['Link', 'Electrical signals to computers'], ['Adds', 'Control laws and envelope protection']], text: 'Degrades to simpler laws when failures occur.' },
+      { name: 'Spoilers', facts: [['In flight', 'Roll assistance and speedbrake'], ['On the ground', 'Dump lift so the brakes work']], text: 'Panels on the upper surface of the wing.' },
+      { name: 'Trimmable stabiliser', facts: [['Does', 'Pitch trim by moving the whole tailplane'], ['Set for take-off from', 'The load sheet']], text: 'A wrong setting can prevent a normal rotation.' },
+      { name: 'Rudder limiter', facts: [['Does', 'Reduces rudder travel as speed increases'], ['Protects', 'The fin from overload']], text: 'Full rudder is available only at low speed.' },
+    ],
+  },
+  {
+    id: 'autoflight', title: 'Autoflight modes',
+    note: 'Generic mode names. Each manufacturer uses its own labels and logic.',
+    items: [
+      { name: 'Flight director', facts: [['Does', 'Displays pitch and roll commands'], ['Flown by', 'The pilot or the autopilot']], text: 'Command bars on the primary flight display.' },
+      { name: 'Autopilot', facts: [['Does', 'Moves the controls to follow the commands']], text: 'Engaged and disengaged deliberately, and always monitored.' },
+      { name: 'Autothrust', facts: [['Does', 'Controls engine thrust'], ['Holds', 'Either a speed or a thrust setting']], text: 'What it holds depends on the vertical mode.' },
+      { name: 'Lateral modes', facts: [['Examples', 'Heading select, lateral navigation, localiser']], text: 'They control the roll axis.' },
+      { name: 'Vertical modes', facts: [['Examples', 'Altitude hold, vertical speed, level change, vertical navigation, glide slope']], text: 'They control the pitch axis.' },
+      { name: 'Armed and engaged', facts: [['Engaged', 'Controlling the aircraft now'], ['Armed', 'Waiting for a capture condition']], text: 'Shown differently on the flight mode annunciator.' },
+      { name: 'Autoland redundancy', facts: [['Fail-passive', 'Stays in trim after a failure; landing not completed automatically'], ['Fail-operational', 'Completes the landing after a single failure']], text: 'Determines how low the approach minima may be.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);

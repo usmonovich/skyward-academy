@@ -15,6 +15,8 @@ import { climbCruise, landingPerf, perfLimits, takeoffPerf } from './cpl3';
 import { commercialFuel, icingDepth, jetStreams, massBalanceLarge, planningMonitoring, sigwx, wxDecisions } from './cpl4';
 import { efis, electricalSystems, hydraulics, powerplants, pressurisation } from './cpl5';
 import { commercialHp, commercialLaw, commercialOps, crewComms, emergencyDecisions, opsProcedures, riskManagement } from './cpl6';
+import { buffetMargins, electricsFuel, flightControls, gasTurbines, hydGear, machTuck, pneumatics, shockWaves, sweptWings } from './atpl2';
+import { airData, autoflight, fms, inertial } from './atpl3';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -336,8 +338,8 @@ export const atplTrack: Track = {
   note: 'Required syllabus modules follow the EASA ATPL(A) theoretical knowledge subjects (subject codes shown). FAA ATP knowledge requirements are set out in 14 CFR §61.155 and are structured differently. Modules marked Supplementary are useful airline-training topics, not licensing syllabus material.',
   modules: [
     { id: 'atpl-010', code: '010', title: 'Air Law', lessons: planned('atpl', ['International Conventions and ICAO', 'Rules of the Air and ATS', 'Aerodromes and Search and Rescue']) },
-    { id: 'atpl-021', code: '021', title: 'Aircraft General Knowledge — Airframe, Systems, Powerplant', lessons: planned('atpl', ['Hydraulics and Landing Gear', 'Flight Control Systems', 'Pneumatics and Pressurisation', 'Gas Turbine Engines', 'Electrics and Fuel Systems']) },
-    { id: 'atpl-022', code: '022', title: 'Aircraft General Knowledge — Instrumentation', lessons: planned('atpl', ['Air Data Computers', 'Inertial Reference Systems', 'Autoflight and Flight Directors', 'Flight Management Systems']) },
+    { id: 'atpl-021', code: '021', title: 'Aircraft General Knowledge — Airframe, Systems, Powerplant', lessons: [hydGear, flightControls, pneumatics, gasTurbines, electricsFuel] },
+    { id: 'atpl-022', code: '022', title: 'Aircraft General Knowledge — Instrumentation', lessons: [airData, inertial, autoflight, fms] },
     { id: 'atpl-031', code: '031', title: 'Mass and Balance', lessons: planned('atpl', ['Loading and CG for Transport Aircraft', 'Load and Trim Sheets']) },
     { id: 'atpl-032', code: '032', title: 'Performance', lessons: planned('atpl', ['Performance Class A Take-off', 'V-Speeds and Balanced Field Length', 'En-route and Landing Performance']) },
     { id: 'atpl-033', code: '033', title: 'Flight Planning and Monitoring', lessons: planned('atpl', ['Jet Fuel Planning', 'IFR Flight Plans', 'Point of Equal Time and Point of Safe Return']) },
@@ -346,7 +348,7 @@ export const atplTrack: Track = {
     { id: 'atpl-061', code: '061', title: 'General Navigation', lessons: planned('atpl', ['The Earth and Time', 'Charts for Long-Range Navigation', 'Inertial and Grid Navigation']) },
     { id: 'atpl-062', code: '062', title: 'Radio Navigation', lessons: planned('atpl', ['Radio Wave Propagation', 'ILS, MLS and GLS', 'GNSS and PBN', 'Radar and TCAS']) },
     { id: 'atpl-070', code: '070', title: 'Operational Procedures', lessons: planned('atpl', ['Operator Requirements', 'Long-Range and ETOPS Concepts', 'Special Procedures and Hazards']) },
-    { id: 'atpl-081', code: '081', title: 'Principles of Flight', lessons: [mach, ...planned('atpl', ['Shock Waves and Wave Drag', 'Swept Wings', 'High-Speed Stability and Mach Tuck', 'Buffet Margins'])] },
+    { id: 'atpl-081', code: '081', title: 'Principles of Flight', lessons: [mach, shockWaves, sweptWings, machTuck, buffetMargins] },
     { id: 'atpl-090', code: '090', title: 'Communications', lessons: planned('atpl', ['IFR Communications', 'Communication Failure Procedures']) },
     { id: 'atpl-sup', supplementary: true, title: 'Supplementary Airline Topics', lessons: planned('atpl', ['Threat and Error Management', 'Crew Resource Management', 'Multi-Crew Cooperation Concepts', 'Airline Operational Concepts', 'Advanced Decision-Making']) },
   ],
