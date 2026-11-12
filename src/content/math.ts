@@ -1,6 +1,7 @@
 import type { Track } from '../types';
 import { lesson, mcq, num, order, planned, tf, match } from './q';
 import { angles, arithmetic, estimation, fractions, negatives, percentages, powers, ratios } from './math2';
+import { algebra, decimals, equations, geometry, sciNotation, triangles } from './math3';
 
 const SRC = ['si-brochure', 'phak'];
 
@@ -273,10 +274,10 @@ export const mathTrack: Track = {
   id: 'math', title: 'Mathematics', short: 'Maths', color: '#3a8dde',
   blurb: 'From arithmetic to vectors — the calculation skills every pilot uses.',
   modules: [
-    { id: 'math-numbers', title: 'Numbers and Arithmetic', lessons: [arithmetic, negatives, fractions, percentages, ratios, estimation, ...planned('math', ['Decimals'])] },
-    { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, ...planned('math', ['Scientific Notation'])] },
-    { id: 'math-algebra', title: 'Algebra', lessons: [...planned('math', ['Basic Algebra', 'Equations']), rearrange] },
-    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, pythagoras, trig, ...planned('math', ['Geometry', 'Triangles'])] },
+    { id: 'math-numbers', title: 'Numbers and Arithmetic', lessons: [arithmetic, negatives, fractions, decimals, percentages, ratios, estimation] },
+    { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, sciNotation] },
+    { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange] },
+    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, triangles, pythagoras, trig] },
     { id: 'math-vectors-m', title: 'Vectors and Coordinates', lessons: [vectors, ...planned('math', ['Basic Coordinate Systems'])] },
     { id: 'math-functions', title: 'Functions and Change', lessons: planned('math', ['Graphs and Functions', 'Linear Relationships', 'Quadratic Relationships', 'Rate of Change', 'Introductory Calculus Concepts', 'Basic Statistics']) },
     { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, ...planned('math', ['Navigation Calculations and the 1-in-60 Rule', 'Climb and Descent Gradients', 'Fuel and Endurance Calculations'])] },
