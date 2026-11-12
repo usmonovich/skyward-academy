@@ -80,6 +80,103 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Class G', facts: [['Flights allowed', 'IFR and VFR'], ['Service', 'Flight information service on request'], ['VFR needs', 'No clearance']], text: 'Uncontrolled airspace. Pilots are responsible for their own separation: see and avoid.' },
     ],
   },
+  {
+    id: 'licences', title: 'Pilot licences',
+    note: 'Ages and hours are the ICAO Annex 1 minimums for aeroplanes. Each state sets its own requirements at or above these, and approved integrated courses may have different totals.',
+    items: [
+      { name: 'Student pilot', facts: [['May', 'Fly solo under an instructor\'s authorisation'], ['May not', 'Carry passengers'], ['Needs', 'A medical certificate before solo']], text: 'The starting point. Solo flights are authorised one by one by the instructor.' },
+      { name: 'Private Pilot Licence (PPL)', facts: [['ICAO minimum age', '17'], ['ICAO minimum experience', '40 hours'], ['Privilege', 'Pilot in command, not for payment']], text: 'Allows you to fly yourself and passengers without being paid. Some states require more hours, for example 45 for the European PPL(A).' },
+      { name: 'Commercial Pilot Licence (CPL)', facts: [['ICAO minimum age', '18'], ['ICAO minimum experience', '200 hours (150 on an approved course)'], ['Privilege', 'May be paid to fly']], text: 'The first professional licence. Additional ratings, such as the instrument rating, are usually added.' },
+      { name: 'Airline Transport Pilot Licence (ATPL)', facts: [['ICAO minimum age', '21'], ['ICAO minimum experience', '1,500 hours'], ['Privilege', 'Command of multi-crew airliners']], text: 'The highest licence. Pilots often pass the ATPL theory early and fly as first officers until they have the required hours.' },
+    ],
+  },
+  {
+    id: 'aircraft-types', title: 'Describing an aeroplane',
+    note: 'These are general categories. Many aircraft combine features, and individual types differ.',
+    items: [
+      { name: 'High-wing', facts: [['Wing', 'Above the cabin'], ['View', 'Good downward, restricted upward in turns'], ['Typical of', 'Many training aircraft']], text: 'The fuselage hangs beneath the wing. Easy to get in and out of, and the wing gives shade and shelter.' },
+      { name: 'Low-wing', facts: [['Wing', 'Below the cabin'], ['View', 'Good upward, restricted downward'], ['Typical of', 'Many touring aircraft and airliners']], text: 'The wing is close to the ground, which gives a short, sturdy landing gear.' },
+      { name: 'Piston engine', facts: [['Drives', 'A propeller'], ['Fuel', 'Usually aviation gasoline'], ['Used on', 'Most light aircraft']], text: 'Works like a car engine: pistons moving in cylinders turn a crankshaft.' },
+      { name: 'Turboprop', facts: [['Drives', 'A propeller, through a gas turbine'], ['Fuel', 'Jet fuel'], ['Used on', 'Regional and utility aircraft']], text: 'Efficient at medium speeds and altitudes, and able to use shorter runways than most jets.' },
+      { name: 'Jet (turbofan)', facts: [['Thrust from', 'A fan and a jet of exhaust gas'], ['Fuel', 'Jet fuel'], ['Used on', 'Airliners and business jets']], text: 'Most efficient at high altitude and high speed.' },
+      { name: 'Tricycle gear', facts: [['Third wheel', 'Under the nose'], ['On the ground', 'Sits level, good forward view'], ['Handling', 'Stable when taxiing and landing']], text: 'The usual arrangement on modern training aircraft.' },
+      { name: 'Tailwheel gear', facts: [['Third wheel', 'Under the tail'], ['On the ground', 'Sits nose-high'], ['Handling', 'Needs more skill on take-off and landing']], text: 'Common on older and bush aircraft. Suited to rough strips.' },
+    ],
+  },
+  {
+    id: 'components', title: 'Parts of an aeroplane',
+    note: 'A general layout for a conventional light aeroplane. Details vary by type.',
+    items: [
+      { name: 'Fuselage', facts: [['Job', 'Carries crew, passengers and load'], ['Joins', 'Wings, tail, gear and engine']], text: 'The main body of the aircraft.' },
+      { name: 'Wings', facts: [['Job', 'Produce lift'], ['Carry', 'Ailerons, flaps and usually the fuel tanks']], text: 'Their shape and area largely decide how the aircraft performs.' },
+      { name: 'Ailerons', facts: [['Where', 'Outer trailing edge of each wing'], ['Control', 'Roll'], ['Worked by', 'Control column, left and right']], text: 'One goes up as the other goes down.' },
+      { name: 'Flaps', facts: [['Where', 'Inner trailing edge of each wing'], ['Effect', 'More lift and more drag'], ['Used for', 'Take-off and landing']], text: 'Both move down together.' },
+      { name: 'Horizontal stabiliser and elevator', facts: [['Where', 'Tail'], ['Control', 'Pitch'], ['Worked by', 'Control column, forward and back']], text: 'The fixed stabiliser gives pitch stability; the hinged elevator changes pitch.' },
+      { name: 'Fin and rudder', facts: [['Where', 'Tail'], ['Control', 'Yaw'], ['Worked by', 'Rudder pedals']], text: 'The fixed fin gives directional stability; the hinged rudder yaws the nose.' },
+      { name: 'Landing gear', facts: [['Job', 'Supports the aircraft on the ground'], ['Includes', 'Wheels, brakes and shock absorbers']], text: 'Fixed on most trainers; retractable on faster aircraft to reduce drag.' },
+      { name: 'Powerplant', facts: [['Consists of', 'Engine and propeller'], ['Produces', 'Thrust']], text: 'On most light aircraft the engine also drives the alternator and other accessories.' },
+    ],
+  },
+  {
+    id: 'six-pack', title: 'The six basic flight instruments',
+    note: 'The standard arrangement in two rows of three. Electronic displays present the same information in a similar layout.',
+    items: [
+      { name: 'Airspeed indicator', facts: [['Position', 'Top left'], ['Shows', 'Indicated airspeed'], ['Source', 'Pitot and static pressure']], text: 'Coloured arcs mark the safe speed ranges.' },
+      { name: 'Attitude indicator', facts: [['Position', 'Top centre'], ['Shows', 'Pitch and bank'], ['Source', 'Gyroscope']], text: 'An artificial horizon: the central reference when the real horizon cannot be seen.' },
+      { name: 'Altimeter', facts: [['Position', 'Top right'], ['Shows', 'Altitude'], ['Source', 'Static pressure']], text: 'Must be set to the correct pressure to read correctly.' },
+      { name: 'Turn coordinator', facts: [['Position', 'Bottom left'], ['Shows', 'Rate of turn and balance'], ['Source', 'Gyroscope, with a balance ball']], text: 'The ball shows whether the turn is balanced.' },
+      { name: 'Heading indicator', facts: [['Position', 'Bottom centre'], ['Shows', 'Heading'], ['Source', 'Gyroscope']], text: 'Steadier than the compass, but must be aligned with it regularly.' },
+      { name: 'Vertical speed indicator', facts: [['Position', 'Bottom right'], ['Shows', 'Rate of climb or descent'], ['Source', 'Static pressure']], text: 'Reads in feet per minute, with a short lag.' },
+    ],
+  },
+  {
+    id: 'imsafe', title: 'The IMSAFE check',
+    note: 'A personal fitness check from FAA guidance. Legal limits on alcohol, medication and rest are set separately by regulation.',
+    items: [
+      { name: 'I — Illness', facts: [['Ask', 'Do I have any symptoms?'], ['Risk', 'Reduced attention; blocked ears and sinuses']], text: 'Even a cold can be painful and distracting with changes of pressure.' },
+      { name: 'M — Medication', facts: [['Ask', 'Have I taken any medicine?'], ['Risk', 'Drowsiness and impaired judgement']], text: 'Includes medicines bought without a prescription. Ask an aviation medical examiner if unsure.' },
+      { name: 'S — Stress', facts: [['Ask', 'Am I under pressure from work, money or family?'], ['Risk', 'Distraction and poor decisions']], text: 'Stress narrows attention at the moment it is most needed.' },
+      { name: 'A — Alcohol', facts: [['Ask', 'Have I been drinking recently?'], ['Risk', 'Impaired coordination and judgement']], text: 'Effects last longer than many people expect. Regulations set minimum times and limits.' },
+      { name: 'F — Fatigue', facts: [['Ask', 'Am I properly rested?'], ['Risk', 'Slow reactions and missed items']], text: 'Fatigue is hard to notice in yourself.' },
+      { name: 'E — Emotion', facts: [['Ask', 'Am I upset or angry?'], ['Risk', 'Attention is elsewhere']], text: 'A strong emotional event is a reason to stay on the ground.' },
+    ],
+  },
+  {
+    id: 'stability', title: 'Kinds of stability',
+    note: 'Simplified descriptions of the initial tendency after a disturbance.',
+    items: [
+      { name: 'Positive static stability', facts: [['After a disturbance', 'Tends to return'], ['Like', 'A ball in a bowl']], text: 'The design aim for training aircraft.' },
+      { name: 'Neutral static stability', facts: [['After a disturbance', 'Stays where it is put'], ['Like', 'A ball on a flat table']], text: 'The aircraft neither returns nor diverges.' },
+      { name: 'Negative static stability', facts: [['After a disturbance', 'Moves further away'], ['Like', 'A ball on a dome']], text: 'Needs constant correction and can become uncontrollable.' },
+      { name: 'Longitudinal (pitch)', facts: [['Provided by', 'The tailplane'], ['Reduced by', 'An aft centre of gravity']], text: 'The most important for safe loading.' },
+      { name: 'Lateral (roll)', facts: [['Provided by', 'Wing dihedral'], ['Also helped by', 'A high wing position']], text: 'Tends to bring the wings back to level.' },
+      { name: 'Directional (yaw)', facts: [['Provided by', 'The vertical fin'], ['Works like', 'A weathervane']], text: 'Keeps the nose pointing into the airflow.' },
+    ],
+  },
+  {
+    id: 'asi-arcs', title: 'Airspeed indicator markings',
+    note: 'The speeds themselves are specific to each aircraft type and are given in its flight manual.',
+    items: [
+      { name: 'White arc', facts: [['Meaning', 'Flap operating range'], ['Lower end', 'Stall speed in landing configuration'], ['Upper end', 'Maximum speed with flaps extended']], text: 'Approaches and landings are flown in this range.' },
+      { name: 'Green arc', facts: [['Meaning', 'Normal operating range'], ['Lower end', 'Stall speed with flaps up'], ['Upper end', 'Maximum structural cruising speed']], text: 'Most flying is done here.' },
+      { name: 'Yellow arc', facts: [['Meaning', 'Caution range'], ['Use', 'Smooth air only']], text: 'Turbulence at these speeds could overstress the aircraft.' },
+      { name: 'Red line', facts: [['Meaning', 'Never-exceed speed'], ['Use', 'Must not be exceeded']], text: 'Beyond it, structural damage or failure may occur.' },
+    ],
+  },
+  {
+    id: 'radio-words', title: 'Standard radio words',
+    note: 'Common core phraseology based on ICAO radiotelephony guidance. States publish their own variations.',
+    items: [
+      { name: 'Affirm', facts: [['Means', 'Yes']], text: 'Used instead of "yes", which can be lost in noise.' },
+      { name: 'Negative', facts: [['Means', 'No, or permission not granted']], text: 'Clear and hard to mishear.' },
+      { name: 'Roger', facts: [['Means', 'I have received all of your last transmission'], ['Does not mean', 'Yes, or I will comply']], text: 'Never use it in place of a readback.' },
+      { name: 'Wilco', facts: [['Means', 'I understand your message and will comply']], text: 'Short for "will comply".' },
+      { name: 'Say again', facts: [['Means', 'Repeat all, or part, of your last transmission']], text: 'Use it whenever you are in doubt.' },
+      { name: 'Standby', facts: [['Means', 'Wait and I will call you']], text: 'No reply is expected until you are called.' },
+      { name: 'Unable', facts: [['Means', 'I cannot comply with your request or instruction']], text: 'Normally followed by a reason.' },
+      { name: 'Mayday / Pan-Pan', facts: [['Mayday', 'Distress: grave and imminent danger'], ['Pan-Pan', 'Urgency: a serious situation, not yet distress']], text: 'Spoken three times at the start of the call.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);

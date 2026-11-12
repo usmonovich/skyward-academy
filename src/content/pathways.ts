@@ -3,6 +3,8 @@ import { lesson, match, mcq, num, order, planned, scenario, tf } from './q';
 import { mathTrack } from './math';
 import { physicsTrack } from './physics';
 import { airspace, clouds, fog, metar, rules, storms } from './ppl2';
+import { cockpit, components, identification, introAviation, safetyCulture, terminology } from './ppl3';
+import { basicAero, basicMet, basicNav, commsIntro, instrumentsIntro, planningIntro, stability } from './ppl4';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -192,9 +194,9 @@ export const pplTrack: Track = {
   blurb: 'From your first look at an aircraft to full PPL theory and exam practice.',
   note: 'Subject list follows the nine EASA PPL(A) theoretical knowledge subjects (Part-FCL, AMC1 FCL.210/215). The FAA Private Pilot knowledge areas (14 CFR §61.105) cover similar material in a single knowledge test. ICAO Annex 1 sets the international minimum standard; each State publishes its own syllabus.',
   modules: [
-    { id: 'ppl-a-intro', phase: 'Phase A — Before Flight School', title: 'Introduction to Aviation', lessons: planned('ppl', ['Introduction to Aviation', 'Aircraft Identification', 'Aviation Terminology', 'Basic Aircraft Components', 'Cockpit Familiarisation', 'Aviation Safety Culture']) },
+    { id: 'ppl-a-intro', phase: 'Phase A — Before Flight School', title: 'Introduction to Aviation', lessons: [introAviation, identification, terminology, components, cockpit, safetyCulture] },
     { id: 'ppl-a-science', phase: 'Phase A — Before Flight School', title: 'Science for Pilots (from the Pre-Flight Academy)', lessons: [pick(mathTrack, 'math-units'), pick(mathTrack, 'math-dst'), pick(physicsTrack, 'phys-pressure'), pick(physicsTrack, 'phys-lift')] },
-    { id: 'ppl-a-pof', phase: 'Phase A — Before Flight School', title: 'How Aircraft Fly', lessons: [controls, forces, ...planned('ppl', ['Basic Aerodynamics', 'Stability', 'Introduction to Aircraft Instruments', 'Basic Meteorology', 'Basic Navigation', 'Communication Fundamentals', 'Introduction to Flight Planning'])] },
+    { id: 'ppl-a-pof', phase: 'Phase A — Before Flight School', title: 'How Aircraft Fly', lessons: [controls, forces, basicAero, stability, instrumentsIntro, basicMet, basicNav, commsIntro, planningIntro] },
     { id: 'ppl-b-law', phase: 'Phase B — PPL Theory and Exam Preparation', code: '010', title: 'Air Law', lessons: [rules, airspace, ...planned('ppl', ['Licensing and Medical Requirements', 'Aerodrome Markings and Signals'])] },
     { id: 'ppl-b-hp', phase: 'Phase B — PPL Theory and Exam Preparation', code: '040', title: 'Human Performance and Limitations', lessons: planned('ppl', ['Hypoxia and the Atmosphere', 'Vision and Illusions', 'Fatigue, Stress and Fitness to Fly', 'Decision-Making and Situational Awareness']) },
     { id: 'ppl-b-met', phase: 'Phase B — PPL Theory and Exam Preparation', code: '050', title: 'Meteorology', lessons: [clouds, fog, storms, metar, ...planned('ppl', ['The Atmosphere in Depth', 'Fronts and Air Masses', 'Wind and Turbulence'])] },
