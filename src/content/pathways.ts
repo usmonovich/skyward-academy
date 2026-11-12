@@ -12,6 +12,9 @@ import { emergencies, fire, fuelPlanning, preflight, takeoffLanding, vfrPlanning
 import { charts, compass, deadReckoning, gnss, radioNav } from './ppl9';
 import { asymmetric, greatCircles, highLift, oneInSixtyPractice, pbn, polars, stabilityControl, vorDmeIls } from './cpl2';
 import { climbCruise, landingPerf, perfLimits, takeoffPerf } from './cpl3';
+import { commercialFuel, icingDepth, jetStreams, massBalanceLarge, planningMonitoring, sigwx, wxDecisions } from './cpl4';
+import { efis, electricalSystems, hydraulics, powerplants, pressurisation } from './cpl5';
+import { commercialHp, commercialLaw, commercialOps, crewComms, emergencyDecisions, opsProcedures, riskManagement } from './cpl6';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -271,11 +274,11 @@ export const cplTrack: Track = {
     { id: 'cpl-nav', title: 'Advanced Navigation', lessons: [windCorrection, oneInSixtyPractice, greatCircles, vorDmeIls, pbn] },
     { id: 'cpl-aero', title: 'Advanced Aerodynamics', lessons: [polars, stabilityControl, highLift, asymmetric] },
     { id: 'cpl-perf', title: 'Aircraft Performance and Limitations', lessons: [takeoffPerf, climbCruise, landingPerf, perfLimits] },
-    { id: 'cpl-plan', title: 'Flight and Fuel Planning', lessons: planned('cpl', ['Commercial Fuel Planning', 'Flight Planning and Monitoring', 'Mass and Balance for Larger Aircraft']) },
-    { id: 'cpl-met', title: 'Advanced Meteorology', lessons: planned('cpl', ['Upper Winds and Jet Streams', 'Icing in Depth', 'Significant Weather Charts', 'Weather-Related Decisions']) },
-    { id: 'cpl-systems', title: 'Aircraft Systems and Powerplants', lessons: planned('cpl', ['Powerplants', 'Electrical Systems', 'Hydraulic Systems', 'Flight Instruments and EFIS', 'Pressurisation Basics']) },
-    { id: 'cpl-human', title: 'Human Performance and Crew Communication', lessons: planned('cpl', ['Human Performance in Commercial Operations', 'Crew Communication', 'Risk Management', 'Emergency Decision-Making']) },
-    { id: 'cpl-ops', title: 'Air Law and Commercial Operations', lessons: planned('cpl', ['Air Law for Commercial Pilots', 'Operational Procedures', 'Commercial Flight Operations']) },
+    { id: 'cpl-plan', title: 'Flight and Fuel Planning', lessons: [commercialFuel, planningMonitoring, massBalanceLarge] },
+    { id: 'cpl-met', title: 'Advanced Meteorology', lessons: [jetStreams, icingDepth, sigwx, wxDecisions] },
+    { id: 'cpl-systems', title: 'Aircraft Systems and Powerplants', lessons: [powerplants, electricalSystems, hydraulics, efis, pressurisation] },
+    { id: 'cpl-human', title: 'Human Performance and Crew Communication', lessons: [commercialHp, crewComms, riskManagement, emergencyDecisions] },
+    { id: 'cpl-ops', title: 'Air Law and Commercial Operations', lessons: [commercialLaw, opsProcedures, commercialOps] },
   ],
 };
 

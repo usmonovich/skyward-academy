@@ -411,6 +411,99 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Fly-over waypoint', facts: [['Turn', 'Begins after passing overhead']], text: 'Used where an early turn would leave protected airspace.' },
     ],
   },
+  {
+    id: 'jetstreams', title: 'Jet streams and upper winds',
+    note: 'Typical values, written from memory. Actual positions and speeds come from the charts for the day.',
+    items: [
+      { name: 'Polar front jet', facts: [['Typical level', 'Around FL300'], ['Direction', 'Westerly'], ['Position', 'Above the polar front; moves with it']], text: 'The jet most often met on mid-latitude routes.' },
+      { name: 'Subtropical jet', facts: [['Typical level', 'Around FL400'], ['Direction', 'Westerly'], ['Position', 'Near 30° latitude']], text: 'Steadier in position than the polar front jet.' },
+      { name: 'Jet core', facts: [['Minimum speed for a jet', '60 kt'], ['Core speeds', 'Often over 100 kt']], text: 'A narrow ribbon, far longer than it is wide or deep.' },
+      { name: 'Clear-air turbulence', facts: [['Cause', 'Wind shear'], ['Most likely', 'On the cold (polar) side of the core']], text: 'No visual warning. Slow down and change level or track.' },
+      { name: 'Thermal wind', facts: [['Cause', 'Horizontal temperature difference'], ['Effect', 'Wind changes with height']], text: 'Explains why westerlies strengthen up to the tropopause.' },
+    ],
+  },
+  {
+    id: 'wx-decisions', title: 'Weather threats and responses',
+    note: 'General principles. Operator procedures and type-specific techniques take priority.',
+    items: [
+      { name: 'Thunderstorm on route', facts: [['Threat', 'Turbulence, hail, lightning, windshear'], ['Response', 'Avoid by at least 20 miles; deviate early, upwind']], text: 'Never beneath, and not through a narrow gap.' },
+      { name: 'Windshear on approach', facts: [['Sign', 'Sudden airspeed and sink-rate changes'], ['Response', 'Go around: maximum thrust, recovery pitch']], text: 'Do not change configuration until clear.' },
+      { name: 'Icing beyond capability', facts: [['Sign', 'Ice building despite protection'], ['Response', 'Leave the conditions: climb, descend or turn']], text: 'Severe icing and freezing rain are outside certification.' },
+      { name: 'Destination below minima', facts: [['Threat', 'Pressure to "have a look"'], ['Response', 'Hold if fuel allows, or divert']], text: 'Minima are limits.' },
+      { name: 'Commercial pressure', facts: [['Source', 'Schedule, passengers, cost'], ['Response', 'Decide on facts; use published limits']], text: 'A threat like any other: name it in the briefing.' },
+    ],
+  },
+  {
+    id: 'efis', title: 'Electronic flight displays',
+    note: 'A generic description. Layouts and symbols differ between manufacturers.',
+    items: [
+      { name: 'Primary flight display', facts: [['Centre', 'Attitude'], ['Left', 'Airspeed tape'], ['Right', 'Altitude and vertical speed'], ['Bottom', 'Heading']], text: 'The basic T on one screen.' },
+      { name: 'Navigation display', facts: [['Shows', 'Route, waypoints, aids, weather radar, traffic']], text: 'The crew\'s shared picture of the situation ahead.' },
+      { name: 'Flight mode annunciator', facts: [['Where', 'Top of the primary flight display'], ['Shows', 'Engaged and armed automation modes']], text: 'The reliable statement of what the automation is doing.' },
+      { name: 'Air data computer', facts: [['Inputs', 'Pitot pressure, static pressure, temperature'], ['Outputs', 'Airspeed, altitude, vertical speed, Mach, true airspeed']], text: 'Replaces the direct plumbing of mechanical instruments.' },
+      { name: 'AHRS or IRS', facts: [['Provides', 'Attitude and heading'], ['Uses', 'Solid-state motion sensors']], text: 'No spinning gyros to run down.' },
+      { name: 'Standby instruments', facts: [['Power', 'Independent'], ['Use', 'To resolve a disagreement or survive a failure']], text: 'Attitude, airspeed and altitude at minimum.' },
+    ],
+  },
+  {
+    id: 'commercial-hf', title: 'Human factors in commercial flying',
+    note: 'General descriptions. Limits and permitted countermeasures are set by the operator and the authority.',
+    items: [
+      { name: 'Circadian rhythm', facts: [['Cycle', 'About 24 hours'], ['Low point', 'About 02:00 to 06:00 body-clock time']], text: 'Performance is poorest in the window of circadian low.' },
+      { name: 'Jet lag', facts: [['Cause', 'Body clock out of step with local time'], ['Adjustment', 'About an hour or so per day']], text: 'Sleep, appetite and alertness are all displaced.' },
+      { name: 'Sleep inertia', facts: [['What', 'Grogginess after waking'], ['Lasts', 'Several minutes or more']], text: 'Plan recovery time after any in-flight rest.' },
+      { name: 'Automation complacency', facts: [['What', 'Reduced monitoring of a reliable system'], ['Defence', 'Active cross-checking and call-outs']], text: 'People are poor at watching for rare failures.' },
+      { name: 'Startle', facts: [['What', 'Brief disruption after a sudden surprise'], ['Defence', 'Pause, fly the aircraft, then diagnose']], text: 'The first instinctive input may be wrong.' },
+    ],
+  },
+  {
+    id: 'crm', title: 'Crew resource management',
+    note: 'Common concepts. Each operator defines its own calls and procedures.',
+    items: [
+      { name: 'Pilot flying', facts: [['Task', 'Controls the flight path']], text: 'Also directs the automation.' },
+      { name: 'Pilot monitoring', facts: [['Task', 'Monitors the flight path and the pilot flying'], ['Also', 'Checklists and radio']], text: 'An active duty, not a rest.' },
+      { name: 'Closed-loop communication', facts: [['Steps', 'Statement, readback, confirmation']], text: 'The sender checks that the message was received correctly.' },
+      { name: 'Briefing', facts: [['Purpose', 'A shared plan'], ['Includes', 'Threats and what to do if things go wrong']], text: 'Both pilots then expect the same sequence.' },
+      { name: 'Sterile cockpit', facts: [['Means', 'No non-essential talk in critical phases'], ['Commonly', 'Below 10,000 ft']], text: 'Attention stays on the operation.' },
+      { name: 'PACE', facts: [['P', 'Probe'], ['A', 'Alert'], ['C', 'Challenge'], ['E', 'Emergency action']], text: 'A graded way for any crew member to raise a concern.' },
+    ],
+  },
+  {
+    id: 'fordec', title: 'The FORDEC model',
+    note: 'One of several structured decision models used by operators.',
+    items: [
+      { name: 'F — Facts', facts: [['Ask', 'What is actually happening?']], text: 'Gather information before judging.' },
+      { name: 'O — Options', facts: [['Ask', 'What could we do?']], text: 'List more than one.' },
+      { name: 'R — Risks and benefits', facts: [['Ask', 'What speaks for and against each option?']], text: 'Consider weather, fuel, runway, facilities.' },
+      { name: 'D — Decision', facts: [['Ask', 'Which option do we choose?']], text: 'The commander decides, with the crew\'s input.' },
+      { name: 'E — Execution', facts: [['Ask', 'Who does what, when and how?']], text: 'Assign the tasks clearly.' },
+      { name: 'C — Check', facts: [['Ask', 'Is it working? Has anything changed?']], text: 'Loop back to the facts if it has.' },
+    ],
+  },
+  {
+    id: 'cpl-requirements', title: 'Commercial licence requirements',
+    note: 'European items are from the original text of Regulation (EU) No 1178/2011; United States items are from 14 CFR Part 61, read on 12 Nov 2026. The ICAO hours are from memory. Check current regulations of your own authority.',
+    items: [
+      { name: 'Minimum age', facts: [['Europe (FCL.300)', '18'], ['United States (§61.123)', '18']], text: 'One year more than for a private licence.' },
+      { name: 'United States experience', facts: [['Total (§61.129)', 'At least 250 hours'], ['As pilot in command', 'At least 100 hours']], text: 'For the single-engine aeroplane commercial certificate.' },
+      { name: 'ICAO experience', facts: [['Annex 1', '200 hours'], ['On an approved course', '150 hours']], text: 'States set their own requirements at or above this.' },
+      { name: 'European privileges (FCL.305)', facts: [['Commercial air transport', 'Pilot in command of single-pilot aircraft; co-pilot'], ['Other operations', 'Pilot in command or co-pilot of any aircraft']], text: 'Plus all the privileges of a private licence.' },
+      { name: 'European Class 1 medical', facts: [['Normally', 'Valid 12 months'], ['Reduced to 6 months', 'Aged 60 or over; or 40 or over in single-pilot passenger commercial air transport']], text: 'Required to exercise commercial privileges.' },
+      { name: 'United States second-class medical', facts: [['Validity', '12 calendar months']], text: 'Required for commercial pilot privileges.' },
+    ],
+  },
+  {
+    id: 'ops-docs', title: 'Operating documents',
+    note: 'General descriptions of documents used in commercial operations.',
+    items: [
+      { name: 'Operations manual', facts: [['Written by', 'The operator'], ['Contains', 'Procedures, limits and policies']], text: 'The crew must follow it.' },
+      { name: 'Minimum equipment list', facts: [['States', 'What may be inoperative at dispatch'], ['Based on', 'The manufacturer\'s master list']], text: 'Never less restrictive than the master list.' },
+      { name: 'Technical log', facts: [['Records', 'Defects, rectification, fuel and oil uplift'], ['Signed by', 'Engineers and the commander']], text: 'Shows the aircraft\'s serviceability.' },
+      { name: 'Load sheet', facts: [['Shows', 'Masses and centre of gravity'], ['Accepted by', 'The commander']], text: 'For both take-off and landing.' },
+      { name: 'Operational flight plan', facts: [['Shows', 'Route, times and fuel per leg'], ['Used', 'To monitor progress in flight']], text: 'Actual values are recorded beside planned ones.' },
+      { name: 'Notification to the commander', facts: [['Lists', 'Dangerous goods on board and their location']], text: 'Needed to handle an in-flight emergency correctly.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);
