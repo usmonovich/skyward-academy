@@ -7,6 +7,9 @@ import { cockpit, components, identification, introAviation, safetyCulture, term
 import { basicAero, basicMet, basicNav, commsIntro, instrumentsIntro, planningIntro, stability } from './ppl4';
 import { atmosphereDepth, decisionMaking, fitness, fronts, hypoxia, vision, windTurbulence } from './ppl5';
 import { airframe, fuelElectrical, gyroInstruments, pistonEngines, pitotStatic, polar, propellers, stalling } from './ppl6';
+import { aerodromeMarkings, distressUrgency, licensing, phraseology, rtBasics } from './ppl7';
+import { emergencies, fire, fuelPlanning, preflight, takeoffLanding, vfrPlanning, wake } from './ppl8';
+import { charts, compass, deadReckoning, gnss, radioNav } from './ppl9';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -199,15 +202,15 @@ export const pplTrack: Track = {
     { id: 'ppl-a-intro', phase: 'Phase A — Before Flight School', title: 'Introduction to Aviation', lessons: [introAviation, identification, terminology, components, cockpit, safetyCulture] },
     { id: 'ppl-a-science', phase: 'Phase A — Before Flight School', title: 'Science for Pilots (from the Pre-Flight Academy)', lessons: [pick(mathTrack, 'math-units'), pick(mathTrack, 'math-dst'), pick(physicsTrack, 'phys-pressure'), pick(physicsTrack, 'phys-lift')] },
     { id: 'ppl-a-pof', phase: 'Phase A — Before Flight School', title: 'How Aircraft Fly', lessons: [controls, forces, basicAero, stability, instrumentsIntro, basicMet, basicNav, commsIntro, planningIntro] },
-    { id: 'ppl-b-law', phase: 'Phase B — PPL Theory and Exam Preparation', code: '010', title: 'Air Law', lessons: [rules, airspace, ...planned('ppl', ['Licensing and Medical Requirements', 'Aerodrome Markings and Signals'])] },
+    { id: 'ppl-b-law', phase: 'Phase B — PPL Theory and Exam Preparation', code: '010', title: 'Air Law', lessons: [rules, airspace, licensing, aerodromeMarkings] },
     { id: 'ppl-b-hp', phase: 'Phase B — PPL Theory and Exam Preparation', code: '040', title: 'Human Performance and Limitations', lessons: [hypoxia, vision, fitness, decisionMaking] },
     { id: 'ppl-b-met', phase: 'Phase B — PPL Theory and Exam Preparation', code: '050', title: 'Meteorology', lessons: [clouds, fog, storms, metar, atmosphereDepth, fronts, windTurbulence] },
-    { id: 'ppl-b-com', phase: 'Phase B — PPL Theory and Exam Preparation', code: '090', title: 'Communications', lessons: planned('ppl', ['VFR Radiotelephony Basics', 'Standard Phraseology', 'Distress and Urgency Calls']) },
+    { id: 'ppl-b-com', phase: 'Phase B — PPL Theory and Exam Preparation', code: '090', title: 'Communications', lessons: [rtBasics, phraseology, distressUrgency] },
     { id: 'ppl-b-pof', phase: 'Phase B — PPL Theory and Exam Preparation', code: '080', title: 'Principles of Flight', lessons: [polar, stalling, propellers] },
-    { id: 'ppl-b-ops', phase: 'Phase B — PPL Theory and Exam Preparation', code: '070', title: 'Operational Procedures', lessons: planned('ppl', ['Wake Turbulence', 'Emergency Procedures', 'Practical Pre-flight Procedures', 'Fire and Smoke']) },
-    { id: 'ppl-b-fpp', phase: 'Phase B — PPL Theory and Exam Preparation', code: '030', title: 'Flight Performance and Planning', lessons: [massBalance, ...planned('ppl', ['Take-off and Landing Performance', 'Fuel Planning', 'VFR Flight Planning'])] },
+    { id: 'ppl-b-ops', phase: 'Phase B — PPL Theory and Exam Preparation', code: '070', title: 'Operational Procedures', lessons: [wake, emergencies, preflight, fire] },
+    { id: 'ppl-b-fpp', phase: 'Phase B — PPL Theory and Exam Preparation', code: '030', title: 'Flight Performance and Planning', lessons: [massBalance, takeoffLanding, fuelPlanning, vfrPlanning] },
     { id: 'ppl-b-agk', phase: 'Phase B — PPL Theory and Exam Preparation', code: '020', title: 'Aircraft General Knowledge', lessons: [altimetry, airframe, pistonEngines, fuelElectrical, pitotStatic, gyroInstruments] },
-    { id: 'ppl-b-nav', phase: 'Phase B — PPL Theory and Exam Preparation', code: '060', title: 'Navigation', lessons: planned('ppl', ['Charts and Projections', 'Magnetism and the Compass', 'Dead Reckoning', 'Radio Navigation Fundamentals', 'GNSS Basics']) },
+    { id: 'ppl-b-nav', phase: 'Phase B — PPL Theory and Exam Preparation', code: '060', title: 'Navigation', lessons: [charts, compass, deadReckoning, radioNav, gnss] },
   ],
 };
 
