@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 371 unit tests
+npm test           # 401 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,14 +100,14 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (371, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (401, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
 - Guest start and profile creation; dashboard; every page at desktop and phone width with no horizontal overflow.
 - Pressure lesson end to end: experiment, tutor, practice, a failed assessment (mission stays locked), a passed one, mission, rewards, next lesson unlocked, progress saved.
-- All 167 lesson assessments answered to 100% through the real controls (all five question types).
-- All 169 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
+- All 182 lesson assessments answered to 100% through the real controls (all five question types).
+- All 184 missions flown to completion by a scripted autopilot using real keyboard events; collision failure; decisions answered right and wrong; assisted mode with landing help; touch drag steering and thrust buttons.
 - Aviation English: all quiz exercises, phonetic alphabet, numbers (text alternative), listening (transcript alternative), and the ATC simulator with typed transmissions (wrong, "say again", and correct readbacks).
 - Dictionary, flashcards with all four grades, formula calculator, aircraft pages, cockpit explorer, mistake queue and revision.
 - Exam Center in examination and practice mode, bookmarking, unanswered-question warning, results by topic, history.
@@ -136,6 +136,8 @@ The first CPL batch (advanced navigation, aerodynamics and performance) was writ
 
 For the final CPL batch, on 12 Nov 2026: 14 CFR §§61.123 (age 18), 61.129 (250 hours), 61.133 (privileges) and 61.23 (second-class medical, 12 months), and the original text of Regulation (EU) No 1178/2011 for FCL.300 (age 18), FCL.305 (CPL privileges) and MED.A.045 (Class 1 validity of 12 months, reduced to 6). Everything else in that batch is from memory and not verified, including the commercial fuel policy figures (which predate the 2022 European fuel-scheme rules), minimum fuel and MAYDAY FUEL wording, jet stream levels, icing temperature ranges, the 8,000 ft cabin altitude, the sterile cockpit boundary, and the statements about air operator certificates and minimum equipment lists.
 
+
+The second ATPL batch (mass and balance, performance, flight planning, human performance and meteorology) was written from memory and is not verified. Figures to check there include the Class A take-off segment gradients and the 0.8% twin-engine margin, the V2 and V_R factors, the 60%, 70% and 15% landing distance factors, the 1,000 ft and 2,000 ft en-route clearances, the ICAO flight plan codes and timing rules, the times of useful consciousness, the sleep credit model, and the thresholds for tropical revolving storms.
 The first ATPL batch (principles of flight, airframe and systems, instrumentation) was written from memory of standard references and is not verified. Figures to check there include the idealised sweep and Mach relations, the 1.3 g buffet margin, the 0.80 kg/L jet fuel density and the −47 °C and −40 °C freezing points, the total-to-static temperature formula, the 84.4-minute Schuler period, the 2 NM per hour inertial drift limit, the 28-day AIRAC cycle, and the definitions of fail-passive and fail-operational autoland.
 
 On 11 November 2026 the figures in the six PPL meteorology and air-law lessons were checked against public official texts.
@@ -163,17 +165,17 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 
 ## Feature status
 
-**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 167 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 169 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (115 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with 17 exercises across all eight stages (nine quizzes, five listening exercises, alphabet and numbers trainers) and 12 ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
+**Working:** dashboard with career map, six destinations, guest and local profiles with guest migration, 182 complete lessons with interactive demonstrations, assessments with an 80% pass mark, 184 flight missions, hangar with six aircraft and liveries, XP, ranks, 17 achievements, daily challenge, study plan, heatmap, glossary (54 terms), flashcards (SM-2), formula library (125 formulas with calculators), aircraft encyclopedia, cockpit explorer, revision centre, Exam Center, Aviation English with 17 exercises across all eight stages (nine quizzes, five listening exercises, alphabet and numbers trainers) and 12 ATC scenarios, curriculum tutor, content admin, settings and accessibility options, export, import and delete.
 
 **Partial:**
 
-- **Curriculum.** 167 lessons are complete: 30 mathematics, 36 physics, 55 PPL and 32 CPL (all four tracks are complete), 14 ATPL. The other 35 syllabus lessons are titles marked "In development". Aviation English now has exercises at every stage, including Level 4, 5 and 6 preparation; the app gives training feedback only and does not assess an ICAO level.
+- **Curriculum.** 182 lessons are complete: 30 mathematics, 36 physics, 55 PPL and 32 CPL (all four tracks are complete), 29 ATPL. The other 20 syllabus lessons are titles marked "In development". Aviation English now has exercises at every stage, including Level 4, 5 and 6 preparation; the app gives training feedback only and does not assess an ICAO level.
 - **Content review.** Every lesson was drafted with AI assistance and is labelled as pending expert review. No qualified instructor has checked it.
 - **Sources.** Four entries in the source register were read and are marked verified (see Content verification). The rest were written from memory and are marked "Not yet verified".
 - **Accounts.** Email accounts and cross-device sync are implemented with Supabase but untested end to end (see Cloud accounts and sync). Without configuration, profiles live in the browser.
 - **Admin.** No access control. Lessons, glossary terms and missions can be edited; new subjects, modules, formulas and uploaded illustrations cannot.
 - **ATC controller.** A rule-based dialogue engine, not a generative model. Radio-failure procedures are not covered.
 - **Speaking feedback.** Based on the transcript only. Pronunciation is not assessed.
-- **Ranks.** The top rank is reachable well before finishing the current 167 lessons; thresholds need rescaling as lessons are added.
+- **Ranks.** The top rank is reachable well before finishing the current 182 lessons; thresholds need rescaling as lessons are added.
 
 **Not built:** background music and ambient airport audio, recorded human voices, image identification and diagram-labelling question types, short written answers, drag-and-drop (matching and ordering use buttons and menus), server database, analytics service.

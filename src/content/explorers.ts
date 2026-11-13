@@ -541,6 +541,54 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Autoland redundancy', facts: [['Fail-passive', 'Stays in trim after a failure; landing not completed automatically'], ['Fail-operational', 'Completes the landing after a single failure']], text: 'Determines how low the approach minima may be.' },
     ],
   },
+  {
+    id: 'flight-plan', title: 'The ICAO flight plan form',
+    note: 'Item numbers and codes as recalled from the ICAO flight plan form. Regional rules add detail.',
+    items: [
+      { name: 'Item 7 — Aircraft identification', facts: [['Contains', 'Call sign or registration']], text: 'The identity used on the radio.' },
+      { name: 'Item 8 — Flight rules and type', facts: [['I / V', 'IFR / VFR'], ['Y', 'IFR first, then VFR'], ['Z', 'VFR first, then IFR']], text: 'Followed by the type of flight, such as scheduled or general aviation.' },
+      { name: 'Item 9 — Aircraft and wake category', facts: [['L / M', 'Light / Medium'], ['H / J', 'Heavy / Super']], text: 'Number and type of aircraft, then the wake turbulence category.' },
+      { name: 'Item 13 — Departure', facts: [['Contains', 'Departure aerodrome and estimated off-block time']], text: 'Time is in UTC.' },
+      { name: 'Item 15 — Speed, level and route', facts: [['N0450', '450 kt'], ['M082', 'Mach 0.82'], ['F350', 'Flight level 350'], ['A050', '5,000 ft altitude']], text: 'Followed by the route itself.' },
+      { name: 'Item 16 — Destination', facts: [['Contains', 'Destination, total elapsed time, alternates']], text: 'Elapsed time is hours and minutes.' },
+      { name: 'Item 19 — Supplementary', facts: [['Contains', 'Endurance, persons on board, emergency equipment']], text: 'Held for search and rescue; not normally transmitted with the plan.' },
+    ],
+  },
+  {
+    id: 'circulation', title: 'The global circulation',
+    note: 'The idealised model. Continents, oceans and mountains distort it.',
+    items: [
+      { name: 'Intertropical convergence zone', facts: [['Latitude', 'Near the equator; moves with the Sun'], ['Pressure', 'Low'], ['Weather', 'Deep convective cloud, heavy showers']], text: 'Where the trade winds of the two hemispheres meet.' },
+      { name: 'Hadley cell', facts: [['Between', 'The equator and about 30°'], ['Air', 'Rises at the equator, sinks near 30°']], text: 'Its surface return flow is the trade winds.' },
+      { name: 'Subtropical highs', facts: [['Latitude', 'About 30°'], ['Weather', 'Settled, dry, often hazy']], text: 'The great deserts lie beneath them.' },
+      { name: 'Ferrel cell', facts: [['Between', 'About 30° and 60°'], ['Surface winds', 'Westerly']], text: 'The zone of travelling depressions and fronts.' },
+      { name: 'Polar front', facts: [['Latitude', 'About 60°'], ['Weather', 'Lows and frontal systems']], text: 'The polar front jet stream lies above it.' },
+      { name: 'Polar cell', facts: [['Between', 'About 60° and the pole'], ['Surface winds', 'Easterly']], text: 'Cold, dense air sinks over the pole.' },
+    ],
+  },
+  {
+    id: 'tropical', title: 'Tropical weather',
+    note: 'Typical values, written from memory.',
+    items: [
+      { name: 'Formation conditions', facts: [['Sea temperature', 'About 26 to 27 °C or more'], ['Latitude', 'At least about 5° from the equator'], ['Wind shear', 'Little change of wind with height']], text: 'All three are needed for a tropical revolving storm.' },
+      { name: 'Eye', facts: [['Weather', 'Calm, often clear'], ['Size', 'Tens of kilometres across']], text: 'The centre of the storm, with sinking air.' },
+      { name: 'Eye wall', facts: [['Weather', 'The strongest winds and heaviest rain']], text: 'A ring of towering cumulonimbus around the eye.' },
+      { name: 'Names', facts: [['Atlantic and east Pacific', 'Hurricane'], ['North-west Pacific', 'Typhoon'], ['Indian Ocean and south Pacific', 'Cyclone']], text: 'The same kind of storm in different oceans.' },
+      { name: 'Easterly wave', facts: [['What', 'A trough moving westward in the trade winds'], ['Weather', 'Showers and thunderstorms behind it']], text: 'Some develop into tropical revolving storms.' },
+      { name: 'Harmattan', facts: [['Where', 'West Africa, dry season'], ['Effect', 'Dust haze and very poor visibility']], text: 'A dry north-easterly wind from the Sahara.' },
+    ],
+  },
+  {
+    id: 'high-alt-hazards', title: 'High-altitude hazards',
+    note: 'General principles, written from memory. The aircraft\'s abnormal checklists give the actual procedures.',
+    items: [
+      { name: 'Volcanic ash', facts: [['On radar', 'Not detected'], ['Effect', 'Engine surge and flameout; abrasion; blocked probes'], ['Response', 'Thrust to idle, 180° turn']], text: 'Signs include a smell of sulphur and a glow at the engine intakes.' },
+      { name: 'Ice crystal icing', facts: [['Where', 'High altitude near large convective systems'], ['Effect', 'Engine power loss, surge or flameout'], ['Clue', 'Rain-like sounds when it is far too cold for rain']], text: 'Radar returns are weak, so it is easy to fly into.' },
+      { name: 'Thunderstorm tops', facts: [['Hazard', 'Severe turbulence and hail above the visible top'], ['Avoid', 'Laterally and upwind, by a wide margin']], text: 'The top may still be rising faster than the aircraft can climb.' },
+      { name: 'Clear-air turbulence', facts: [['Cause', 'Wind shear near jet streams'], ['Response', 'Turbulence speed, seat belts, change level or track']], text: 'No visual warning.' },
+      { name: 'Radiation and ozone', facts: [['Increase with', 'Altitude and latitude'], ['Managed by', 'Dose monitoring and ozone converters']], text: 'Solar events can also disturb HF radio and satellite navigation.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);

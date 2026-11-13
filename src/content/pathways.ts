@@ -17,6 +17,8 @@ import { efis, electricalSystems, hydraulics, powerplants, pressurisation } from
 import { commercialHp, commercialLaw, commercialOps, crewComms, emergencyDecisions, opsProcedures, riskManagement } from './cpl6';
 import { buffetMargins, electricsFuel, flightControls, gasTurbines, hydGear, machTuck, pneumatics, shockWaves, sweptWings } from './atpl2';
 import { airData, autoflight, fms, inertial } from './atpl3';
+import { classA, enrouteLanding, ifrPlans, jetFuel, loadSheets, loadingCg, petPsr, vSpeeds } from './atpl4';
+import { altitudePhysiology, catLesson, circulation, highAltHazards, humanError, sleep, tropical } from './atpl5';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -340,11 +342,11 @@ export const atplTrack: Track = {
     { id: 'atpl-010', code: '010', title: 'Air Law', lessons: planned('atpl', ['International Conventions and ICAO', 'Rules of the Air and ATS', 'Aerodromes and Search and Rescue']) },
     { id: 'atpl-021', code: '021', title: 'Aircraft General Knowledge — Airframe, Systems, Powerplant', lessons: [hydGear, flightControls, pneumatics, gasTurbines, electricsFuel] },
     { id: 'atpl-022', code: '022', title: 'Aircraft General Knowledge — Instrumentation', lessons: [airData, inertial, autoflight, fms] },
-    { id: 'atpl-031', code: '031', title: 'Mass and Balance', lessons: planned('atpl', ['Loading and CG for Transport Aircraft', 'Load and Trim Sheets']) },
-    { id: 'atpl-032', code: '032', title: 'Performance', lessons: planned('atpl', ['Performance Class A Take-off', 'V-Speeds and Balanced Field Length', 'En-route and Landing Performance']) },
-    { id: 'atpl-033', code: '033', title: 'Flight Planning and Monitoring', lessons: planned('atpl', ['Jet Fuel Planning', 'IFR Flight Plans', 'Point of Equal Time and Point of Safe Return']) },
-    { id: 'atpl-040', code: '040', title: 'Human Performance and Limitations', lessons: planned('atpl', ['High-Altitude Physiology', 'Sleep and Circadian Rhythms', 'Human Error and Reliability']) },
-    { id: 'atpl-050', code: '050', title: 'Meteorology', lessons: planned('atpl', ['Global Circulation', 'Jet Streams and Clear-Air Turbulence', 'Tropical Weather', 'High-Altitude Hazards']) },
+    { id: 'atpl-031', code: '031', title: 'Mass and Balance', lessons: [loadingCg, loadSheets] },
+    { id: 'atpl-032', code: '032', title: 'Performance', lessons: [classA, vSpeeds, enrouteLanding] },
+    { id: 'atpl-033', code: '033', title: 'Flight Planning and Monitoring', lessons: [jetFuel, ifrPlans, petPsr] },
+    { id: 'atpl-040', code: '040', title: 'Human Performance and Limitations', lessons: [altitudePhysiology, sleep, humanError] },
+    { id: 'atpl-050', code: '050', title: 'Meteorology', lessons: [circulation, catLesson, tropical, highAltHazards] },
     { id: 'atpl-061', code: '061', title: 'General Navigation', lessons: planned('atpl', ['The Earth and Time', 'Charts for Long-Range Navigation', 'Inertial and Grid Navigation']) },
     { id: 'atpl-062', code: '062', title: 'Radio Navigation', lessons: planned('atpl', ['Radio Wave Propagation', 'ILS, MLS and GLS', 'GNSS and PBN', 'Radar and TCAS']) },
     { id: 'atpl-070', code: '070', title: 'Operational Procedures', lessons: planned('atpl', ['Operator Requirements', 'Long-Range and ETOPS Concepts', 'Special Procedures and Hazards']) },
