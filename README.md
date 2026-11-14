@@ -181,3 +181,8 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 - **Ranks.** Rank thresholds were rescaled to the 202-lesson curriculum (top rank at 50,000 XP). XP values and saved progress are unchanged, so existing users may see a lower rank name for the same XP.
 
 **Not built:** background music and ambient airport audio, recorded human voices, image identification and diagram-labelling question types, short written answers, drag-and-drop (matching and ordering use buttons and menus), server database, analytics service.
+
+## Visual experience
+- **Opening splash** (`src/components/Splash.tsx`): the app icon flies in from a distance with perspective and blur, settles with a soft shadow, a light sweep crosses it, then the name appears and the screen fades into the app (about 3.6 s on the first launch, 1.5 s afterwards, a still 0.9 s frame with reduced motion). Tap, Enter, Escape or Skip ends it early. Only transform and opacity are animated. The first-launch flag is `skyward.splash.seen` in localStorage; progress is never touched.
+- **Screen transitions:** pages fade and rise in; starting a mission zooms in; the lesson-complete screen pops its badge and cards. "Reduce motion" in Profile and the system preference switch decorative animation off.
+- **Mission complete** (`src/components/MissionComplete.tsx`): stars pop in one at a time with a ring and glow, the score and XP count up, confetti for three stars, score-breakdown bars, and a sticky action footer. Star rating is unchanged: at least 850 of 1000 is 3 stars, at least 600 is 2, any other completion is 1, and a failed mission shows the retry screen with no stars.

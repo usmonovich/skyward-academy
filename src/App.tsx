@@ -6,6 +6,7 @@ import { rankFor } from './engine/gamification';
 import { useCms } from './content';
 import { Btn, Icon, Toasts } from './components/ui';
 import { Tutor } from './components/Tutor';
+import { Splash } from './components/Splash';
 import { Home } from './pages/Home';
 import { Academy, TrackPage } from './pages/Academy';
 import { LessonPage } from './pages/Lesson';
@@ -72,6 +73,8 @@ export function App() {
   useCms();
   const [welcomed, setWelcomed] = useState(() => { try { return localStorage.getItem('skyward.welcomed') === '1'; } catch { return true; } });
   const s = p.settings;
+  const [splash, setSplash] = useState(true);
+  const reduced = s.reducedMotion || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   useEffect(() => { audio.configure({ sfx: s.sfx, engine: s.engine, volume: s.volume }); }, [s.sfx, s.engine, s.volume]);
   useEffect(() => {
@@ -117,7 +120,7 @@ export function App() {
         </a>
       </nav>
       <main id="main" className="main" tabIndex={-1}>
-        <Boundary resetKey={route.join('/')}>{page}</Boundary>
+        <div key={immersive ? `fly/${a}` : `${head ?? ''}/${head === 'fly' || head === 'lesson' || head === 'track' ? a ?? '' : ''}`} className={`page-enter${immersive ? ' zoom' : ''}`}><Boundary resetKey={route.join('/')}>{page}</Boundary></div>
         {!immersive && <footer className="foot">{APP.disclaimer}</footer>}
       </main>
       <nav className="bottom" aria-label="Primary">
@@ -125,7 +128,8 @@ export function App() {
       </nav>
       {!immersive && <Tutor />}
       <Toasts />
-      {!welcomed && <Welcome onDone={() => { try { localStorage.setItem('skyward.welcomed', '1'); } catch { /* ignore */ } setWelcomed(true); }} />}
+      {splash && <Splash reducedMotion={reduced} onDone={() => setSplash(false)} />}
+      {!splash && !welcomed && <Welcome onDone={() => { try { localStorage.setItem('skyward.welcomed', '1'); } catch { /* ignore */ } setWelcomed(true); }} />}
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
     if (def.lessonId && !p.lessons[def.lessonId]?.passed) {
       return <div className="card"><h2><Icon name="lock" /> {def.title} is locked</h2><p>Pass the assessment for “{lesson?.title ?? 'its lesson'}” to unlock this mission.</p><div className="row gap">{lesson && <Btn kind="accent" href={`lesson/${lesson.id}`}>Open the lesson</Btn>}<Btn kind="ghost" href="fly">Back to missions</Btn></div></div>;
     }
-    return <FlightGame key={missionId} def={def} exitHref={from ? `lesson/${from}` : 'fly'} nextHref={from ? `lesson/${from}/complete` : 'fly'} nextLabel={from ? 'Collect rewards' : 'Back to missions'} />;
+    return <FlightGame key={missionId} def={def} exitHref={from ? `lesson/${from}` : 'fly'} nextHref={from ? `lesson/${from}/complete` : 'fly'} nextLabel={from ? 'Collect rewards' : 'Continue'} />;
   }
 
   const stars = Object.values(p.missions).reduce((n, m) => n + m.stars, 0);
