@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { APP } from '../config';
 import { actions, useProfiles, useProgress } from '../store/progress';
 import { ACHIEVEMENTS, RANKS, dayKey, rankFor, stageFor, streak } from '../engine/gamification';
@@ -19,6 +19,11 @@ export function Profile() {
   const [msg, setMsg] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const [tick, setTick] = useState(0);
+  const [restoreAt, setRestoreAt] = useState<number | null>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const backups = useMemo(() => actions.listBackups(), [tick, p]);
+  const lastExport = actions.lastExport();
   const rank = rankFor(p.xp);
   const s = p.settings;
   const live = liveLessons();
@@ -31,6 +36,7 @@ export function Profile() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `skyward-academy-${p.name.replace(/\W+/g, '-').toLowerCase()}-${dayKey()}.json`;
     a.click(); URL.revokeObjectURL(a.href);
+    setTick((t) => t + 1);
     setMsg('Progress exported. Import this file on another device to continue there.');
   };
   const importData = async (f: File | undefined) => { if (!f) return; const err = actions.importData(await f.text()); setMsg(err ?? 'Progress imported successfully.'); };
@@ -150,6 +156,25 @@ export function Profile() {
             <span className="row gap wrap"><strong>Delete all data for “{p.name}”? This cannot be undone.</strong><Btn kind="danger" onClick={() => { actions.deleteProfile(p.id); setConfirmDelete(false); setName('Cadet'); setMsg('Profile data deleted.'); }}>Yes, delete</Btn><Btn kind="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Btn></span>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <div className="card-head"><h2>Backups and recovery</h2><Btn small kind="soft" onClick={() => { actions.backupNow('Manual'); setTick((t) => t + 1); setMsg('Backup saved on this device.'); }}>Back up now</Btn></div>
+        <p className="small">Skyward Academy keeps the {3} newest automatic backups of your progress in this browser and restores the latest one by itself if the saved data ever becomes unreadable. Backups live on this device, so they do not replace an exported file: browsers can clear site data.</p>
+        <p className="small muted">{lastExport ? `Last exported file: ${new Date(lastExport).toLocaleString('en-GB')}.` : 'You have not exported a progress file yet. Exporting a copy now keeps your progress safe if this device is lost or its browser data is cleared.'}</p>
+        {backups.length === 0 ? <p className="muted">No backups yet. One is created automatically as you study.</p> : (
+          <ul className="backup-list">
+            {backups.map((b) => (
+              <li key={b.at}>
+                <span className="grow"><strong>{new Date(b.at).toLocaleString('en-GB')}</strong><span className="small muted"> {b.reason} · {b.name} · {b.xp} XP · {b.lessons} lessons passed</span></span>
+                {restoreAt === b.at
+                  ? <span className="row gap wrap"><Btn small kind="accent" onClick={() => { const err = actions.restoreBackup(b.at); setRestoreAt(null); setTick((t) => t + 1); setMsg(err ?? 'Backup restored. Your previous state was saved as a backup first.'); }}>Confirm restore</Btn><Btn small kind="ghost" onClick={() => setRestoreAt(null)}>Cancel</Btn></span>
+                  : <Btn small kind="soft" onClick={() => setRestoreAt(b.at)}>Restore</Btn>}
+              </li>
+            ))}
+          </ul>
+        )}
+        {msg && <p role="status" className="small ok-text">{msg}</p>}
       </section>
     </div>
   );

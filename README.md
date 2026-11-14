@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 486 unit tests
+npm test           # 500 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (486, all passing):** mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (500, all passing):** automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -186,3 +186,8 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 - **Opening splash** (`src/components/Splash.tsx`): the app icon flies in from a distance with perspective and blur, settles with a soft shadow, a light sweep crosses it, then the name appears and the screen fades into the app (about 3.6 s on the first launch, 1.5 s afterwards, a still 0.9 s frame with reduced motion). Tap, Enter, Escape or Skip ends it early. Only transform and opacity are animated. The first-launch flag is `skyward.splash.seen` in localStorage; progress is never touched.
 - **Screen transitions:** pages fade and rise in; starting a mission zooms in; the lesson-complete screen pops its badge and cards. "Reduce motion" in Profile and the system preference switch decorative animation off.
 - **Mission complete** (`src/components/MissionComplete.tsx`): stars pop in one at a time with a ring and glow, the score and XP count up, confetti for three stars, score-breakdown bars, and a sticky action footer. Star rating is unchanged: at least 850 of 1000 is 3 stars, at least 600 is 2, any other completion is 1, and a failed mission shows the retry screen with no stars.
+
+## Mobile UX and reliability (batch 1)
+- **Compact dashboard header on phones:** 538 px to 298 px on a 375x812 screen (measured), so the stats and the lesson finder are visible without scrolling. Before and after: `docs/screenshots/home-mobile-before.jpg` and `home-mobile-after.jpg` (the before image is a fresh profile on the previous live version, the after image is a profile with progress).
+- **Lesson finder:** a search box on the dashboard and the Academy page opens any of the published lessons from a word in its title, module or objectives, and shows whether each one is passed, open or locked.
+- **Backups and recovery:** the app keeps the 3 newest automatic snapshots of the save in this browser (at most one every 30 minutes, plus one before an import or a restore). If the saved data cannot be read it keeps a copy of the damaged data, restores the newest backup, writes it back and shows a notice. Profile has a Backups and recovery panel with Back up now, Restore (which first backs up the current state) and the date of the last exported file. Deleting a profile's data also deletes the backups. Backups live in the same browser, so they do not replace exporting a file.

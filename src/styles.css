@@ -429,3 +429,22 @@ html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-
 @keyframes mc-grow { from { transform: scaleX(0); } to { transform: none; } }
 @keyframes mc-fall { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--drift, 0), 105vh) rotate(540deg); } }
 @media (max-height: 560px) { .mc-stars { min-height: 70px; } .mc-star svg { width: 52px; height: 52px; } .mc-star.s1 svg { width: 66px; height: 66px; } }
+
+/* ===== Lesson finder, backups, compact mobile dashboard ===== */
+.lesson-finder { padding: 12px 14px; gap: 8px; }
+.finder-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.finder-list a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--ink); background: #fff; }
+.finder-list a:hover { border-color: var(--sky); background: var(--sky-l); }
+.finder-list .grow { display: flex; flex-direction: column; min-width: 0; }
+.backup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.backup-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.backup-list .grow { display: flex; flex-direction: column; flex: 1 1 200px; min-width: 0; }
+@media (max-width: 640px) {
+  .hero { padding: 14px 16px; gap: 10px; border-radius: 18px; }
+  .hero-text { gap: 8px; } .hero h1 { font-size: 1.35rem; line-height: 1.2; } .hero .eyebrow { font-size: .72rem; }
+  .hero-sub { font-size: .92rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hero .row { flex-wrap: nowrap; gap: 8px; } .hero .row .btn { flex: 1 1 0; min-width: 0; justify-content: center; gap: 6px; padding-left: 8px; padding-right: 8px; font-size: .9rem; white-space: nowrap; }
+  .hero-aircraft { display: grid; grid-template-columns: 96px 1fr; column-gap: 12px; align-items: center; align-self: stretch; padding: 6px 12px; text-align: left; border-radius: 14px; }
+  .hero-aircraft canvas { grid-row: 1 / 3; width: 96px !important; height: 48px !important; }
+  .stat { padding: 10px 12px; gap: 8px; } .stats { gap: 10px; }
+}

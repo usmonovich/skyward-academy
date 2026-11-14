@@ -2,6 +2,7 @@ import type { Track } from '../types';
 import { useProgress } from '../store/progress';
 import { getTrack, isLive, isUnlocked, trackProgress } from '../content';
 import { Bar, Btn, Chip, Icon, PageHead, Stars } from '../components/ui';
+import { LessonFinder } from '../components/LessonFinder';
 
 const JURISDICTION: Record<string, string> = {
   ICAO: 'Reference framework: ICAO (international). ICAO Annex 1 sets minimum licensing standards; your national authority publishes the actual syllabus and examinations.',
@@ -31,6 +32,7 @@ export function Academy() {
   return (
     <div className="stack">
       <PageHead title="Academy" sub="Four stages from first principles to airline-level theory. Explore any pathway at any time." />
+      <LessonFinder />
       <section className="card tinted">
         <div className="card-head"><div><p className="eyebrow">Stage 1</p><h2>Pre-Flight Academy</h2></div><Chip tone="navy">Start here</Chip></div>
         <p>Mathematics and physics from the very beginning. Every lesson has an interactive experiment, practice, an assessment and a flight mission.</p>

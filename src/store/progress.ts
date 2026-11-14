@@ -26,24 +26,77 @@ export function freshProgress(id: string, name: string, guest: boolean): Progres
 
 const storage = (): Storage | null => (typeof localStorage === 'undefined' ? null : localStorage);
 
-function load(): Root {
+/* ------------------------------------------------ automatic backups and recovery */
+const BACKUP_KEY = 'skyward.backups.v1';
+const CORRUPT_KEY = 'skyward.corrupt.v1';
+const EXPORT_KEY = 'skyward.lastExport';
+const MAX_BACKUPS = 3;
+const BACKUP_EVERY_MS = 30 * 60 * 1000;
+export interface BackupInfo { at: number; reason: string; name: string; xp: number; lessons: number }
+interface BackupRec extends BackupInfo { data: string }
+
+function normalise(r: Root): Root | null {
+  if (!r || typeof r.active !== 'string' || !r.profiles || typeof r.profiles !== 'object') return null;
+  for (const id of Object.keys(r.profiles)) {
+    const pr = r.profiles[id];
+    if (!pr || typeof pr.xp !== 'number' || typeof pr.lessons !== 'object') return null;
+    const base = freshProgress(id, pr.name, pr.guest);
+    r.profiles[id] = { ...base, ...pr, settings: { ...DEFAULT_SETTINGS, ...pr.settings } };
+  }
+  return r.profiles[r.active] ? r : null;
+}
+
+function readBackups(): BackupRec[] {
   try {
-    const raw = storage()?.getItem(KEY);
-    if (raw) {
-      const r = JSON.parse(raw) as Root;
-      for (const id of Object.keys(r.profiles)) {
-        const base = freshProgress(id, r.profiles[id].name, r.profiles[id].guest);
-        r.profiles[id] = { ...base, ...r.profiles[id], settings: { ...DEFAULT_SETTINGS, ...r.profiles[id].settings } };
-      }
-      if (r.profiles[r.active]) return r;
+    const a = JSON.parse(storage()?.getItem(BACKUP_KEY) ?? '[]') as BackupRec[];
+    return Array.isArray(a) ? a.filter((b) => b && typeof b.at === 'number' && typeof b.data === 'string') : [];
+  } catch { return []; }
+}
+
+/** Keeps the newest few snapshots of the whole save. Failures (storage full or blocked) never affect the app. */
+function writeBackup(reason: string, r: Root = root) {
+  try {
+    const data = JSON.stringify(r);
+    const list = readBackups();
+    if (list[0]?.data === data) return;
+    const pr = r.profiles[r.active];
+    const rec: BackupRec = { at: Date.now(), reason, name: pr.name, xp: pr.xp, lessons: Object.values(pr.lessons).filter((l) => l.passed).length, data };
+    storage()?.setItem(BACKUP_KEY, JSON.stringify([rec, ...list].slice(0, MAX_BACKUPS)));
+  } catch { /* backup is best effort */ }
+}
+
+let loadNotice: string | null = null;
+/** Message about a recovery performed at start-up, shown once by the app. */
+export const takeLoadNotice = (): string | null => { const n = loadNotice; loadNotice = null; return n; };
+
+function load(): Root {
+  const raw = storage()?.getItem(KEY);
+  if (raw) {
+    try {
+      const ok = normalise(JSON.parse(raw) as Root);
+      if (ok) return ok;
+    } catch { /* fall through to recovery */ }
+    // Unreadable save: keep a copy of it, then restore the newest readable backup instead of starting clean.
+    try { storage()?.setItem(CORRUPT_KEY, raw); } catch { /* ignore */ }
+    for (const b of readBackups()) {
+      try {
+        const ok = normalise(JSON.parse(b.data) as Root);
+        if (ok) { try { storage()?.setItem(KEY, JSON.stringify(ok)); } catch { /* ignore */ } loadNotice = `Your saved progress could not be read, so the automatic backup from ${new Date(b.at).toLocaleString('en-GB')} was restored (${b.xp} XP, ${b.lessons} lessons passed).`; return ok; }
+      } catch { /* try the next one */ }
     }
-  } catch { /* unreadable save: start clean rather than crash */ }
+    loadNotice = 'Your saved progress could not be read and no backup was found. A copy of the unreadable data was kept in this browser.';
+  }
   return { active: 'guest', profiles: { guest: freshProgress('guest', 'Cadet', true) } };
 }
 
 let root = load();
 const listeners = new Set<() => void>();
-const save = () => { try { storage()?.setItem(KEY, JSON.stringify(root)); } catch { /* storage unavailable */ } listeners.forEach((l) => l()); };
+const save = () => {
+  try { storage()?.setItem(KEY, JSON.stringify(root)); } catch { /* storage unavailable */ }
+  const last = readBackups()[0];
+  if (!last || Date.now() - last.at > BACKUP_EVERY_MS) writeBackup('Automatic');
+  listeners.forEach((l) => l());
+};
 const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
 
 export const getProgress = (): Progress => root.profiles[root.active];
@@ -165,6 +218,8 @@ export const actions = {
   switchProfile(id: string) { if (root.profiles[id]) { root = { ...root, active: id }; save(); } },
   /** Permanently deletes a profile and all of its data from this device. */
   deleteProfile(id: string) {
+    // Deleting data also removes the automatic backups, otherwise the deleted data would stay on the device.
+    try { storage()?.removeItem(BACKUP_KEY); storage()?.removeItem(CORRUPT_KEY); } catch { /* ignore */ }
     const profiles = { ...root.profiles };
     delete profiles[id];
     if (!profiles.guest) profiles.guest = freshProgress('guest', 'Cadet', true);
@@ -178,9 +233,29 @@ export const actions = {
     root = { ...root, profiles: { ...root.profiles, [root.active]: { ...freshProgress(current.id, p.name ?? current.name, current.guest), ...p, id: current.id, guest: current.guest, settings: { ...DEFAULT_SETTINGS, ...p.settings } } } };
     save();
   },
-  exportData: () => JSON.stringify(getProgress(), null, 2),
+  exportData: () => { try { storage()?.setItem(EXPORT_KEY, String(Date.now())); } catch { /* ignore */ } return JSON.stringify(getProgress(), null, 2); },
+  /** Saves a snapshot now (used before risky actions). */
+  backupNow(reason = 'Manual') { writeBackup(reason); listeners.forEach((l) => l()); },
+  /** Lists the automatic backups, newest first. */
+  listBackups(): BackupInfo[] { return readBackups().map(({ data: _data, ...info }) => info); },
+  /** Restores a backup by its timestamp. The current state is backed up first so a restore can itself be undone. */
+  restoreBackup(at: number): string | null {
+    const rec = readBackups().find((b) => b.at === at);
+    if (!rec) return 'That backup no longer exists.';
+    try {
+      const ok = normalise(JSON.parse(rec.data) as Root);
+      if (!ok) return 'That backup could not be read.';
+      writeBackup('Before restore');
+      root = ok;
+      save();
+      return null;
+    } catch { return 'That backup could not be read.'; }
+  },
+  /** When the user last exported a progress file (milliseconds), or 0. */
+  lastExport(): number { try { return Number(storage()?.getItem(EXPORT_KEY)) || 0; } catch { return 0; } },
   importData(json: string): string | null {
     try {
+      writeBackup('Before import');
       const data = JSON.parse(json) as Progress;
       if (typeof data.xp !== 'number' || typeof data.lessons !== 'object') return 'This file is not a Skyward Academy progress export.';
       const id = root.active;

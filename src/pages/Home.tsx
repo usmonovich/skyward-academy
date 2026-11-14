@@ -3,6 +3,7 @@ import { ACHIEVEMENTS, dailyFor, dayKey, rankFor, stageFor, streak } from '../en
 import { studyPlan, topicStats, weeklyPlan } from '../engine/personalize';
 import { EN_EXERCISES, FACTS, GAME_AIRCRAFT, LIVERIES, SOURCES, getTrack, liveLessons, recommendedLesson, trackProgress } from '../content';
 import { AircraftArt, Bar, Btn, Chip, Icon } from '../components/ui';
+import { LessonFinder } from '../components/LessonFinder';
 
 export function Home() {
   const p = useProgress();
@@ -60,6 +61,8 @@ export function Home() {
         <div className="stat"><Icon name="bolt" /><div><strong>{p.xp}</strong><span>Experience points</span></div></div>
         <div className="stat"><Icon name="trophy" /><div><strong>{badges} / {ACHIEVEMENTS.length}</strong><span>Badges earned</span></div></div>
       </section>
+
+      <LessonFinder />
 
       <section className="card">
         <div className="card-head"><h2>Your career map</h2><span className="small muted">Select a destination to open it</span></div>

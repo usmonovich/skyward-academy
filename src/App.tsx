@@ -1,6 +1,6 @@
 import { Component, useEffect, useState, type ReactNode } from 'react';
 import { APP } from './config';
-import { actions, useProgress } from './store/progress';
+import { actions, takeLoadNotice, toast, useProgress } from './store/progress';
 import { audio } from './engine/audio';
 import { rankFor } from './engine/gamification';
 import { useCms } from './content';
@@ -76,6 +76,8 @@ export function App() {
   const [splash, setSplash] = useState(true);
   const reduced = s.reducedMotion || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+  // Shown only once the splash has gone, otherwise the toast would expire behind it.
+  useEffect(() => { if (splash) return; const n = takeLoadNotice(); if (n) toast('info', 'Progress recovered', n); }, [splash]);
   useEffect(() => { audio.configure({ sfx: s.sfx, engine: s.engine, volume: s.volume }); }, [s.sfx, s.engine, s.volume]);
   useEffect(() => {
     document.documentElement.style.fontSize = `${16 * s.textScale}px`;
