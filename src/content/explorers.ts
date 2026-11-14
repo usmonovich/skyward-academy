@@ -589,6 +589,163 @@ export const EXPLORERS: Explorer[] = [
       { name: 'Radiation and ozone', facts: [['Increase with', 'Altitude and latitude'], ['Managed by', 'Dose monitoring and ozone converters']], text: 'Solar events can also disturb HF radio and satellite navigation.' },
     ],
   },
+  {
+    id: 'projections', title: 'Chart projections',
+    note: 'Summary of the properties of common navigation projections, from memory.',
+    items: [
+      { name: 'Mercator', facts: [['Surface', 'Cylinder touching the equator'], ['Rhumb line', 'Straight'], ['Great circle', 'Curve bowed towards the equator'], ['Scale', 'Grows with latitude']], text: 'Best at low latitudes and for constant-heading navigation.' },
+      { name: 'Lambert conformal conic', facts: [['Surface', 'Cone cutting two standard parallels'], ['Great circle', 'Nearly a straight line'], ['Scale', 'Nearly constant between the standard parallels']], text: 'The usual choice for mid-latitude aeronautical charts.' },
+      { name: 'Polar stereographic', facts: [['Surface', 'Plane touching a pole'], ['Meridians', 'Straight lines from the pole'], ['Great circles', 'Close to straight lines']], text: 'Used for polar regions, with a grid overlaid.' },
+      { name: 'Conformal', facts: [['Keeps', 'Angles and shapes correct']], text: 'Mercator, Lambert and polar stereographic are all conformal.' },
+    ],
+  },
+  {
+    id: 'grid-nav', title: 'Grid navigation',
+    note: 'General concepts. Sign conventions for convergence depend on the chart; use the one printed on the chart.',
+    items: [
+      { name: 'Grid north', facts: [['What', 'A fixed direction on the chart'], ['Usually', 'Along the Greenwich meridian']], text: 'Does not change with position, unlike true north near the poles.' },
+      { name: 'Grid convergence', facts: [['What', 'Angle between true north and grid north'], ['At the reference meridian', 'Zero']], text: 'Grows with distance in longitude from the reference meridian.' },
+      { name: 'Grid heading', facts: [['Measured from', 'Grid north'], ['Used', 'Near the poles, with inertial systems']], text: 'A constant grid heading is nearly a straight line on a polar chart.' },
+      { name: 'Waypoint checks', facts: [['Check', 'Coordinates, track and distance against the plan']], text: 'Most gross errors are a wrong digit or hemisphere.' },
+    ],
+  },
+  {
+    id: 'gnss-aug', title: 'GNSS augmentation',
+    note: 'General description, from memory.',
+    items: [
+      { name: 'ABAS', facts: [['Where', 'In the aircraft'], ['Example', 'RAIM, inertial comparison']], text: 'Checks integrity without any external augmentation.' },
+      { name: 'SBAS', facts: [['Where', 'Geostationary satellites'], ['Examples', 'EGNOS, WAAS']], text: 'Broadcasts corrections and integrity over a region; enables LPV approaches.' },
+      { name: 'GBAS', facts: [['Where', 'A local ground station near an aerodrome']], text: 'Gives ILS-like precision approach guidance (GLS).' },
+      { name: 'Error sources', facts: [['Largest', 'Ionospheric delay'], ['Others', 'Troposphere, clocks, multipath, geometry']], text: 'Satellite geometry is expressed as dilution of precision.' },
+    ],
+  },
+  {
+    id: 'tcas', title: 'TCAS advisories',
+    note: 'Typical behaviour of TCAS II, from memory. Times vary with altitude.',
+    items: [
+      { name: 'Traffic advisory (TA)', facts: [['Time to closest approach', 'About 40 seconds'], ['Voice', '"Traffic, traffic"']], text: 'Look for the traffic; prepare to react.' },
+      { name: 'Resolution advisory (RA)', facts: [['Time to closest approach', 'About 25 seconds'], ['Voice', '"Climb", "Descend", "Monitor vertical speed"']], text: 'Follow it immediately, even against an ATC instruction.' },
+      { name: 'Clear of conflict', facts: [['Meaning', 'The threat has passed']], text: 'Return to the clearance and inform ATC.' },
+      { name: 'Limits', facts: [['Sees', 'Only aircraft with working transponders'], ['Resolves', 'Vertical conflicts only']], text: 'It is a last line of defence, not a replacement for ATC.' },
+    ],
+  },
+  {
+    id: 'icao-annexes', title: 'The 19 ICAO Annexes',
+    note: 'Annex subjects checked on 14 Nov 2026 against a published summary of the Convention on International Civil Aviation.',
+    items: [
+      { name: 'Annex 1 · Personnel Licensing', facts: [['Covers', 'Licensing of flight crews, air traffic controllers and maintenance personnel']], text: 'Sets minimum ages, experience and medical standards.' },
+      { name: 'Annex 2 · Rules of the Air', facts: [['Covers', 'Rules of the air, signals, interception of civil aircraft']], text: 'Applies over the high seas without exception.' },
+      { name: 'Annex 3 · Meteorological Service', facts: [['Covers', 'Meteorological service for international air navigation']], text: 'Source of METAR, TAF and SIGMET formats.' },
+      { name: 'Annex 6 · Operation of Aircraft', facts: [['Covers', 'International commercial air transport and general aviation']], text: 'Operator and aircraft operating requirements.' },
+      { name: 'Annex 8 · Airworthiness', facts: [['Covers', 'Airworthiness of aircraft']], text: 'Certification standards.' },
+      { name: 'Annex 10 · Aeronautical Telecommunications', facts: [['Covers', 'Radio navigation aids, communications, surveillance']], text: 'ILS, VOR, DME and similar systems.' },
+      { name: 'Annex 11 · Air Traffic Services', facts: [['Covers', 'ATC, flight information and alerting services']], text: 'Airspace classes and service provision.' },
+      { name: 'Annex 12 · Search and Rescue', facts: [['Covers', 'Search and rescue']], text: 'Emergency phases and coordination.' },
+      { name: 'Annex 13 · Accident Investigation', facts: [['Covers', 'Aircraft accident and incident investigation']], text: 'Who investigates and how findings are reported.' },
+      { name: 'Annex 14 · Aerodromes', facts: [['Covers', 'Aerodrome design and operations; heliports']], text: 'Markings, lighting, obstacle surfaces, rescue and firefighting.' },
+      { name: 'Annex 19 · Safety Management', facts: [['Covers', 'Safety management systems'], ['Since', '14 November 2013']], text: 'The most recent Annex.' },
+    ],
+  },
+  {
+    id: 'sar', title: 'Search and rescue phases',
+    note: 'Phase names are standard. The 30-minute trigger is from memory of Annex 12.',
+    items: [
+      { name: 'Uncertainty phase (INCERFA)', facts: [['Meaning', 'Doubt about the safety of an aircraft'], ['Typical trigger', 'No communication within 30 minutes of when expected']], text: 'The first and least serious phase.' },
+      { name: 'Alert phase (ALERFA)', facts: [['Meaning', 'Apprehension about the safety of an aircraft']], text: 'Rescue authorities are alerted.' },
+      { name: 'Distress phase (DETRESFA)', facts: [['Meaning', 'Grave and imminent danger, or immediate assistance needed']], text: 'Full search and rescue response.' },
+      { name: '406 MHz ELT', facts: [['Detected by', 'Satellites'], ['Gives', 'Coded identity and position']], text: 'The modern emergency locator transmitter.' },
+      { name: '121.5 MHz', facts: [['Use', 'International emergency frequency; final homing']], text: 'No longer monitored by satellites.' },
+    ],
+  },
+  {
+    id: 'special-hazards', title: 'Special warnings and hazards',
+    note: 'General principles from memory. Escape manoeuvres are type-specific.',
+    items: [
+      { name: 'Terrain warning', facts: [['Call', '"Terrain, terrain, pull up"'], ['Response', 'Immediate escape manoeuvre']], text: 'Flown regardless of the weather, even if terrain is in sight.' },
+      { name: 'TCAS resolution advisory', facts: [['Response', 'Follow it immediately'], ['Then', 'Inform ATC; return to the clearance when clear']], text: 'Takes precedence over a conflicting ATC instruction.' },
+      { name: 'Windshear', facts: [['Response', 'Go around; maximum thrust; recovery pitch']], text: 'Do not change configuration until clear.' },
+      { name: 'Wake turbulence', facts: [['On departure', 'Time separation; take-off beyond the preceding rotation point']], text: 'Greater behind heavier categories.' },
+      { name: 'Contaminated runway', facts: [['Effect', 'Reduced braking and longer distances']], text: 'Performance penalties apply to take-off and landing.' },
+      { name: 'Clean aircraft concept', facts: [['Rule', 'No frost, ice or snow on critical surfaces']], text: 'The commander is responsible for the final check.' },
+    ],
+  },
+  {
+    id: 'ifr-comms', title: 'IFR communication essentials',
+    note: 'General formats. Regional procedures differ.',
+    items: [
+      { name: 'IFR clearance', facts: [['Contains', 'Route, level, transponder code']], text: 'Read back in full.' },
+      { name: 'Position report', facts: [['Contains', 'Identification, position, time, level, next position, estimate']], text: 'Given at compulsory reporting points where radar is unavailable.' },
+      { name: 'First call on a new frequency', facts: [['State', 'Call sign, level passing and cleared level']], text: 'Lets the controller verify the readout.' },
+      { name: 'CPDLC', facts: [['What', 'Text-based controller–pilot communications']], text: 'Reduces misunderstanding and congestion.' },
+      { name: 'ADS-C', facts: [['What', 'Automatic position reports at set intervals']], text: 'Used over oceans and remote areas.' },
+    ],
+  },
+  {
+    id: 'comm-failure', title: 'Communication failure',
+    note: 'Sequence and times from memory of ICAO Annex 2. National procedures differ and take precedence.',
+    items: [
+      { name: 'First actions', facts: [['Check', 'Audio panel, volume, frequency, headset, microphone'], ['Try', 'Another radio, 121.5 MHz, transmit blind']], text: 'Many failures are simple selections.' },
+      { name: 'Transponder', facts: [['Code', '7600']], text: 'Tells ATC of the failure.' },
+      { name: 'In VMC', facts: [['Action', 'Continue in VMC, land at the nearest suitable aerodrome, report arrival']], text: 'The simplest case.' },
+      { name: 'In IMC: first phase', facts: [['Action', 'Maintain last assigned speed and level, or minimum flight altitude if higher, for 20 minutes']], text: 'After failing to report at a compulsory point.' },
+      { name: 'In IMC: second phase', facts: [['Action', 'Adjust to the filed flight plan level and speed; proceed to the aid serving the destination; hold, then approach; land within 30 minutes of ETA']], text: 'So that ATC can predict the aircraft\'s behaviour.' },
+    ],
+  },
+  {
+    id: 'tem', title: 'Threat and error management',
+    note: 'Common industry wording of the TEM model.',
+    items: [
+      { name: 'Threat', facts: [['Source', 'Outside the crew\'s influence'], ['Examples', 'Weather, terrain, traffic, malfunction, pressure']], text: 'Must be managed to maintain safety.' },
+      { name: 'Error', facts: [['Source', 'Crew action or inaction'], ['Result', 'Deviation from intentions']], text: 'Trap it before it affects the flight.' },
+      { name: 'Undesired aircraft state', facts: [['Example', 'An unstable approach'], ['Risk', 'Reduced safety margins']], text: 'Needs recovery.' },
+      { name: 'Countermeasures', facts: [['Groups', 'Plan, execute, review and modify']], text: 'Briefings, SOPs, checklists, monitoring.' },
+    ],
+  },
+  {
+    id: 'crm-adv', title: 'Leadership and authority gradient',
+    note: 'Widely taught CRM concepts.',
+    items: [
+      { name: 'Leadership', facts: [['Role', 'Set the tone, invite input, decide when needed']], text: 'A good commander invites challenge.' },
+      { name: 'Followership', facts: [['Role', 'Support, monitor and challenge']], text: 'Silence is not support.' },
+      { name: 'Steep gradient', facts: [['Effect', 'Junior crew do not speak up']], text: 'Errors go unchallenged.' },
+      { name: 'Flat gradient', facts: [['Effect', 'Roles blur and decisions stall']], text: 'Nobody decides.' },
+      { name: 'Mission analysis', facts: [['What', 'A pause to restate situation and plan']], text: 'Restores shared awareness.' },
+    ],
+  },
+  {
+    id: 'mcc', title: 'Multi-crew cooperation',
+    note: 'Examples from memory. Each operator defines its own calls and procedures.',
+    items: [
+      { name: 'Commander', facts: [['Role', 'Overall responsibility; final decision']], text: 'Also leads the briefing.' },
+      { name: 'Pilot flying', facts: [['Role', 'Controls the flight path']], text: 'Directs the automation.' },
+      { name: 'Pilot monitoring', facts: [['Role', 'Monitors, runs checklists, handles the radio']], text: 'An active duty.' },
+      { name: 'Standard calls', facts: [['Examples', '"Positive rate", "Gear up", "Minimums"']], text: 'Remove ambiguity.' },
+      { name: 'Incapacitation', facts: [['Signs', 'No reply to two calls; fixed stare'], ['Action', 'Take control, make safe, inform ATC and cabin']], text: 'Subtle cases are the hardest to spot.' },
+    ],
+  },
+  {
+    id: 'adm-adv', title: 'Decision-making models and biases',
+    note: 'Widely taught human factors material, from memory.',
+    items: [
+      { name: 'SHOR', facts: [['S', 'Stimuli'], ['H', 'Hypotheses'], ['O', 'Options'], ['R', 'Response']], text: 'The response is checked against the stimuli again.' },
+      { name: 'Confirmation bias', facts: [['Effect', 'Seeking only supporting information']], text: 'Ask "what else could this be?"' },
+      { name: 'Anchoring', facts: [['Effect', 'Over-reliance on the first piece of information']], text: 'Later facts are under-weighted.' },
+      { name: 'Plan continuation bias', facts: [['Effect', 'Sticking with the plan despite changing conditions']], text: 'Stronger near the destination.' },
+      { name: 'Normalisation of deviance', facts: [['Effect', 'Small departures become routine']], text: 'Margins erode slowly.' },
+    ],
+  },
+  {
+    id: 'operator-reqs', title: 'What an operator must have in place',
+    note: 'A general summary from memory of ICAO Annex 6 and Annex 19 concepts. The rules that apply to an operator are those of its state of operator.',
+    items: [
+      { name: 'Air operator certificate', facts: [['Specifies', 'Aircraft types, operations and areas approved'], ['Issued by', 'The state of the operator']], text: 'Shows the operator can operate safely.' },
+      { name: 'Operations manual', facts: [['Parts', 'General; aircraft operating; routes and aerodromes; training']], text: 'The crew must follow it; the operator keeps it current.' },
+      { name: 'Safety management system', facts: [['Components', 'Policy, risk management, assurance, promotion']], text: 'Annex 19.' },
+      { name: 'Flight data monitoring', facts: [['Does', 'Analyses routine flight data for exceedances and trends']], text: 'De-identified, to find hazards early.' },
+      { name: 'Crew checks', facts: [['Recurrent', 'Type-rating checks every 6 or 12 months; line checks']], text: 'Licences, ratings and medicals must be valid.' },
+      { name: 'Operating minima', facts: [['Set by', 'The operator, not lower than the aerodrome state allows']], text: 'Take-off and approach minima, with alternates where required.' },
+    ],
+  },
 ];
 
 export const explorerById = (id: string) => EXPLORERS.find((e) => e.id === id);

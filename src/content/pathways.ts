@@ -19,6 +19,9 @@ import { buffetMargins, electricsFuel, flightControls, gasTurbines, hydGear, mac
 import { airData, autoflight, fms, inertial } from './atpl3';
 import { classA, enrouteLanding, ifrPlans, jetFuel, loadSheets, loadingCg, petPsr, vSpeeds } from './atpl4';
 import { altitudePhysiology, catLesson, circulation, highAltHazards, humanError, sleep, tropical } from './atpl5';
+import { earthTime, gnssPbn, ilsMlsGls, inertialGrid, longRangeCharts, propagation, radarTcas } from './atpl6';
+import { aerodromesSar, commFailure, conventions, etops, ifrComms, operatorRequirements, rulesAts, specialProcedures } from './atpl7';
+import { advancedDm, airlineOps, crmAdvanced, mcc, tem } from './atpl8';
 
 const pick = (track: Track, id: string) => track.modules.flatMap((m) => m.lessons).find((l) => l.id === id)!;
 
@@ -339,7 +342,7 @@ export const atplTrack: Track = {
   blurb: 'The most advanced theory pathway: high-altitude flight, jet systems and airline operations.',
   note: 'Required syllabus modules follow the EASA ATPL(A) theoretical knowledge subjects (subject codes shown). FAA ATP knowledge requirements are set out in 14 CFR §61.155 and are structured differently. Modules marked Supplementary are useful airline-training topics, not licensing syllabus material.',
   modules: [
-    { id: 'atpl-010', code: '010', title: 'Air Law', lessons: planned('atpl', ['International Conventions and ICAO', 'Rules of the Air and ATS', 'Aerodromes and Search and Rescue']) },
+    { id: 'atpl-010', code: '010', title: 'Air Law', lessons: [conventions, rulesAts, aerodromesSar] },
     { id: 'atpl-021', code: '021', title: 'Aircraft General Knowledge — Airframe, Systems, Powerplant', lessons: [hydGear, flightControls, pneumatics, gasTurbines, electricsFuel] },
     { id: 'atpl-022', code: '022', title: 'Aircraft General Knowledge — Instrumentation', lessons: [airData, inertial, autoflight, fms] },
     { id: 'atpl-031', code: '031', title: 'Mass and Balance', lessons: [loadingCg, loadSheets] },
@@ -347,11 +350,11 @@ export const atplTrack: Track = {
     { id: 'atpl-033', code: '033', title: 'Flight Planning and Monitoring', lessons: [jetFuel, ifrPlans, petPsr] },
     { id: 'atpl-040', code: '040', title: 'Human Performance and Limitations', lessons: [altitudePhysiology, sleep, humanError] },
     { id: 'atpl-050', code: '050', title: 'Meteorology', lessons: [circulation, catLesson, tropical, highAltHazards] },
-    { id: 'atpl-061', code: '061', title: 'General Navigation', lessons: planned('atpl', ['The Earth and Time', 'Charts for Long-Range Navigation', 'Inertial and Grid Navigation']) },
-    { id: 'atpl-062', code: '062', title: 'Radio Navigation', lessons: planned('atpl', ['Radio Wave Propagation', 'ILS, MLS and GLS', 'GNSS and PBN', 'Radar and TCAS']) },
-    { id: 'atpl-070', code: '070', title: 'Operational Procedures', lessons: planned('atpl', ['Operator Requirements', 'Long-Range and ETOPS Concepts', 'Special Procedures and Hazards']) },
+    { id: 'atpl-061', code: '061', title: 'General Navigation', lessons: [earthTime, longRangeCharts, inertialGrid] },
+    { id: 'atpl-062', code: '062', title: 'Radio Navigation', lessons: [propagation, ilsMlsGls, gnssPbn, radarTcas] },
+    { id: 'atpl-070', code: '070', title: 'Operational Procedures', lessons: [operatorRequirements, etops, specialProcedures] },
     { id: 'atpl-081', code: '081', title: 'Principles of Flight', lessons: [mach, shockWaves, sweptWings, machTuck, buffetMargins] },
-    { id: 'atpl-090', code: '090', title: 'Communications', lessons: planned('atpl', ['IFR Communications', 'Communication Failure Procedures']) },
-    { id: 'atpl-sup', supplementary: true, title: 'Supplementary Airline Topics', lessons: planned('atpl', ['Threat and Error Management', 'Crew Resource Management', 'Multi-Crew Cooperation Concepts', 'Airline Operational Concepts', 'Advanced Decision-Making']) },
+    { id: 'atpl-090', code: '090', title: 'Communications', lessons: [ifrComms, commFailure] },
+    { id: 'atpl-sup', supplementary: true, title: 'Supplementary Airline Topics', lessons: [tem, crmAdvanced, mcc, airlineOps, advancedDm] },
   ],
 };
