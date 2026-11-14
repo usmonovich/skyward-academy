@@ -448,3 +448,17 @@ html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-
   .hero-aircraft canvas { grid-row: 1 / 3; width: 96px !important; height: 48px !important; }
   .stat { padding: 10px 12px; gap: 8px; } .stats { gap: 10px; }
 }
+
+/* ===== 3D hangar ===== */
+.h3d { gap: 10px; border: 2px solid var(--sky); margin-bottom: 14px; }
+.h3d-stage { position: relative; width: 100%; height: clamp(260px, 46vh, 420px); border-radius: 16px; overflow: hidden; background: radial-gradient(120% 90% at 50% 25%, #e9f4ff 0%, #c6dff6 60%, #a9c8e6 100%); touch-action: none; }
+.h3d-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline-offset: -3px; } .h3d-stage canvas:active { cursor: grabbing; }
+.h3d-tools { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.h3d-tools .icon-btn { width: 44px; height: 44px; font-size: 1.3rem; background: rgba(255, 255, 255, .92); box-shadow: 0 4px 14px rgba(11, 37, 69, .18); }
+.h3d-hint { position: absolute; left: 12px; bottom: 8px; margin: 0; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .85); color: var(--navy-2); pointer-events: none; }
+.h3d-fallback { height: 100%; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px; text-align: center; color: var(--navy-2); }
+.h3d-parts { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.h3d-parts .pill { flex: none; min-height: 40px; cursor: pointer; } .h3d-parts .pill.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.h3d-info { min-height: 96px; background: var(--sky-l); border-radius: 14px; padding: 12px 14px; } .h3d-info h3 { margin: 0 0 4px; color: var(--navy); } .h3d-info p { margin: 4px 0; }
+.h3d-loading { text-align: center; color: var(--muted); }
+@media (max-width: 640px) { .h3d-stage { height: clamp(240px, 42vh, 360px); } .h3d-hint { font-size: .72rem; } }

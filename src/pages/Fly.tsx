@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { actions, useProgress } from '../store/progress';
 import { GAME_AIRCRAFT, LIVERIES, allMissions, findLesson, getMission } from '../content';
 import { FlightGame } from '../game/FlightGame';
 import { STATUSES, TRACKS, filterMissions, isOpen, nextMission, summarise, type Status, type Track } from '../game/browse';
 import { AircraftArt, Btn, Chip, Icon, PageHead, Stars } from '../components/ui';
+
+// The 3D viewer (and three.js with it) is only downloaded when someone opens it.
+const Hangar3D = lazy(() => import('../hangar3d/Hangar3D'));
 
 const TIERS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
 const TIER_NOTE: Record<string, string> = {
@@ -22,6 +25,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
   const [track, setTrack] = useState<Track>('all');
   const [status, setStatus] = useState<Status>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [view3d, setView3d] = useState<string | null>(null);
 
   const missions = allMissions();
   const summary = useMemo(() => summarise(missions, p), [missions, p]);
@@ -82,6 +86,14 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
 
       <section className="card">
         <div className="card-head"><h2>Virtual hangar</h2><span className="small muted">Your selected aircraft is used in Free Flight missions. Lesson missions provide their own aircraft.</span></div>
+        {view3d && (() => {
+          const a3 = GAME_AIRCRAFT.find((a) => a.id === view3d);
+          return a3 ? (
+            <Suspense fallback={<div className="card h3d-loading" role="status">Loading the 3D viewer…</div>}>
+              <Hangar3D aircraft={a3} color={livery} reducedMotion={p.settings.reducedMotion || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)} unlockXp={p.xp < a3.unlockXp ? a3.unlockXp : undefined} onClose={() => setView3d(null)} />
+            </Suspense>
+          ) : null;
+        })()}
         <div className="hangar-grid">
           {GAME_AIRCRAFT.map((a) => {
             const locked = p.xp < a.unlockXp;
@@ -94,6 +106,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
                 <p className="small">{a.blurb}</p>
                 <p className="small muted">Speed {a.minKt}–{a.maxKt} kt · Agility {Math.round(a.agility * 100)}%</p>
                 {locked ? <Chip><Icon name="lock" size={13} /> Unlocks at {a.unlockXp} XP</Chip> : selected ? <Chip tone="ok">Selected</Chip> : <Btn small kind="soft" onClick={() => actions.selectAircraft(a.id)}>Select</Btn>}
+                <Btn small kind="ghost" icon="fly" onClick={() => setView3d(view3d === a.id ? null : a.id)}>{view3d === a.id ? 'Hide 3D' : 'View in 3D'}</Btn>
               </div>
             );
           })}
