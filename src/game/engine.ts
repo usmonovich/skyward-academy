@@ -91,19 +91,36 @@ const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: st
   highalt: { top: '#0d2a5c', bottom: '#79b8ee', far: '#cfe2f5', mid: '#e8f2fb', ground: '#f7fbff', sun: '#ffffff' },
 };
 
-/** In portrait the camera shows this many world pixels across, so objects ahead stay visible on a narrow screen. */
-const PORTRAIT_VW = 640;
+/**
+ * Portrait layout, from the top of the screen: the portrait HUD (PORTRAIT_HUD), the play window, and the thumb
+ * controls (PORTRAIT_CTL). The play window shows the world rows Y0..Y1 (the whole flyable height plus a little sky and
+ * ground) at one uniform scale, PORTRAIT_VW world pixels wide, with the aircraft near the left edge so most of the
+ * width looks ahead. Heights are CSS pixels and must match the DOM controls in styles.css.
+ */
+export const PORTRAIT_VW = 400;
+export const PORTRAIT_PLANE_X = 96;
+export const PORTRAIT_HUD = 138;
+export const PORTRAIT_CTL = 196;
+export const Y0 = 24;
+export const Y1 = 506;
+
+export interface View { s: number; VW: number; VH: number; oy: number; camShift: number; portrait: boolean }
 
 /**
- * Camera for a screen of cw x ch CSS pixels. The scale is uniform (nothing is stretched), the whole 960x540 play band is
- * always visible, wider screens see more world ahead (VW) and taller screens get extra sky and ground (VH, oy = where the
- * band starts). Pure, so it can be tested for any size.
+ * Camera for a screen of cw x ch CSS pixels. The scale is uniform (nothing is stretched) and the whole flyable height
+ * is always visible. Landscape and wide screens see more world ahead (VW); portrait screens use the dedicated layout
+ * above. Pure, so it can be tested for any size. `safe` are the notch and home-indicator insets in CSS pixels.
  */
-export function computeView(cw: number, ch: number): { s: number; VW: number; VH: number; oy: number } {
-  let k = Math.min(ch / H, cw / W);
-  if (cw < ch) k = cw / PORTRAIT_VW;
+export function computeView(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }): View {
+  if (cw < ch) {
+    const hud = PORTRAIT_HUD + safe.top; const ctl = PORTRAIT_CTL + safe.bottom;
+    const k = Math.min(cw / PORTRAIT_VW, Math.max(0.3, (ch - hud - ctl) / (Y1 - Y0)));
+    const pad = Math.max(0, (ch - hud - ctl - (Y1 - Y0) * k) / 2);
+    return { s: k, VW: cw / k, VH: ch / k, oy: (hud + pad) / k - Y0, camShift: PLANE_X - PORTRAIT_PLANE_X, portrait: true };
+  }
+  const k = Math.min(ch / H, cw / W);
   const VW = cw / k; const VH = ch / k;
-  return { s: k, VW, VH, oy: Math.max(0, VH - H) * 0.42 };
+  return { s: k, VW, VH, oy: Math.max(0, VH - H) * 0.42, camShift: 0, portrait: false };
 }
 
 export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameAircraft, opts: GameOptions, cb: GameCallbacks): GameHandle {
@@ -113,16 +130,16 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   // Camera. The 960x540 world band is never stretched: wider screens show more of the world ahead, taller screens
   // extend the sky above and the ground below. Only drawing reads these values; the simulation, collisions and
   // scoring work in world units and never see them.
-  const view = { s: 1, VW: W, VH: H, oy: 0, safeL: 0, safeR: 0, safeT: 0, safeB: 0 };
+  const view = { s: 1, VW: W, VH: H, oy: 0, camShift: 0, portrait: false, safeL: 0, safeR: 0, safeT: 0, safeB: 0 };
   function layout(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }) {
     if (cw > 0 && ch > 0) {
-      const v = computeView(cw, ch); const k = v.s;
-      view.s = k; view.VW = v.VW; view.VH = v.VH; view.oy = v.oy;
+      const v = computeView(cw, ch, safe); const k = v.s;
+      view.s = k; view.VW = v.VW; view.VH = v.VH; view.oy = v.oy; view.camShift = v.camShift; view.portrait = v.portrait;
       view.safeT = safe.top / k; view.safeR = safe.right / k; view.safeB = safe.bottom / k; view.safeL = safe.left / k;
       dpr = Math.min(dprBase, Math.sqrt(3.4e6 / (cw * ch)));
       canvas.width = Math.max(1, Math.round(cw * dpr)); canvas.height = Math.max(1, Math.round(ch * dpr));
     } else {
-      Object.assign(view, { s: 1, VW: W, VH: H, oy: 0, safeL: 0, safeR: 0, safeT: 0, safeB: 0 });
+      Object.assign(view, { s: 1, VW: W, VH: H, oy: 0, camShift: 0, portrait: false, safeL: 0, safeR: 0, safeT: 0, safeB: 0 });
       dpr = dprBase; canvas.width = W * dpr; canvas.height = H * dpr;
     }
   }
@@ -293,7 +310,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   function hills(par: number, base: number, amp: number, wave: number, color: string) {
     const bot = view.VH - view.oy;
     ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, bot);
-    const edge = (x: number) => base - amp * (0.6 * Math.sin((x + worldX * par) / wave) + 0.4 * Math.sin((x + worldX * par) / (wave * 0.37) + 2));
+    const edge = (x: number) => base - amp * (0.6 * Math.sin((x + (worldX + view.camShift) * par) / wave) + 0.4 * Math.sin((x + (worldX + view.camShift) * par) / (wave * 0.37) + 2));
     for (let x = 0; x <= view.VW; x += 16) ctx.lineTo(x, edge(x));
     ctx.lineTo(view.VW, edge(view.VW)); // the last step may stop short of the edge on screens whose width is not a multiple of the step
     ctx.lineTo(view.VW, bot); ctx.closePath(); ctx.fill();
@@ -305,8 +322,68 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     ctx.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`; ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(text, x, yy);
   }
 
+  /** Small markers at the right edge for gates and hazards that are still off screen, so the shorter portrait view never hides what is coming. */
+  function lookAhead(cam: number) {
+    const reach = 650;
+    const mark = (wx: number, my: number, kind: 'gate' | 'hazard') => {
+      const d = wx - cam - view.VW;
+      if (d < 0 || d > reach) return;
+      const a = 0.35 + 0.65 * (1 - d / reach);
+      const yy = clamp(my, CEIL + 8, GROUND - 8);
+      ctx.globalAlpha = a;
+      if (kind === 'gate') { ctx.strokeStyle = '#f58220'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(view.VW - 12, yy, 6, 11, 0, 0, 6.3); ctx.stroke(); }
+      else { ctx.fillStyle = '#d6453d'; ctx.beginPath(); ctx.moveTo(view.VW - 4, yy); ctx.lineTo(view.VW - 20, yy - 9); ctx.lineTo(view.VW - 20, yy + 9); ctx.closePath(); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    };
+    for (const g of level.gates) if (g.state === 'open') mark(g.x, g.y, 'gate');
+    for (const o of level.obstacles) mark(o.x, o.type === 'tower' ? o.y + o.h / 2 : o.y, 'hazard');
+  }
+
+  /** Portrait HUD in screen pixels: one instrument panel, the speed tape, the route bar, then a row of mission chips. */
+  function portraitHud() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cw = view.VW * view.s;
+    const x0 = 8 + view.safeL * view.s; const w = cw - x0 - 8 - view.safeR * view.s;
+    const y0 = 8 + view.safeT * view.s;
+    const alt = Math.max(0, Math.round(((groundY(worldX + PLANE_X) - 14 - y) + terrainHeight(def, worldX + PLANE_X)) * altScale / 10) * 10);
+    const inBand = !def.speedBand || (kt >= def.speedBand.min && kt <= def.speedBand.max);
+    const gatesHit = level.gates.filter((g) => g.state === 'hit').length;
+    panel(x0, y0, w, 56);
+    const col = w / 4;
+    const cell = (i: number, name: string, value: string, color = '#ffffff') => { label(name, x0 + col * i + 10, y0 + 19, 9, '#9fc3ea'); label(value, x0 + col * i + 10, y0 + 42, 16, color); };
+    cell(0, 'ALTITUDE', `${alt.toLocaleString('en-US')} ft`);
+    cell(1, 'SPEED', `${Math.round(kt)} kt`, def.speedBand ? (inBand ? '#5ee6c8' : '#ffb26b') : '#ffffff');
+    cell(2, 'TIME', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
+    cell(3, 'GATES', `${gatesHit}/${level.gates.length}`);
+    // Speed tape with the target band, the rotate mark and the speed marker.
+    const y1 = y0 + 60;
+    panel(x0, y1, w, 20);
+    const tx = (v: number) => x0 + 10 + clamp((v - ac.minKt * 0.6) / (ac.maxKt * 1.05 - ac.minKt * 0.6), 0, 1) * (w - 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(x0 + 10, y1 + 8, w - 20, 4);
+    if (def.speedBand) { ctx.fillStyle = '#12a594'; ctx.fillRect(tx(def.speedBand.min), y1 + 6, tx(def.speedBand.max) - tx(def.speedBand.min), 8); }
+    if (def.takeoff && onGround) { ctx.fillStyle = '#f58220'; ctx.fillRect(tx(vr) - 1, y1 + 3, 3, 14); label('ROTATE', tx(vr) + 6, y1 + 14, 9, '#ffcf9f'); }
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(tx(kt), y1 + 4); ctx.lineTo(tx(kt) - 5, y1 + 16); ctx.lineTo(tx(kt) + 5, y1 + 16); ctx.closePath(); ctx.fill();
+    // Route progress and the three contact lights.
+    const y2 = y1 + 28;
+    ctx.fillStyle = 'rgba(11,37,69,0.55)'; ctx.fillRect(x0, y2, w - 64, 6);
+    ctx.fillStyle = '#f58220'; ctx.fillRect(x0, y2, (w - 64) * clamp((worldX + PLANE_X) / def.length, 0, 1), 6);
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x0 + w - 42 + i * 18, y2 + 3, 6, 0, 6.3); ctx.fill(); }
+    // Mission chips.
+    const cwid = (w - 12) / 3; let ci = 0;
+    const chip = (draw: (cx: number, cy: number) => void) => { const cx = x0 + (ci % 3) * (cwid + 6); const cy = y2 + 14 + Math.floor(ci / 3) * 30; panel(cx, cy, cwid, 26); draw(cx, cy); ci++; };
+    if (def.fuel) chip((cx, cy) => { label('FUEL', cx + 8, cy + 17, 10, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(cx + 42, cy + 10, cwid - 52, 7); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(cx + 42, cy + 10, (cwid - 52) * clamp(fuel, 0, 1), 7); });
+    if (def.showPressure) chip((cx, cy) => { label(`${Math.round(isaPressure(alt))} hPa`, cx + cwid / 2, cy + 17, 12, '#ffffff', 'center'); });
+    if (def.wind) chip((cx, cy) => { const wd = def.wind!.vy + Math.sin(t * 1.3) * def.wind!.gust; label(`WIND ${wd > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wd / 4))} kt`, cx + cwid / 2, cy + 17, 11, '#ffffff', 'center'); });
+    if (def.energy) chip((cx, cy) => { label('IDLE: PITCH FOR SPEED', cx + cwid / 2, cy + 17, 8, '#ffcf9f', 'center'); });
+    // The educational approximation notice stays on screen, at the foot of the play window.
+    ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, 0, dpr * view.s * view.oy);
+    label(def.style === 'Arcade' ? 'Simplified arcade flight model' : 'Simplified educational simulation', view.VW - 10, Y1 - 6, 9, 'rgba(11,37,69,0.75)', 'right');
+  }
+
   function render() {
     const { VW, VH, oy } = view;
+    // Drawing camera: in portrait the aircraft is drawn nearer the left edge, so the world is drawn shifted. The simulation never reads this.
+    const cam = worldX + view.camShift; const px = PLANE_X - view.camShift;
     const top = -oy; const bot = VH - oy;
     ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, 0, dpr * view.s * oy);
     ctx.fillStyle = pal.top; ctx.fillRect(0, top - 1, VW, -top + 2);
@@ -315,7 +392,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, H);
     ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' ? 330 : 90, def.env === 'sunset' ? 54 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
     for (const c of clouds) {
-      const cx = ((c.x - worldX * 0.25) % 1500 + 1500) % 1500 - 200;
+      const cx = ((c.x - cam * 0.25) % 1500 + 1500) % 1500 - 200;
       ctx.fillStyle = def.env === 'sunset' ? 'rgba(255,214,190,0.55)' : 'rgba(255,255,255,0.8)';
       ctx.beginPath(); ctx.ellipse(cx, c.y, 46 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx + 26 * c.s, c.y - 9 * c.s, 30 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx - 28 * c.s, c.y - 4 * c.s, 26 * c.s, 12 * c.s, 0, 0, 6.3); ctx.fill();
     }
@@ -324,15 +401,15 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
     // Ground and terrain
     ctx.fillStyle = pal.ground; ctx.beginPath(); ctx.moveTo(0, bot);
-    for (let x = 0; x <= VW; x += 12) ctx.lineTo(x, groundY(worldX + x));
-    ctx.lineTo(VW, groundY(worldX + VW));
+    for (let x = 0; x <= VW; x += 12) ctx.lineTo(x, groundY(cam + x));
+    ctx.lineTo(VW, groundY(cam + VW));
     ctx.lineTo(VW, bot); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.07)';
-    for (let x = -((worldX) % 120); x < VW; x += 120) ctx.fillRect(x, GROUND + 22, 60, 6);
+    for (let x = -((cam) % 120); x < VW; x += 120) ctx.fillRect(x, GROUND + 22, 60, 6);
 
     // Runways
     const runway = (a: number, b: number) => {
-      const sx = a - worldX; const ex = b - worldX;
+      const sx = a - cam; const ex = b - cam;
       if (ex < 0 || sx > VW) return;
       ctx.fillStyle = '#4a5563'; ctx.fillRect(sx, GROUND - 3, ex - sx, 14);
       ctx.fillStyle = '#ffffff';
@@ -342,7 +419,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (def.takeoff) runway(60, TAKEOFF_RUNWAY);
     if (def.landing) runway(level.runwayStart, level.runwayEnd);
     else {
-      const fx = def.length - worldX;
+      const fx = def.length - cam;
       if (fx < VW + 40) {
         ctx.fillStyle = '#22364f'; ctx.fillRect(fx - 3, CEIL, 6, GROUND - CEIL);
         for (let i = 0; i < 12; i++) { ctx.fillStyle = i % 2 ? '#ffffff' : '#0b2545'; ctx.fillRect(fx + 3, CEIL + i * 14, 34, 14); ctx.fillStyle = i % 2 ? '#0b2545' : '#ffffff'; ctx.fillRect(fx + 20, CEIL + i * 14, 17, 14); }
@@ -352,7 +429,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
     // Gates
     for (const g of level.gates) {
-      const sx = g.x - worldX;
+      const sx = g.x - cam;
       if (sx < -60 || sx > VW + 60) continue;
       ctx.lineWidth = 6;
       ctx.strokeStyle = g.state === 'hit' ? '#12a594' : g.state === 'missed' ? 'rgba(120,130,145,0.6)' : '#f58220';
@@ -363,7 +440,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
     // Obstacles
     for (const o of level.obstacles) {
-      const sx = o.x - worldX;
+      const sx = o.x - cam;
       if (sx < -80 || sx > VW + 80) continue;
       const oy = o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.y;
       if (o.type === 'balloon') {
@@ -394,12 +471,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
     // Aircraft
     ctx.save();
-    ctx.translate(PLANE_X, y);
+    ctx.translate(px, y);
     ctx.rotate(onGround || state === 'rollout' ? 0 : clamp(vy / 520, -0.45, 0.45));
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
     drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing);
     ctx.restore(); ctx.globalAlpha = 1;
     if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
+
+    if (view.portrait) { lookAhead(cam); portraitHud(); return; }
 
     // HUD. Drawn at screen-readable size: on a phone the world is scaled down, so the HUD is scaled up to a
     // minimum of 0.85 and stacked in two blocks when the screen is too narrow to hold both side by side.

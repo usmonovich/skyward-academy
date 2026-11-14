@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 535 unit tests
+npm test           # 545 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (535, all passing):** full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (545, all passing):** portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -204,3 +204,10 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 - **Controls:** large semi-transparent buttons at the screen edges (climb and descend on the left, thrust on the right), a game bar with pause, restart, full screen and exit, and drag-to-steer on the canvas. Buttons are at least 44 px, work with several fingers at once and release on cancel. A short fade-and-zoom transition leads into the game.
 - **Orientation and full screen:** starting a mission (a user gesture) requests browser full screen and then landscape where the browser allows it (Android Chrome). Where it does not (iPhone Safari), the fixed full-viewport layout is the fallback and the briefing says the browser toolbar stays. Nothing is forced: portrait is fully playable and the briefing only suggests turning the phone. Leaving the mission unlocks the orientation.
 - **Fixed on the way:** `Btn` treated `href=""` as "no link", so "Back to Dashboard" on the mission-complete screen (and the error and not-found cards) rendered as a button that did nothing. An empty href now means the home route.
+
+## Portrait gameplay (Mobile Gameplay 2.0, batch 1)
+- The portrait screen is now three purposeful zones instead of a small band in a sea of sky: a portrait HUD on top (one instrument panel with altitude, speed, time and gates, the speed tape, route progress and contact lights, then chips for fuel, wind, pressure), the play window in the middle, and the thumb controls at the bottom. Constants: `PORTRAIT_HUD` 138 px, `PORTRAIT_CTL` 196 px, `PORTRAIT_VW` 400 world pixels across.
+- The play window shows the whole flyable height (ceiling to ground) at one uniform scale, so nothing is stretched. On a 375x812 phone the flyable height is about 1.6 times larger than before and about 47 percent of the screen height (it was about 31 percent); the camera shows 400 world pixels across instead of 640. The aircraft is drawn near the left edge so most of the width looks ahead.
+- That shortens the look-ahead, so gates and hazards that are still off screen show as small markers on the right edge (orange ring for a gate, red triangle for a hazard, brighter when closer).
+- The simulation is untouched: the world is only drawn shifted. The same scripted flight gives the same state (position, altitude, speed) in portrait and landscape.
+- Honest limit: portrait shows about 300 world pixels ahead of the aircraft against roughly 740 or more in landscape, so portrait gives less warning. Landscape remains the best way to play.

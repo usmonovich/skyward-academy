@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CEIL, GROUND, H, PLANE_X, W, computeView } from '../src/game/engine';
+import { CEIL, GROUND, H, PLANE_X, PORTRAIT_CTL, PORTRAIT_HUD, PORTRAIT_PLANE_X, PORTRAIT_VW, W, Y0, Y1, computeView } from '../src/game/engine';
 import { Btn } from '../src/components/ui';
 
 const SIZES: [string, number, number][] = [
@@ -23,30 +23,58 @@ describe('mobile full-screen camera', () => {
     // One scale for both axes: the aircraft, gates and obstacles keep their proportions.
     expect(v.VW * v.s).toBeCloseTo(cw, 6);
     expect(v.VH * v.s).toBeCloseTo(ch, 6);
-    // The whole vertical play band (ceiling to ground and the HUD rows) is always on screen.
-    expect(v.VH).toBeGreaterThanOrEqual(H - 1e-6);
-    expect(v.oy).toBeGreaterThanOrEqual(0);
-    expect(v.oy + H).toBeLessThanOrEqual(v.VH + 1e-6);
-    expect(CEIL + v.oy).toBeGreaterThan(0); expect(GROUND + v.oy).toBeLessThan(v.VH);
-    // The aircraft sits on screen with a useful stretch of the route ahead of it.
-    expect(v.VW - PLANE_X).toBeGreaterThanOrEqual(380);
-    // Both HUD blocks fit side by side or stack, in at least 560 world pixels.
-    expect(v.VW).toBeGreaterThanOrEqual(560);
+    // The whole flyable height (ceiling to ground) is always on screen.
+    const topPx = (CEIL + v.oy) * v.s; const botPx = (GROUND + v.oy) * v.s;
+    expect(topPx).toBeGreaterThan(0); expect(botPx).toBeLessThan(ch);
+    // The aircraft is on screen with a useful stretch of the route ahead of it.
+    const planeScreen = (PLANE_X - v.camShift) ;
+    expect(planeScreen).toBeGreaterThan(40); expect(planeScreen).toBeLessThan(v.VW * 0.5);
+    expect(v.VW - planeScreen).toBeGreaterThanOrEqual(290);
   });
 
-  it('shows more of the route ahead in landscape than in portrait on the same phone', () => {
-    expect(computeView(844, 390).VW).toBeGreaterThan(computeView(390, 844).VW * 1.5);
-  });
-
-  it('uses the whole screen: the band is as large as the screen allows', () => {
-    // Landscape phones: the band fills the screen height.
+  it('landscape fills the height with the 960x540 band and shows more of the route ahead than portrait', () => {
     for (const [cw, ch] of [[844, 390], [932, 430], [667, 375]] as const) {
       const v = computeView(cw, ch);
+      expect(v.portrait).toBe(false); expect(v.camShift).toBe(0);
       expect(v.VH).toBeCloseTo(H, 6); expect(v.oy).toBe(0);
     }
-    // Portrait phones: the band fills the width at the minimum 640 world pixels across and the sky and ground fill the rest.
-    const p = computeView(390, 844);
-    expect(p.VW).toBeCloseTo(640, 6); expect(p.VH).toBeGreaterThan(H);
+    expect(computeView(844, 390).VW - PLANE_X).toBeGreaterThan(computeView(390, 844).VW - PORTRAIT_PLANE_X);
+  });
+});
+
+describe('portrait gameplay layout', () => {
+  const PHONES: [number, number][] = [[375, 812], [390, 844], [430, 932], [360, 800], [375, 667]];
+  it.each(PHONES)('%dx%d: HUD on top, play window in the middle, thumb controls at the bottom, nothing overlapping', (cw, ch) => {
+    const v = computeView(cw, ch);
+    expect(v.portrait).toBe(true);
+    const winTop = (Y0 + v.oy) * v.s; const winBot = (Y1 + v.oy) * v.s;
+    expect(winTop).toBeGreaterThanOrEqual(PORTRAIT_HUD - 0.5);
+    expect(winBot).toBeLessThanOrEqual(ch - PORTRAIT_CTL + 0.5);
+    // Every flyable row sits inside the play window.
+    expect((CEIL + v.oy) * v.s).toBeGreaterThanOrEqual(winTop); expect((GROUND + v.oy) * v.s).toBeLessThanOrEqual(winBot);
+  });
+
+  it.each([[375, 812], [390, 844], [430, 932]] as [number, number][])('%dx%d: flyable height is larger than the previous layout and over 45%% of the screen', (cw, ch) => {
+    const v = computeView(cw, ch);
+    const flyable = (GROUND - CEIL) * v.s;
+    const previous = (GROUND - CEIL) * (cw / 640); // the earlier portrait camera: 640 world pixels across
+    expect(flyable).toBeGreaterThan(previous * 1.35);
+    expect(flyable / ch).toBeGreaterThan(0.45);
+  });
+
+  it('uses the full width: the camera is 400 world pixels across on a phone', () => {
+    expect(computeView(375, 812).VW).toBeCloseTo(PORTRAIT_VW, 6);
+  });
+
+  it('on a short phone the scale shrinks to keep the whole flyable height on screen', () => {
+    const v = computeView(375, 667);
+    expect(v.s).toBeLessThan(375 / PORTRAIT_VW);
+    expect((GROUND + v.oy) * v.s).toBeLessThanOrEqual(667 - PORTRAIT_CTL + 0.5);
+  });
+
+  it('a tall tablet gets a wider view, not stretched graphics', () => {
+    const v = computeView(768, 1024);
+    expect(v.VW).toBeGreaterThan(PORTRAIT_VW); expect(v.VW * v.s).toBeCloseTo(768, 6);
   });
 });
 
