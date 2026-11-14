@@ -74,7 +74,8 @@ export function Stars({ n, size = 16 }: { n: number; size?: number }) {
 export function Btn({ children, onClick, kind = 'primary', disabled, href, icon, small, label }: { children?: ReactNode; onClick?: () => void; kind?: 'primary' | 'ghost' | 'accent' | 'danger' | 'soft'; disabled?: boolean; href?: string; icon?: string; small?: boolean; label?: string }) {
   const cls = `btn btn-${kind}${small ? ' btn-sm' : ''}`;
   const inner = <>{icon && <Icon name={icon} size={small ? 16 : 18} />}{children}</>;
-  if (href && !disabled) return <a className={cls} href={`#/${href}`} aria-label={label} onClick={() => audio.sfx('click')}>{inner}</a>;
+  // An empty href is the home route ("#/"), so only an absent href means a plain button.
+  if (href !== undefined && !disabled) return <a className={cls} href={`#/${href}`} aria-label={label} onClick={() => audio.sfx('click')}>{inner}</a>;
   return <button type="button" className={cls} disabled={disabled} aria-label={label} onClick={() => { audio.sfx('click'); onClick?.(); }}>{inner}</button>;
 }
 

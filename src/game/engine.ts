@@ -66,6 +66,8 @@ export interface GameCallbacks {
   onEnd: (r: MissionResult) => void;
 }
 export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean }
+/** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
+export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
   pause(): void; resume(): void; destroy(): void;
   setInput(i: { x?: number; y?: number }): void;
@@ -73,6 +75,8 @@ export interface GameHandle {
   /** Test hook: advances the simulation by one fixed time step and redraws (used when animation frames are throttled). */
   step(dt: number): void;
   /** Debug/test hook: read-only snapshot of the simulation. */
+  /** Fits the camera to the canvas's CSS size and the screen insets. Called on every size or orientation change. */
+  resize(cssWidth: number, cssHeight: number, safe?: Safe): void;
   snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean };
 }
 
@@ -87,10 +91,42 @@ const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: st
   highalt: { top: '#0d2a5c', bottom: '#79b8ee', far: '#cfe2f5', mid: '#e8f2fb', ground: '#f7fbff', sun: '#ffffff' },
 };
 
+/** In portrait the camera shows this many world pixels across, so objects ahead stay visible on a narrow screen. */
+const PORTRAIT_VW = 640;
+
+/**
+ * Camera for a screen of cw x ch CSS pixels. The scale is uniform (nothing is stretched), the whole 960x540 play band is
+ * always visible, wider screens see more world ahead (VW) and taller screens get extra sky and ground (VH, oy = where the
+ * band starts). Pure, so it can be tested for any size.
+ */
+export function computeView(cw: number, ch: number): { s: number; VW: number; VH: number; oy: number } {
+  let k = Math.min(ch / H, cw / W);
+  if (cw < ch) k = cw / PORTRAIT_VW;
+  const VW = cw / k; const VH = ch / k;
+  return { s: k, VW, VH, oy: Math.max(0, VH - H) * 0.42 };
+}
+
 export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameAircraft, opts: GameOptions, cb: GameCallbacks): GameHandle {
   const ctx = canvas.getContext('2d')!;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = W * dpr; canvas.height = H * dpr;
+  const dprBase = Math.min(window.devicePixelRatio || 1, 2);
+  let dpr = dprBase;
+  // Camera. The 960x540 world band is never stretched: wider screens show more of the world ahead, taller screens
+  // extend the sky above and the ground below. Only drawing reads these values; the simulation, collisions and
+  // scoring work in world units and never see them.
+  const view = { s: 1, VW: W, VH: H, oy: 0, safeL: 0, safeR: 0, safeT: 0, safeB: 0 };
+  function layout(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }) {
+    if (cw > 0 && ch > 0) {
+      const v = computeView(cw, ch); const k = v.s;
+      view.s = k; view.VW = v.VW; view.VH = v.VH; view.oy = v.oy;
+      view.safeT = safe.top / k; view.safeR = safe.right / k; view.safeB = safe.bottom / k; view.safeL = safe.left / k;
+      dpr = Math.min(dprBase, Math.sqrt(3.4e6 / (cw * ch)));
+      canvas.width = Math.max(1, Math.round(cw * dpr)); canvas.height = Math.max(1, Math.round(ch * dpr));
+    } else {
+      Object.assign(view, { s: 1, VW: W, VH: H, oy: 0, safeL: 0, safeR: 0, safeT: 0, safeB: 0 });
+      dpr = dprBase; canvas.width = W * dpr; canvas.height = H * dpr;
+    }
+  }
+  layout(canvas.clientWidth, canvas.clientHeight);
   const pal = PALETTE[def.env];
   const level = buildLevel(def);
   const range = ac.maxKt - ac.minKt;
@@ -255,9 +291,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
   /* -------------------------------------------------------------- render */
   function hills(par: number, base: number, amp: number, wave: number, color: string) {
-    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 16) ctx.lineTo(x, base - amp * (0.6 * Math.sin((x + worldX * par) / wave) + 0.4 * Math.sin((x + worldX * par) / (wave * 0.37) + 2)));
-    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    const bot = view.VH - view.oy;
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, bot);
+    const edge = (x: number) => base - amp * (0.6 * Math.sin((x + worldX * par) / wave) + 0.4 * Math.sin((x + worldX * par) / (wave * 0.37) + 2));
+    for (let x = 0; x <= view.VW; x += 16) ctx.lineTo(x, edge(x));
+    ctx.lineTo(view.VW, edge(view.VW)); // the last step may stop short of the edge on screens whose width is not a multiple of the step
+    ctx.lineTo(view.VW, bot); ctx.closePath(); ctx.fill();
   }
   function panel(x: number, yy: number, w: number, h: number) {
     ctx.fillStyle = 'rgba(11,37,69,0.78)'; ctx.beginPath(); ctx.roundRect(x, yy, w, h, 10); ctx.fill();
@@ -267,11 +306,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   }
 
   function render() {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const { VW, VH, oy } = view;
+    const top = -oy; const bot = VH - oy;
+    ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, 0, dpr * view.s * oy);
+    ctx.fillStyle = pal.top; ctx.fillRect(0, top - 1, VW, -top + 2);
     const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
     sky.addColorStop(0, pal.top); sky.addColorStop(1, pal.bottom);
-    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(780, def.env === 'sunset' ? 330 : 90, def.env === 'sunset' ? 54 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, H);
+    ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' ? 330 : 90, def.env === 'sunset' ? 54 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
     for (const c of clouds) {
       const cx = ((c.x - worldX * 0.25) % 1500 + 1500) % 1500 - 200;
       ctx.fillStyle = def.env === 'sunset' ? 'rgba(255,214,190,0.55)' : 'rgba(255,255,255,0.8)';
@@ -281,16 +323,17 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     hills(0.35, GROUND - 40, def.env === 'coast' || def.env === 'highalt' ? 6 : 26, 130, pal.mid);
 
     // Ground and terrain
-    ctx.fillStyle = pal.ground; ctx.beginPath(); ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 12) ctx.lineTo(x, groundY(worldX + x));
-    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = pal.ground; ctx.beginPath(); ctx.moveTo(0, bot);
+    for (let x = 0; x <= VW; x += 12) ctx.lineTo(x, groundY(worldX + x));
+    ctx.lineTo(VW, groundY(worldX + VW));
+    ctx.lineTo(VW, bot); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.07)';
-    for (let x = -((worldX) % 120); x < W; x += 120) ctx.fillRect(x, GROUND + 22, 60, 6);
+    for (let x = -((worldX) % 120); x < VW; x += 120) ctx.fillRect(x, GROUND + 22, 60, 6);
 
     // Runways
     const runway = (a: number, b: number) => {
       const sx = a - worldX; const ex = b - worldX;
-      if (ex < 0 || sx > W) return;
+      if (ex < 0 || sx > VW) return;
       ctx.fillStyle = '#4a5563'; ctx.fillRect(sx, GROUND - 3, ex - sx, 14);
       ctx.fillStyle = '#ffffff';
       for (let x = sx + 20; x < ex - 30; x += 70) ctx.fillRect(x, GROUND + 3, 34, 3);
@@ -300,7 +343,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (def.landing) runway(level.runwayStart, level.runwayEnd);
     else {
       const fx = def.length - worldX;
-      if (fx < W + 40) {
+      if (fx < VW + 40) {
         ctx.fillStyle = '#22364f'; ctx.fillRect(fx - 3, CEIL, 6, GROUND - CEIL);
         for (let i = 0; i < 12; i++) { ctx.fillStyle = i % 2 ? '#ffffff' : '#0b2545'; ctx.fillRect(fx + 3, CEIL + i * 14, 34, 14); ctx.fillStyle = i % 2 ? '#0b2545' : '#ffffff'; ctx.fillRect(fx + 20, CEIL + i * 14, 17, 14); }
         label('FINISH', fx + 20, CEIL - 8, 13, '#0b2545', 'center', 800);
@@ -310,7 +353,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     // Gates
     for (const g of level.gates) {
       const sx = g.x - worldX;
-      if (sx < -60 || sx > W + 60) continue;
+      if (sx < -60 || sx > VW + 60) continue;
       ctx.lineWidth = 6;
       ctx.strokeStyle = g.state === 'hit' ? '#12a594' : g.state === 'missed' ? 'rgba(120,130,145,0.6)' : '#f58220';
       ctx.beginPath(); ctx.ellipse(sx, g.y, 15, g.r, 0, 0, 6.3); ctx.stroke();
@@ -321,7 +364,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     // Obstacles
     for (const o of level.obstacles) {
       const sx = o.x - worldX;
-      if (sx < -80 || sx > W + 80) continue;
+      if (sx < -80 || sx > VW + 80) continue;
       const oy = o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.y;
       if (o.type === 'balloon') {
         ctx.fillStyle = '#d6453d'; ctx.beginPath(); ctx.ellipse(sx, oy - 4, o.r - 2, o.r + 2, 0, 0, 6.3); ctx.fill();
@@ -346,7 +389,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (def.wind) {
       const wind = def.wind.vy + Math.sin(t * 1.3) * def.wind.gust;
       ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-      for (let i = 0; i < 12; i++) { const sx = (i * 97 + t * -260) % W; const sy = (i * 71 + t * wind * 0.8) % (GROUND - 40) + 20; const px = (sx + W) % W; const py = ((sy % GROUND) + GROUND) % GROUND; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 26, py - wind * 0.12); ctx.stroke(); }
+      for (let i = 0; i < 12; i++) { const sx = (i * 97 + t * -260) % VW; const sy = (i * 71 + t * wind * 0.8) % (GROUND - 40) + 20; const px = (sx + VW) % VW; const py = ((sy % GROUND) + GROUND) % GROUND; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 26, py - wind * 0.12); ctx.stroke(); }
     }
 
     // Aircraft
@@ -356,10 +399,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
     drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing);
     ctx.restore(); ctx.globalAlpha = 1;
-    if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, 0, W, H); }
+    if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
 
-    // HUD
+    // HUD. Drawn at screen-readable size: on a phone the world is scaled down, so the HUD is scaled up to a
+    // minimum of 0.85 and stacked in two blocks when the screen is too narrow to hold both side by side.
+    const hk = Math.max(view.s, 0.85) / view.s;
+    const stack = (318 + 214 + 28) * hk > VW - view.safeL - view.safeR;
     const alt = Math.max(0, Math.round(((groundY(worldX + PLANE_X) - 14 - y) + terrainHeight(def, worldX + PLANE_X)) * altScale / 10) * 10);
+    ctx.save(); ctx.translate(view.safeL, top + view.safeT); ctx.scale(hk, hk);
     panel(14, 12, 318, 62);
     label('ALTITUDE', 28, 32, 10, '#9fc3ea'); label(`${alt.toLocaleString('en-US')} ft`, 28, 56, 19);
     label('SPEED', 136, 32, 10, '#9fc3ea');
@@ -373,20 +420,27 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (def.speedBand) { ctx.fillStyle = '#12a594'; ctx.fillRect(tx(def.speedBand.min), 87, tx(def.speedBand.max) - tx(def.speedBand.min), 8); }
     if (def.takeoff && onGround) { ctx.fillStyle = '#f58220'; ctx.fillRect(tx(vr) - 1, 84, 3, 14); label('ROTATE', tx(vr) + 6, 96, 9, '#ffcf9f'); }
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(tx(kt), 86); ctx.lineTo(tx(kt) - 5, 99); ctx.lineTo(tx(kt) + 5, 99); ctx.closePath(); ctx.fill();
+    ctx.restore();
 
-    let ry = 12;
-    panel(W - 214, ry, 200, 34);
-    label(`GATES ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, W - 200, ry + 22, 13);
-    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(W - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
+    ctx.save(); ctx.translate(0, top + view.safeT); ctx.scale(hk, hk);
+    const RX = (VW - view.safeR) / hk;
+    let ry = stack ? 112 : 12;
+    panel(RX - 214, ry, 200, 34);
+    label(`GATES ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
     ry += 40;
-    if (def.fuel) { panel(W - 214, ry, 200, 28); label('FUEL', W - 200, ry + 19, 11, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(W - 160, ry + 10, 134, 8); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(W - 160, ry + 10, 134 * clamp(fuel, 0, 1), 8); ry += 34; }
-    if (def.showPressure) { panel(W - 214, ry, 200, 28); label('STATIC PRESSURE', W - 200, ry + 19, 10, '#9fc3ea'); label(`${Math.round(isaPressure(alt))} hPa`, W - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
-    if (def.wind) { const wind = def.wind.vy + Math.sin(t * 1.3) * def.wind.gust; panel(W - 214, ry, 200, 28); label('WIND', W - 200, ry + 19, 11, '#9fc3ea'); label(`${wind > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wind / 4))} kt`, W - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
-    if (def.energy) { panel(W - 214, ry, 200, 28); label('ENGINE IDLE — PITCH FOR SPEED', W - 200, ry + 19, 10, '#ffcf9f'); }
-    // Route progress
-    ctx.fillStyle = 'rgba(11,37,69,0.5)'; ctx.fillRect(14, H - 16, W - 28, 6);
-    ctx.fillStyle = '#f58220'; ctx.fillRect(14, H - 16, (W - 28) * clamp((worldX + PLANE_X) / def.length, 0, 1), 6);
-    label(def.style === 'Arcade' ? 'Simplified arcade flight model' : 'Simplified educational simulation', W - 16, H - 24, 10, 'rgba(11,37,69,0.75)', 'right');
+    if (def.fuel) { panel(RX - 214, ry, 200, 28); label('FUEL', RX - 200, ry + 19, 11, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(RX - 160, ry + 10, 134, 8); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(RX - 160, ry + 10, 134 * clamp(fuel, 0, 1), 8); ry += 34; }
+    if (def.showPressure) { panel(RX - 214, ry, 200, 28); label('STATIC PRESSURE', RX - 200, ry + 19, 10, '#9fc3ea'); label(`${Math.round(isaPressure(alt))} hPa`, RX - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
+    if (def.wind) { const wind = def.wind.vy + Math.sin(t * 1.3) * def.wind.gust; panel(RX - 214, ry, 200, 28); label('WIND', RX - 200, ry + 19, 11, '#9fc3ea'); label(`${wind > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wind / 4))} kt`, RX - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
+    if (def.energy) { panel(RX - 214, ry, 200, 28); label('ENGINE IDLE — PITCH FOR SPEED', RX - 200, ry + 19, 10, '#ffcf9f'); }
+    ctx.restore();
+
+    // Route progress along the bottom of the play band (above the home indicator when the band fills the screen).
+    const lift = oy > 0 ? 0 : view.safeB;
+    const barW = VW - 28 - view.safeL - view.safeR;
+    ctx.fillStyle = 'rgba(11,37,69,0.5)'; ctx.fillRect(14 + view.safeL, H - 16 - lift, barW, 6);
+    ctx.fillStyle = '#f58220'; ctx.fillRect(14 + view.safeL, H - 16 - lift, barW * clamp((worldX + PLANE_X) / def.length, 0, 1), 6);
+    label(def.style === 'Arcade' ? 'Simplified arcade flight model' : 'Simplified educational simulation', VW - 16 - view.safeR, H - 24 - lift, 10, 'rgba(11,37,69,0.75)', 'right');
   }
 
   function frame(now: number) {
@@ -401,7 +455,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
     if (e.type === 'keydown') keys.add(e.key); else keys.delete(e.key);
   };
-  const toCanvasY = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return ((e.clientY - r.top) / r.height) * H; };
+  const toCanvasY = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return ((e.clientY - r.top) / r.height) * view.VH - view.oy; };
   const onDown = (e: PointerEvent) => { touchY = toCanvasY(e); try { canvas.setPointerCapture?.(e.pointerId); } catch { /* capture is optional */ } };
   const onMove = (e: PointerEvent) => { if (touchY !== null) touchY = toCanvasY(e); };
   const onUp = () => { touchY = null; };
@@ -420,6 +474,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
     },
+    resize(cw, ch, safe) { layout(cw, ch, safe); render(); },
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; },
     answerDecision(correct) { if (state !== 'decision') return; if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); render(); },

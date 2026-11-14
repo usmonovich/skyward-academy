@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 516 unit tests
+npm test           # 535 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (516, all passing):** 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (535, all passing):** full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -197,3 +197,10 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 - **Performance:** three.js is a separate chunk (about 517 kB, 134 kB gzipped) that is downloaded only when the viewer is opened (`React.lazy`). The main bundle does not contain it. The render loop pauses when the tab is hidden or the viewer is off screen, the pixel ratio is capped at 2, GPU resources are released when the viewer closes, and with "Reduce motion" there is no auto-rotation or propeller spin and frames are drawn only when the view changes. Where WebGL is unavailable the viewer says so and the component list still works.
 - **Honesty about the models:** they are simplified game aircraft, not specific real types, and the viewer says so. Component descriptions are standard textbook explanations. Locked aircraft can be previewed. Offline: the viewer works offline only after it has been opened once online, because its chunk is cached on first use.
 - Screenshots: `docs/screenshots/hangar-2d-before.jpg`, `hangar-3d-sparrow-after.jpg`, `hangar-3d-airliner-after.jpg`.
+
+## Full-screen mobile game
+- **Dedicated container:** on phones and tablets (any narrow, short or touch-first window) a mission opens in a full-viewport container rendered through a React portal directly under `<body>`, so no ancestor transform, overflow or stacking context can shrink it. It uses `position: fixed` with `100dvh`, and `viewport-fit=cover` plus `env(safe-area-inset-*)` keep the HUD, controls and result screen clear of notches and home indicators. While it is open the app behind it (header, navigation, tutor button) is hidden, `inert` and `aria-hidden`, the page cannot scroll, and leaving the mission restores everything. Wide desktop windows keep the original card layout.
+- **Camera, not stretching:** the simulation still runs in its 960x540 world. The drawing uses a uniform scale (`computeView` in `src/game/engine.ts`): landscape phones fill the height and show more of the route ahead, portrait phones show 640 world pixels across and extend sky and ground above and below. Collisions, checkpoints and scoring read world coordinates only and were not changed. The HUD is drawn at a readable size and stacks in two blocks on narrow screens.
+- **Controls:** large semi-transparent buttons at the screen edges (climb and descend on the left, thrust on the right), a game bar with pause, restart, full screen and exit, and drag-to-steer on the canvas. Buttons are at least 44 px, work with several fingers at once and release on cancel. A short fade-and-zoom transition leads into the game.
+- **Orientation and full screen:** starting a mission (a user gesture) requests browser full screen and then landscape where the browser allows it (Android Chrome). Where it does not (iPhone Safari), the fixed full-viewport layout is the fallback and the briefing says the browser toolbar stays. Nothing is forced: portrait is fully playable and the briefing only suggests turning the phone. Leaving the mission unlocks the orientation.
+- **Fixed on the way:** `Btn` treated `href=""` as "no link", so "Back to Dashboard" on the mission-complete screen (and the error and not-found cards) rendered as a button that did nothing. An empty href now means the home route.
