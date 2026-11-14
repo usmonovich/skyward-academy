@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Decision, GameAircraft, MissionDef, MissionResult } from '../types';
 import { GAME_AIRCRAFT, LIVERIES } from '../content/reference';
+import { allMissions } from '../content';
 import { actions, useProgress } from '../store/progress';
 import { audio } from '../engine/audio';
+import { scoreParts } from '../engine/gamification';
 import { Btn, Chip, Icon, Stars, AircraftArt } from '../components/ui';
 import { createGame, debrief, type GameHandle } from './engine';
+import { nextMission } from './browse';
+
+const PART_LABELS: [keyof ReturnType<typeof scoreParts>, string, number][] = [['gates', 'Gates', 40], ['safety', 'Safety', 25], ['time', 'Time', 15], ['objective', 'Objective', 20]];
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
 
@@ -18,6 +23,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [decisionFeedback, setDecisionFeedback] = useState<{ text: string; correct: boolean } | null>(null);
   const [result, setResult] = useState<MissionResult | null>(null);
   const [gained, setGained] = useState(0);
+  const [prevBest, setPrevBest] = useState<number | null>(null);
   const [run, setRun] = useState(0);
   const [showHelp, setShowHelp] = useState(!p.seenTutorial);
 
@@ -39,7 +45,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion }, {
       onMessage: setMessage,
       onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setPhase('decision'); },
-      onEnd: (r) => { setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
+      onEnd: (r) => { setPrevBest(p.missions[def.id]?.best ?? null); setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
     });
     game.current = g;
     // Development-only handle so automated browser tests can read the simulation state.
@@ -144,10 +150,18 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             <div className={`overlay-card${result.success && !reducedMotion ? ' celebrate' : ''}`}>
               <Chip tone={result.success ? 'ok' : 'warn'}>{result.success ? 'Mission complete' : 'Mission not completed'}</Chip>
               <h2>{result.success ? 'Post-flight debrief' : 'Let\'s try that again'}</h2>
-              {result.success && <div className="debrief-score"><Stars n={result.stars} size={30} /><div><strong>{result.score}</strong> / 1000 points</div>{gained > 0 ? <Chip tone="accent">+{gained} XP</Chip> : <Chip>Best result already recorded</Chip>}</div>}
+              {result.success && <div className="debrief-score"><Stars n={result.stars} size={30} /><div><strong>{result.score}</strong> / 1000 points</div>{gained > 0 ? <Chip tone="accent">+{gained} XP</Chip> : <Chip>Best result already recorded</Chip>}{prevBest === null ? <Chip tone="ok">First flight</Chip> : result.score > prevBest ? <Chip tone="ok">New best (was {prevBest})</Chip> : <Chip>Best {prevBest}</Chip>}</div>}
+              {result.success && (
+                <div className="score-parts" role="group" aria-label="Score breakdown">
+                  {PART_LABELS.map(([k, label, weight]) => { const v = scoreParts(def.parTime, result)[k]; return (
+                    <div key={k} className="score-part"><span className="small">{label} <span className="muted">({weight}%)</span></span><div className="score-bar" aria-hidden="true"><span style={{ width: `${Math.round(v * 100)}%` }} /></div><span className="small"><strong>{Math.round(v * 100)}%</strong></span></div>
+                  ); })}
+                </div>
+              )}
               <ul className="debrief-list">{debrief(def, result).map((line) => <li key={line}>{line}</li>)}</ul>
               <div className="row gap wrap">
                 {result.success && nextHref && <Btn kind="accent" href={nextHref} icon="arrow">{nextLabel ?? 'Continue'}</Btn>}
+                {result.success && (() => { const nx = nextMission(allMissions(), p, def.id); return nx ? <Btn kind="soft" href={`fly/${nx.id}`} icon="fly">Next: {nx.title}</Btn> : null; })()}
                 <Btn kind={result.success ? 'soft' : 'accent'} icon="refresh" onClick={start}>{result.success ? 'Fly again' : 'Retry mission'}</Btn>
                 <Btn kind="ghost" href={exitHref}>Exit</Btn>
               </div>

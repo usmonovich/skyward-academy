@@ -326,3 +326,13 @@ kbd { background: #fff; border: 1px solid #b9c6d4; border-bottom-width: 2px; bor
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 [data-motion="reduced"] *, [data-motion="reduced"] *::before, [data-motion="reduced"] *::after { animation: none !important; transition: none !important; }
 @media print { .side, .bottom, .tutor-fab, .foot, .toasts, .page-head, .card:not(:has(.certificate)), .stats, .grid-2 { display: none !important; } .certificate .btn { display: none; } .main { padding: 0; } body { background: #fff; } }
+
+/* Mission browser and score breakdown */
+.fly-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.fly-filters .field { min-width: 0; }
+.fly-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.up-next { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: space-between; border: 2px solid var(--orange); }
+.score-parts { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.score-part { display: grid; grid-template-columns: 120px minmax(0, 1fr) 44px; gap: 10px; align-items: center; }
+.score-bar { height: 8px; border-radius: 999px; background: #e3e9f0; overflow: hidden; } .score-bar span { display: block; height: 100%; background: var(--teal, #12a594); border-radius: 999px; }
+@media (max-width: 640px) { .fly-filters { grid-template-columns: 1fr; } .score-part { grid-template-columns: 96px minmax(0, 1fr) 40px; } }

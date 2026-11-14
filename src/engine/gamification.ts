@@ -2,11 +2,13 @@
 import type { MissionStats, Progress } from '../types';
 
 /** In-game educational ranks only. They are not pilot licences or qualifications. */
+// Thresholds are scaled to the full curriculum: a lesson with its mission is worth roughly 225 XP, so the PPL
+// rank lies near the end of the PPL track and the top rank near the end of the ATPL track.
 export const RANKS = [
-  { name: 'Aviation Explorer', xp: 0 }, { name: 'Junior Cadet', xp: 150 }, { name: 'Flight Academy Cadet', xp: 400 },
-  { name: 'Student Pilot', xp: 800 }, { name: 'PPL Knowledge Graduate', xp: 1400 }, { name: 'Commercial Aviation Cadet', xp: 2000 },
-  { name: 'CPL Knowledge Graduate', xp: 2700 }, { name: 'Advanced Airline Cadet', xp: 3500 }, { name: 'ATPL Knowledge Graduate', xp: 4400 },
-  { name: 'Skyward Academy Master', xp: 5500 },
+  { name: 'Aviation Explorer', xp: 0 }, { name: 'Junior Cadet', xp: 150 }, { name: 'Flight Academy Cadet', xp: 1000 },
+  { name: 'Student Pilot', xp: 6000 }, { name: 'PPL Knowledge Graduate', xp: 28000 }, { name: 'Commercial Aviation Cadet', xp: 31000 },
+  { name: 'CPL Knowledge Graduate', xp: 36000 }, { name: 'Advanced Airline Cadet', xp: 40000 }, { name: 'ATPL Knowledge Graduate', xp: 46000 },
+  { name: 'Skyward Academy Master', xp: 50000 },
 ];
 
 export function rankFor(xp: number) {
@@ -71,8 +73,10 @@ export function dailyFor(key: string): DailyChallenge {
 }
 
 /** Mission scoring: 40% gates, 25% safety, 15% time, 20% mission objective. */
-export function scoreMission(parTime: number, s: MissionStats): { score: number; stars: number } {
-  if (!s.success) return { score: 0, stars: 0 };
+export interface ScoreParts { gates: number; safety: number; time: number; objective: number }
+
+/** The four components of a mission score, each from 0 to 1, in the order they are weighted (40/25/15/20). */
+export function scoreParts(parTime: number, s: MissionStats): ScoreParts {
   const gates = s.total ? s.checkpoints / s.total : 1;
   const safety = Math.max(0, 1 - s.hits / 3);
   const time = Math.min(1, parTime / Math.max(s.time, 1));
@@ -81,6 +85,12 @@ export function scoreMission(parTime: number, s: MissionStats): { score: number;
   if (s.landing) parts.push(s.landing === 'smooth' ? 1 : s.landing === 'firm' ? 0.6 : 0.2);
   if (s.decisionsTotal) parts.push(s.decisionsCorrect / s.decisionsTotal);
   const objective = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 1;
+  return { gates, safety, time, objective };
+}
+
+export function scoreMission(parTime: number, s: MissionStats): { score: number; stars: number } {
+  if (!s.success) return { score: 0, stars: 0 };
+  const { gates, safety, time, objective } = scoreParts(parTime, s);
   const score = Math.round(1000 * (0.4 * gates + 0.25 * safety + 0.15 * time + 0.2 * objective));
   return { score, stars: score >= 850 ? 3 : score >= 600 ? 2 : 1 };
 }

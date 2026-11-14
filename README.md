@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 441 unit tests
+npm test           # 447 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (441, all passing):** grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (447, all passing):** mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -178,6 +178,6 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 - **Admin.** No access control. Lessons, glossary terms and missions can be edited; new subjects, modules, formulas and uploaded illustrations cannot.
 - **ATC controller.** A rule-based dialogue engine, not a generative model. Radio-failure procedures are not covered.
 - **Speaking feedback.** Based on the transcript only. Pronunciation is not assessed.
-- **Ranks.** The top rank is reachable well before finishing the current 202 lessons; thresholds need rescaling as lessons are added.
+- **Ranks.** Rank thresholds were rescaled to the 202-lesson curriculum (top rank at 50,000 XP). XP values and saved progress are unchanged, so existing users may see a lower rank name for the same XP.
 
 **Not built:** background music and ambient airport audio, recorded human voices, image identification and diagram-labelling question types, short written answers, drag-and-drop (matching and ordering use buttons and menus), server database, analytics service.
