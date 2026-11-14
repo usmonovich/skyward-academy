@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 545 unit tests
+npm test           # 587 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (545, all passing):** portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (587, all passing):** challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -207,7 +207,24 @@ On 11 November 2026 the figures in the six PPL meteorology and air-law lessons w
 
 ## Portrait gameplay (Mobile Gameplay 2.0, batch 1)
 - The portrait screen is now three purposeful zones instead of a small band in a sea of sky: a portrait HUD on top (one instrument panel with altitude, speed, time and gates, the speed tape, route progress and contact lights, then chips for fuel, wind, pressure), the play window in the middle, and the thumb controls at the bottom. Constants: `PORTRAIT_HUD` 138 px, `PORTRAIT_CTL` 196 px, `PORTRAIT_VW` 400 world pixels across.
-- The play window shows the whole flyable height (ceiling to ground) at one uniform scale, so nothing is stretched. On a 375x812 phone the flyable height is about 1.6 times larger than before and about 47 percent of the screen height (it was about 31 percent); the camera shows 400 world pixels across instead of 640. The aircraft is drawn near the left edge so most of the width looks ahead.
+- The play window shows the whole flyable height (ceiling to ground) at one uniform scale, so nothing is stretched. On a 375x812 phone the flyable height is about 1.6 times larger than before and about 49 percent of the screen height (it was about 31 percent); the camera shows 400 world pixels across instead of 640. The aircraft is drawn near the left edge so most of the width looks ahead.
 - That shortens the look-ahead, so gates and hazards that are still off screen show as small markers on the right edge (orange ring for a gate, red triangle for a hazard, brighter when closer).
 - The simulation is untouched: the world is only drawn shifted. The same scripted flight gives the same state (position, altitude, speed) in portrait and landscape.
 - Honest limit: portrait shows about 300 world pixels ahead of the aircraft against roughly 740 or more in landscape, so portrait gives less warning. Landscape remains the best way to play.
+
+## New mission types (Mobile Gameplay 2.0, batch 2)
+Twelve challenge missions in `src/content/challenges.ts`. They have no lesson of their own: each opens when the lessons it requires are passed (`requires`), appears under the track of its first required lesson, and states the concept it practises on its card. Every scenario is a simplified teaching scenario, labelled as such in its briefing.
+
+| Type | Missions | Concept practised |
+|---|---|---|
+| Crosswind landing | Crosswind Landing, Gusty Crosswind | Hold a correction into the wind and arrive on the centreline |
+| Wind compensation | Hold the Track, Wind Correction Angle | The heading correction (wind correction angle) depends on wind and airspeed |
+| Navigation checkpoints | Waypoint Route, Dogleg in the Wind | Cross named waypoints on track and at height |
+| Fuel management | Fuel Reserve | Power burns fuel quickly; decide early about a shortfall and tell ATC |
+| Weather avoidance | Storm Deviation | Avoid storm cells by a wide margin; the gap can move |
+| Go-around | Go-Around, Go-Around in a Crosswind | Blocked runway: add power and climb away |
+| Decision making | Alternate or Continue, Engine Trouble After Take-off | Decide early; aviate, navigate, communicate |
+
+- **Simplified sideways-wind model (`lateral`):** the game is a side view, so the sideways position is shown on a track panel (corridor, runway width, route target, wind, heading correction). Wind pushes the aircraft sideways; a held heading correction (Q/E keys or the HDG buttons) pushes back; the faster the aircraft flies, the smaller the correction needed. The wind ramps in over the first six seconds. This is an educational approximation, not a flight model.
+- **Scoring is unchanged.** New missions feed the existing formula only through existing fields: time on track becomes the objective fraction, a go-around counts as one decision, centreline touchdown adjusts the landing quality (smooth, firm, hard).
+- **Tested by flying them:** all twelve were flown to completion with a scripted autopilot (correction held, waypoints followed, flare and landing, decisions answered). A no-input flight leaves the corridor and fails, so the challenge is real. The autopilot found that two missions needed seeds with a fairer final approach.

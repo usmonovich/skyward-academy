@@ -10,11 +10,15 @@ export const STATUSES: [Status, string][] = [['all', 'Any status'], ['ready', 'R
 
 /** Which curriculum track a mission belongs to, taken from its lesson id (free-flight missions have none). */
 export function trackOf(m: MissionDef): Exclude<Track, 'all'> {
-  const prefix = m.lessonId?.split('-')[0];
+  const prefix = (m.lessonId ?? m.requires?.[0])?.split('-')[0];
   return prefix === 'math' || prefix === 'phys' || prefix === 'ppl' || prefix === 'cpl' || prefix === 'atpl' ? prefix : 'free';
 }
 
-export const isOpen = (m: MissionDef, p: Progress): boolean => !m.lessonId || !!p.lessons[m.lessonId]?.passed;
+/** The lessons that must be passed before a mission opens: its own lesson, or the lessons a challenge mission requires. */
+export const gateLessons = (m: MissionDef): string[] => (m.lessonId ? [m.lessonId] : m.requires ?? []);
+export const isOpen = (m: MissionDef, p: Progress): boolean => gateLessons(m).every((id) => !!p.lessons[id]?.passed);
+/** The first required lesson that is not passed yet, or undefined when the mission is open. */
+export const firstUnmet = (m: MissionDef, p: Progress): string | undefined => gateLessons(m).find((id) => !p.lessons[id]?.passed);
 export const isFlown = (m: MissionDef, p: Progress): boolean => !!p.missions[m.id];
 
 export interface MissionFilter { query?: string; track?: Track; status?: Status; tier?: string }

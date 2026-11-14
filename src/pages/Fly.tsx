@@ -2,7 +2,7 @@ import { Suspense, lazy, useMemo, useState } from 'react';
 import { actions, useProgress } from '../store/progress';
 import { GAME_AIRCRAFT, LIVERIES, allMissions, findLesson, getMission } from '../content';
 import { FlightGame } from '../game/FlightGame';
-import { STATUSES, TRACKS, filterMissions, isOpen, nextMission, summarise, type Status, type Track } from '../game/browse';
+import { STATUSES, TRACKS, filterMissions, firstUnmet, isOpen, nextMission, summarise, type Status, type Track } from '../game/browse';
 import { AircraftArt, Btn, Chip, Icon, PageHead, Stars } from '../components/ui';
 
 // The 3D viewer (and three.js with it) is only downloaded when someone opens it.
@@ -35,8 +35,9 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
   if (missionId) {
     const def = getMission(missionId);
     if (!def) return <div className="card"><h2>Mission not found</h2><Btn href="fly">Back to missions</Btn></div>;
-    const lesson = def.lessonId ? findLesson(def.lessonId)?.lesson : undefined;
-    if (def.lessonId && !p.lessons[def.lessonId]?.passed) {
+    const unmet = firstUnmet(def, p);
+    const lesson = unmet ? findLesson(unmet)?.lesson : def.lessonId ? findLesson(def.lessonId)?.lesson : undefined;
+    if (unmet) {
       return <div className="card"><h2><Icon name="lock" /> {def.title} is locked</h2><p>Pass the assessment for “{lesson?.title ?? 'its lesson'}” to unlock this mission.</p><div className="row gap">{lesson && <Btn kind="accent" href={`lesson/${lesson.id}`}>Open the lesson</Btn>}<Btn kind="ghost" href="fly">Back to missions</Btn></div></div>;
     }
     return <FlightGame key={missionId} def={def} exitHref={from ? `lesson/${from}` : 'fly'} nextHref={from ? `lesson/${from}/complete` : 'fly'} nextLabel={from ? 'Collect rewards' : 'Continue'} />;
@@ -134,6 +135,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
               {shown.map((m) => {
                 const lesson = m.lessonId ? findLesson(m.lessonId)?.lesson : undefined;
                 const open = isOpen(m, p);
+                const needLesson = (() => { const id = firstUnmet(m, p); return id ? findLesson(id)?.lesson : undefined; })();
                 const st = p.missions[m.id];
                 const ac = GAME_AIRCRAFT.find((a) => a.id === m.aircraftId) ?? GAME_AIRCRAFT[0];
                 return (
@@ -142,8 +144,9 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
                     <div className="mission-body">
                       <div className="row between"><strong>{m.title}</strong>{st && <Stars n={st.stars} />}</div>
                       <p className="small">{m.objective}</p>
-                      <p className="small muted">{lesson ? `Lesson: ${lesson.title}` : 'Free flight — always available'} · {m.style}{st ? ` · Best ${st.best}` : ''}</p>
-                      {open ? <Btn small kind={st ? 'soft' : 'accent'} icon="play" href={`fly/${m.id}`}>{st ? 'Fly again' : 'Fly'}</Btn> : <Btn small kind="ghost" icon="lock" href={lesson ? `lesson/${lesson.id}` : 'academy'}>Pass the lesson to unlock</Btn>}
+                      {m.concept && <p className="small concept"><strong>Teaches:</strong> {m.concept}</p>}
+                      <p className="small muted">{lesson ? `Lesson: ${lesson.title}` : m.requires ? 'Challenge' : 'Free flight — always available'} · {m.style}{st ? ` · Best ${st.best}` : ''}</p>
+                      {open ? <Btn small kind={st ? 'soft' : 'accent'} icon="play" href={`fly/${m.id}`}>{st ? 'Fly again' : 'Fly'}</Btn> : <Btn small kind="ghost" icon="lock" href={needLesson ? `lesson/${needLesson.id}` : lesson ? `lesson/${lesson.id}` : 'academy'}>Pass the lesson to unlock</Btn>}
                     </div>
                   </div>
                 );

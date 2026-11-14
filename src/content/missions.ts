@@ -1,4 +1,5 @@
 import type { MissionDef } from '../types';
+import { CHALLENGES } from './challenges';
 
 type Partial_ = Partial<MissionDef> & Pick<MissionDef, 'id' | 'title' | 'objective' | 'briefing' | 'outcome'>;
 
@@ -11,7 +12,7 @@ const base = (m: Partial_): MissionDef => ({
  * Every mission is data. Add an object here (or in the Admin panel) and the engine can fly it.
  * `length` is in world pixels; `at` values are fractions of the route (0..1).
  */
-export const MISSIONS: MissionDef[] = [
+const CORE_MISSIONS: MissionDef[] = [
   base({ id: 'm-math-units', lessonId: 'math-units', title: 'First Solo Hop', env: 'airfield', seed: 11, length: 6500, parTime: 34, checkpoints: 5,
     obstacles: { density: 0.25, types: ['balloon'] },
     objective: 'Fly through the 5 gates and reach the finish line.',
@@ -1307,3 +1308,6 @@ export const MISSIONS: MissionDef[] = [
   base({ id: 'm-free-sunset', title: 'Free Flight: Sunset Ridge', tier: 'Intermediate', env: 'sunset', seed: 72, length: 11000, parTime: 56, checkpoints: 8, terrain: 0.5, obstacles: { density: 0.35, types: ['birds', 'balloon'] }, landing: true,
     objective: 'Open practice with terrain and a landing.', briefing: 'An evening flight over rolling ridges, ending with a landing.', outcome: 'Free practice.', xp: 30 }),
 ];
+
+/** Lesson missions and challenge missions together. Challenge missions open when the lessons they require are passed. */
+export const MISSIONS: MissionDef[] = [...CORE_MISSIONS, ...CHALLENGES];

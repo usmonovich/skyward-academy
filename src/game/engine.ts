@@ -70,14 +70,15 @@ export interface GameOptions { assisted: boolean; livery: string; reducedMotion:
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
   pause(): void; resume(): void; destroy(): void;
-  setInput(i: { x?: number; y?: number }): void;
+  /** x: thrust, y: pitch, h: heading correction (crosswind and navigation missions). */
+  setInput(i: { x?: number; y?: number; h?: number }): void;
   answerDecision(correct: boolean): void;
   /** Test hook: advances the simulation by one fixed time step and redraws (used when animation frames are throttled). */
   step(dt: number): void;
   /** Debug/test hook: read-only snapshot of the simulation. */
   /** Fits the camera to the canvas's CSS size and the screen insets. Called on every size or orientation change. */
   resize(cssWidth: number, cssHeight: number, safe?: Safe): void;
-  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean };
+  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string };
 }
 
 const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: string; ground: string; sun: string }> = {
@@ -101,6 +102,8 @@ export const PORTRAIT_VW = 400;
 export const PORTRAIT_PLANE_X = 96;
 export const PORTRAIT_HUD = 138;
 export const PORTRAIT_CTL = 196;
+/** Extra portrait HUD height for the track panel of sideways-wind missions. */
+export const TRACK_PANEL = 52;
 export const Y0 = 24;
 export const Y1 = 506;
 
@@ -111,9 +114,9 @@ export interface View { s: number; VW: number; VH: number; oy: number; camShift:
  * is always visible. Landscape and wide screens see more world ahead (VW); portrait screens use the dedicated layout
  * above. Pure, so it can be tested for any size. `safe` are the notch and home-indicator insets in CSS pixels.
  */
-export function computeView(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }): View {
+export function computeView(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }, extraHud = 0): View {
   if (cw < ch) {
-    const hud = PORTRAIT_HUD + safe.top; const ctl = PORTRAIT_CTL + safe.bottom;
+    const hud = PORTRAIT_HUD + extraHud + safe.top; const ctl = PORTRAIT_CTL + safe.bottom;
     const k = Math.min(cw / PORTRAIT_VW, Math.max(0.3, (ch - hud - ctl) / (Y1 - Y0)));
     const pad = Math.max(0, (ch - hud - ctl - (Y1 - Y0) * k) / 2);
     return { s: k, VW: cw / k, VH: ch / k, oy: (hud + pad) / k - Y0, camShift: PLANE_X - PORTRAIT_PLANE_X, portrait: true };
@@ -133,7 +136,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const view = { s: 1, VW: W, VH: H, oy: 0, camShift: 0, portrait: false, safeL: 0, safeR: 0, safeT: 0, safeB: 0 };
   function layout(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }) {
     if (cw > 0 && ch > 0) {
-      const v = computeView(cw, ch, safe); const k = v.s;
+      const v = computeView(cw, ch, safe, def.lateral ? TRACK_PANEL : 0); const k = v.s;
       view.s = k; view.VW = v.VW; view.VH = v.VH; view.oy = v.oy; view.camShift = v.camShift; view.portrait = v.portrait;
       view.safeT = safe.top / k; view.safeR = safe.right / k; view.safeB = safe.bottom / k; view.safeL = safe.left / k;
       dpr = Math.min(dprBase, Math.sqrt(3.4e6 / (cw * ch)));
@@ -173,8 +176,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let raf = 0;
   let last = 0;
   let flash = 0;
+  // Sideways track (lateral missions) and go-around state. Both are optional mission features.
+  let lat = 0; let hdg = 0; let latIn = 0; let latAll = 0; let errSum = 0; let maxOff = 0; let touchOff: number | undefined;
+  let gaState: 'idle' | 'active' = 'idle'; let gaAt = 0; let gaY = 0; let gaClimbed = false; let gaClimbT = 0; let gaLanded = false;
+  const trace: number[][] = []; let traceT = 0;
   const keys = new Set<string>();
-  const input = { x: 0, y: 0 };
+  const input = { x: 0, y: 0, h: 0 };
   let touchY: number | null = null;
   const messages = [...(def.messages ?? [])].sort((a, b) => a.at - b.at);
   const decisions = [...(def.decisions ?? [])].sort((a, b) => a.at - b.at);
@@ -183,6 +190,20 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const pxSpeed = () => (kt < ac.minKt ? 140 * (kt / ac.minKt) : 140 + clamp((kt - ac.minKt) / range, 0, 1.1) * 200);
   const groundY = (wx: number) => GROUND - terrainHeight(def, wx);
   const say = (text: string) => cb.onMessage(text);
+  /** Height of an obstacle right now: birds flap, and storm cells drift when the mission says so. Used by collisions and drawing alike. */
+  const obstacleY = (o: { type: string; y: number; phase: number }) => (o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.type === 'storm' && def.stormDrift ? o.y + Math.sin(t * 0.8 + o.phase) * 60 : o.y);
+  /** The sideways position the route asks for at the aircraft's distance: straight on, or a line through the waypoints. */
+  const planned = (wx: number): number => {
+    const wps = def.lateral?.waypoints;
+    if (!wps || !wps.length) return 0;
+    let px = 0; let pl = 0;
+    for (let i = 0; i < level.gates.length && i < wps.length; i++) {
+      const gx = level.gates[i].x;
+      if (wx <= gx) return pl + (wps[i].lat - pl) * clamp((wx - px) / Math.max(1, gx - px), 0, 1);
+      px = gx; pl = wps[i].lat;
+    }
+    return pl;
+  };
 
   function end(success: boolean, reason?: string) {
     if (state === 'ended') return;
@@ -190,8 +211,13 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     audio.engineStop();
     const stats: MissionStats = {
       success, reason, time: t, checkpoints: level.gates.filter((g) => g.state === 'hit').length, total: level.gates.length, hits,
-      bandFraction: def.speedBand ? (bandAll > 0 ? bandIn / bandAll : 0) : undefined, landing,
-      decisionsCorrect, decisionsTotal: decisions.length, fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
+      bandFraction: def.speedBand ? (bandAll > 0 ? bandIn / bandAll : 0) : def.lateral ? (latAll > 0 ? latIn / latAll : 0) : undefined, landing,
+      // A go-around counts as one decision: right when the climb started within seven seconds of the call.
+      decisionsCorrect: decisionsCorrect + (def.goAround && gaClimbed && gaClimbT <= 7 ? 1 : 0), decisionsTotal: decisions.length + (def.goAround ? 1 : 0),
+      fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
+      trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
+      goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
+      trace,
     };
     audio.sfx(success ? 'win' : 'fail');
     cb.onEnd({ ...stats, ...scoreMission(def.parTime, stats) });
@@ -263,6 +289,30 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     y = Math.max(CEIL, y + (vy + wind) * dt);
     if (y === CEIL && vy < 0) vy = 0;
     worldX += pxSpeed() * dt;
+
+    // Sideways wind: it pushes the aircraft off the track; a held heading correction pushes back. The faster the
+    // aircraft flies, the less correction is needed (here 0.45 track units per second per knot at full correction).
+    if (def.lateral) {
+      const L = def.lateral;
+      const inH = clamp((keys.has('e') || keys.has('E') ? 1 : 0) - (keys.has('q') || keys.has('Q') ? 1 : 0) + input.h, -1, 1);
+      hdg = clamp(hdg + inH * 1.1 * dt, -1, 1);
+      const w = (L.wind + L.gust * Math.sin(t * 1.7 + 0.8)) * (opts.assisted ? 0.5 : 1) * clamp(t / 6, 0, 1);
+      lat = clamp(lat + (w * 2.2 + hdg * kt * 0.45) * dt, -140, 140);
+      const err = Math.abs(lat - planned(worldX + PLANE_X));
+      latAll += dt; if (err <= L.tol) latIn += dt;
+      errSum += err * dt; maxOff = Math.max(maxOff, err);
+      if (Math.abs(lat) > 105) hit('You left the route corridor. Hold a heading correction against the wind and re-centre earlier.');
+    }
+    if (def.goAround) {
+      const wxa = worldX + PLANE_X;
+      if (gaState === 'idle' && wxa >= level.runwayStart - def.goAround.at) { gaState = 'active'; gaAt = t; gaY = y; say('Runway occupied. GO AROUND: add power and climb away now.'); audio.sfx('bad'); }
+      else if (gaState === 'active') {
+        if (!gaClimbed && y <= Math.min(GROUND - 110, gaY - 60)) { gaClimbed = true; gaClimbT = t - gaAt; say(gaClimbT <= 7 ? 'Positive climb. Go-around flown correctly.' : 'You are climbing, but a go-around has to start sooner.'); }
+        if (wxa >= level.runwayStart && wxa <= level.runwayEnd && y > GROUND - 70) hit('Too low over an occupied runway.');
+      }
+    }
+    traceT += dt;
+    if (traceT >= 0.25) { traceT = 0; trace.push([Math.round(t * 100) / 100, Math.round(worldX + PLANE_X), Math.round(y), Math.round(lat * 10) / 10, Math.round(kt)]); }
     audio.engineSet(def.energy ? 0.2 : thr);
 
     if (def.fuel) {
@@ -277,12 +327,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
     for (const g of level.gates) {
       if (g.state === 'open' && wx >= g.x) {
-        if (Math.abs(y - g.y) <= g.r) { g.state = 'hit'; audio.sfx('gate'); }
-        else { g.state = 'missed'; }
+        const wp = def.lateral?.waypoints?.[level.gates.indexOf(g)];
+        const sideOk = !wp || Math.abs(lat - wp.lat) <= def.lateral!.tol;
+        if (Math.abs(y - g.y) <= g.r && sideOk) { g.state = 'hit'; audio.sfx('gate'); }
+        else { g.state = 'missed'; if (wp && !sideOk) say(`Waypoint ${wp.name} missed: you were off the planned track. Turn earlier and hold the heading.`); }
       }
     }
     for (const o of level.obstacles) {
-      const oy = o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.y;
+      const oy = obstacleY(o);
       const dx = Math.abs(o.x - wx);
       if (o.type === 'tower') { if (dx < 26 && y > oy - 8) hit('Obstacle strike. Keep well above towers.'); }
       else if (dx < o.r + 18 && Math.abs(oy - y) < o.r + 10) hit(o.type === 'storm' ? 'You entered a storm cell. Avoid them by a wide margin.' : o.type === 'birds' ? 'Bird strike. Look ahead and plan around flocks.' : 'Obstacle contact. Give it more room.');
@@ -292,17 +344,30 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (y >= gy - 14) {
       const onRunway = def.landing && wx >= level.runwayStart && wx <= level.runwayEnd;
       if (onRunway) {
+        if (gaState === 'active') { gaLanded = true; return end(false, 'You landed on an occupied runway. When the runway is blocked, add power and climb away: that is a go-around.'); }
         const sink = vy + wind;
         landing = sink < 75 ? 'smooth' : sink < 135 ? 'firm' : 'hard';
         if (kt > landMax && landing === 'smooth') landing = 'firm';
+        let lateralNote = '';
+        if (def.lateral?.runwayHalf !== undefined) {
+          touchOff = Math.abs(lat); const half = def.lateral.runwayHalf;
+          if (touchOff > half) { landing = 'hard'; lateralNote = ' You touched down off the runway centreline: keep the heading correction until the flare and line up earlier.'; }
+          else if (touchOff > half * 0.6) { if (landing === 'smooth') landing = 'firm'; lateralNote = ' You were drifting off the centreline at touchdown.'; }
+          else lateralNote = ' Centreline touchdown.';
+        }
         if (landing === 'hard') { hits++; audio.sfx('hit'); }
-        say(landing === 'smooth' ? 'Smooth touchdown. Well done.' : landing === 'firm' ? 'Firm touchdown. Reduce your descent rate and speed a little earlier.' : 'Hard landing. Flare earlier and descend more gently.');
+        say((landing === 'smooth' ? 'Smooth touchdown. Well done.' : landing === 'firm' ? 'Firm touchdown. Reduce your descent rate and speed a little earlier.' : 'Hard landing. Flare earlier and descend more gently.') + lateralNote);
         y = gy - 14; vy = 0; state = 'rollout';
       } else if (opts.assisted) { y = gy - 16; vy = -170; hit('Too low — assisted mode lifted you clear of the ground.'); }
       else return end(false, def.terrain ? 'Ground contact. Keep a safe margin above terrain.' : 'Ground contact. Hold your altitude until the runway.');
     }
 
-    if (def.landing) { if (wx > level.runwayEnd + 40) end(false, 'You flew past the runway. In real flying this is a go-around — set up a gentler descent and try again.'); }
+    if (def.landing) {
+      if (wx > level.runwayEnd + 40) {
+        if (def.goAround) { if (gaState === 'active' && gaClimbed) end(true); else end(false, 'You flew over the runway without climbing away. In a go-around, add power and climb straight away.'); }
+        else end(false, 'You flew past the runway. In real flying this is a go-around — set up a gentler descent and try again.');
+      }
+    }
     else if (wx >= def.length) end(true);
   }
 
@@ -370,7 +435,9 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x0 + w - 42 + i * 18, y2 + 3, 6, 0, 6.3); ctx.fill(); }
     // Mission chips.
     const cwid = (w - 12) / 3; let ci = 0;
-    const chip = (draw: (cx: number, cy: number) => void) => { const cx = x0 + (ci % 3) * (cwid + 6); const cy = y2 + 14 + Math.floor(ci / 3) * 30; panel(cx, cy, cwid, 26); draw(cx, cy); ci++; };
+    const chipTop = y2 + 14 + (def.lateral ? TRACK_PANEL : 0);
+    if (def.lateral) trackPanel(x0, y2 + 14, w, TRACK_PANEL - 6);
+    const chip = (draw: (cx: number, cy: number) => void) => { const cx = x0 + (ci % 3) * (cwid + 6); const cy = chipTop + Math.floor(ci / 3) * 30; panel(cx, cy, cwid, 26); draw(cx, cy); ci++; };
     if (def.fuel) chip((cx, cy) => { label('FUEL', cx + 8, cy + 17, 10, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(cx + 42, cy + 10, cwid - 52, 7); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(cx + 42, cy + 10, (cwid - 52) * clamp(fuel, 0, 1), 7); });
     if (def.showPressure) chip((cx, cy) => { label(`${Math.round(isaPressure(alt))} hPa`, cx + cwid / 2, cy + 17, 12, '#ffffff', 'center'); });
     if (def.wind) chip((cx, cy) => { const wd = def.wind!.vy + Math.sin(t * 1.3) * def.wind!.gust; label(`WIND ${wd > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wd / 4))} kt`, cx + cwid / 2, cy + 17, 11, '#ffffff', 'center'); });
@@ -378,6 +445,23 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     // The educational approximation notice stays on screen, at the foot of the play window.
     ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, 0, dpr * view.s * view.oy);
     label(def.style === 'Arcade' ? 'Simplified arcade flight model' : 'Simplified educational simulation', view.VW - 10, Y1 - 6, 9, 'rgba(11,37,69,0.75)', 'right');
+  }
+
+  /** The track panel: where the aircraft is across the planned track, the corridor that counts as on track, the wind and the heading correction. */
+  function trackPanel(x: number, yy: number, w: number, h: number) {
+    const L = def.lateral!;
+    panel(x, yy, w, h);
+    const cx = x + w / 2; const sc = (w - 24) / 220; const by = yy + h - 14;
+    label(L.waypoints ? 'ROUTE' : def.landing ? 'CENTRELINE' : 'TRACK', x + 8, yy + 13, 9, '#9fc3ea');
+    const wnd = (L.wind + L.gust * Math.sin(t * 1.7 + 0.8)) * (opts.assisted ? 0.5 : 1) * clamp(t / 6, 0, 1);
+    label(`${Math.abs(wnd) < 0.5 ? 'NO SIDE WIND' : `WIND ${wnd > 0 ? '→' : '←'} ${Math.abs(Math.round(wnd))} kt`}  HDG ${Math.abs(hdg) < 0.05 ? '·' : hdg < 0 ? '◀' : '▶'} ${Math.round(Math.abs(hdg) * 12)}°`, x + w - 8, yy + 13, 9, '#ffffff', 'right');
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(x + 12, by - 3, w - 24, 6);
+    const tgt = planned(worldX + PLANE_X);
+    ctx.fillStyle = 'rgba(18,165,148,0.6)'; ctx.fillRect(cx + (tgt - L.tol) * sc, by - 6, 2 * L.tol * sc, 12);
+    if (L.runwayHalf !== undefined) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeRect(cx - L.runwayHalf * sc, by - 8, 2 * L.runwayHalf * sc, 16); }
+    if (L.waypoints) { ctx.fillStyle = '#f58220'; ctx.beginPath(); ctx.moveTo(cx + tgt * sc, by - 10); ctx.lineTo(cx + tgt * sc + 5, by - 15); ctx.lineTo(cx + tgt * sc, by - 20); ctx.lineTo(cx + tgt * sc - 5, by - 15); ctx.closePath(); ctx.fill(); }
+    const ax = cx + clamp(lat, -108, 108) * sc;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(ax, by - 9); ctx.lineTo(ax - 6, by + 5); ctx.lineTo(ax + 6, by + 5); ctx.closePath(); ctx.fill();
   }
 
   function render() {
@@ -417,7 +501,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       ctx.fillRect(sx + 4, GROUND - 1, 8, 10); ctx.fillRect(ex - 12, GROUND - 1, 8, 10);
     };
     if (def.takeoff) runway(60, TAKEOFF_RUNWAY);
-    if (def.landing) runway(level.runwayStart, level.runwayEnd);
+    if (def.landing) {
+      runway(level.runwayStart, level.runwayEnd);
+      if (def.goAround && gaState === 'active') {
+        const ox = (level.runwayStart + level.runwayEnd) / 2 - cam;
+        ctx.fillStyle = '#d6453d'; ctx.fillRect(ox - 24, GROUND - 14, 48, 14); ctx.fillStyle = '#ffffff'; ctx.fillRect(ox - 14, GROUND - 22, 24, 8);
+        label('RUNWAY OCCUPIED', ox, GROUND - 32, 12, '#ffffff', 'center', 800);
+      }
+    }
     else {
       const fx = def.length - cam;
       if (fx < VW + 40) {
@@ -428,13 +519,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     }
 
     // Gates
-    for (const g of level.gates) {
+    for (const [gi, g] of level.gates.entries()) {
       const sx = g.x - cam;
       if (sx < -60 || sx > VW + 60) continue;
       ctx.lineWidth = 6;
       ctx.strokeStyle = g.state === 'hit' ? '#12a594' : g.state === 'missed' ? 'rgba(120,130,145,0.6)' : '#f58220';
       ctx.beginPath(); ctx.ellipse(sx, g.y, 15, g.r, 0, 0, 6.3); ctx.stroke();
       ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(sx, g.y, 15, g.r, 0, 0, 6.3); ctx.stroke();
+      const wpn = def.lateral?.waypoints?.[gi]; if (wpn) label(wpn.name, sx, g.y - g.r - 10, 12, '#ffffff', 'center', 800);
       if (def.showPressure) { const hpa = Math.round(isaPressure((GROUND - g.y - 14) * altScale)); panel(sx - 34, g.y - g.r - 30, 68, 22); label(`${hpa} hPa`, sx, g.y - g.r - 14, 12, '#fff', 'center'); }
     }
 
@@ -442,7 +534,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     for (const o of level.obstacles) {
       const sx = o.x - cam;
       if (sx < -80 || sx > VW + 80) continue;
-      const oy = o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.y;
+      const oy = obstacleY(o);
       if (o.type === 'balloon') {
         ctx.fillStyle = '#d6453d'; ctx.beginPath(); ctx.ellipse(sx, oy - 4, o.r - 2, o.r + 2, 0, 0, 6.3); ctx.fill();
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(sx, oy - 4, (o.r - 2) * 0.4, o.r + 2, 0, 0, 6.3); ctx.fill();
@@ -508,6 +600,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     label(`GATES ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
     for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
     ry += 40;
+    if (def.lateral) { trackPanel(RX - 214, ry, 200, 50); ry += 56; }
     if (def.fuel) { panel(RX - 214, ry, 200, 28); label('FUEL', RX - 200, ry + 19, 11, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(RX - 160, ry + 10, 134, 8); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(RX - 160, ry + 10, 134 * clamp(fuel, 0, 1), 8); ry += 34; }
     if (def.showPressure) { panel(RX - 214, ry, 200, 28); label('STATIC PRESSURE', RX - 200, ry + 19, 10, '#9fc3ea'); label(`${Math.round(isaPressure(alt))} hPa`, RX - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
     if (def.wind) { const wind = def.wind.vy + Math.sin(t * 1.3) * def.wind.gust; panel(RX - 214, ry, 200, 28); label('WIND', RX - 200, ry + 19, 11, '#9fc3ea'); label(`${wind > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wind / 4))} kt`, RX - 26, ry + 19, 14, '#fff', 'right'); ry += 34; }
@@ -554,10 +647,10 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
     },
     resize(cw, ch, safe) { layout(cw, ch, safe); render(); },
-    setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; },
+    setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
     answerDecision(correct) { if (state !== 'decision') return; if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); render(); },
-    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround }),
+    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState }),
   };
 }
 

@@ -62,7 +62,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const wantFs = useRef(true);
   const fsOk = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
 
-  const free = !def.lessonId;
+  const free = !def.lessonId && !def.requires;
   const ac: GameAircraft = (free ? GAME_AIRCRAFT.find((a) => a.id === p.selectedAircraft) : GAME_AIRCRAFT.find((a) => a.id === def.aircraftId)) ?? GAME_AIRCRAFT[0];
   const livery = LIVERIES.find((l) => l.id === p.livery)?.color ?? LIVERIES[0].color;
   const assisted = p.settings.assisted;
@@ -151,8 +151,8 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const pause = () => { game.current?.pause(); setPhase('paused'); };
   const resume = () => { game.current?.resume(); setPhase('flying'); };
   const toggleFs = () => { if (document.fullscreenElement) { wantFs.current = false; leaveFs(); } else { wantFs.current = true; enterFs(); } };
-  const hold = (i: { x?: number; y?: number }) => {
-    const release = () => game.current?.setInput({ x: i.x !== undefined ? 0 : undefined, y: i.y !== undefined ? 0 : undefined });
+  const hold = (i: { x?: number; y?: number; h?: number }) => {
+    const release = () => game.current?.setInput({ x: i.x !== undefined ? 0 : undefined, y: i.y !== undefined ? 0 : undefined, h: i.h !== undefined ? 0 : undefined });
     return {
       onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); game.current?.setInput(i); },
       onPointerUp: release, onPointerLeave: release, onPointerCancel: release,
@@ -161,7 +161,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   };
 
   const content = (
-    <div className={`game${full ? ' full' : ''}`} ref={rootRef}>
+    <div className={`game${full ? ' full' : ''}`} ref={rootRef} style={{ ['--hud-extra' as string]: def.lateral ? '52px' : '0px' }}>
       {!full && (
         <div className="game-bar">
           <div><strong>{def.title}</strong> <Chip tone="navy">{def.tier}</Chip> <Chip>{def.style}</Chip>{assisted && <Chip tone="ok">Assisted</Chip>}</div>
@@ -196,6 +196,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                   <ul>
                     <li><kbd>↑</kbd>/<kbd>W</kbd> climb · <kbd>↓</kbd>/<kbd>S</kbd> descend · <kbd>→</kbd>/<kbd>D</kbd> more thrust · <kbd>←</kbd>/<kbd>A</kbd> less thrust</li>
                     <li><kbd>Space</kbd> hold level · <kbd>P</kbd> or <kbd>Esc</kbd> pause</li>
+                    {def.lateral && <li><kbd>Q</kbd>/<kbd>E</kbd> or the heading buttons: hold a heading correction to counter the sideways wind. The track panel shows where you are across the planned track.</li>}
                     <li>Touch: drag on the screen to steer, or use the large buttons at the screen edges.</li>
                     <li>Fly through the orange gates, avoid obstacles, reach the finish. Three contacts end the mission.</li>
                   </ul>
@@ -267,6 +268,12 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             <button type="button" className="tc-btn" aria-label="More thrust" {...hold({ x: 1 })}><Icon name="plus" size={32} /><span>Thrust</span></button>
             <button type="button" className="tc-btn" aria-label="Less thrust" {...hold({ x: -1 })}><b aria-hidden="true">−</b><span>Thrust</span></button>
           </div>
+          {def.lateral && (
+            <div className="tc-center" role="group" aria-label="Heading controls">
+              <button type="button" className="tc-hdg" aria-label="Heading left" {...hold({ h: -1 })}>◀ HDG</button>
+              <button type="button" className="tc-hdg" aria-label="Heading right" {...hold({ h: 1 })}>HDG ▶</button>
+            </div>
+          )}
           <div className="game-actions" role="group" aria-label="Game controls">
             <button type="button" className="ga-btn" aria-label="Pause" onClick={pause}><Icon name="pause" size={22} /></button>
             <button type="button" className="ga-btn" aria-label="Restart mission" onClick={start}><Icon name="refresh" size={22} /></button>
@@ -282,6 +289,8 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
           <button type="button" className="touch-btn" aria-label="Climb" {...hold({ y: -1 })}><Icon name="up" /> Climb</button>
           <button type="button" className="touch-btn" aria-label="Descend" {...hold({ y: 1 })}><Icon name="down" /> Descend</button>
           <button type="button" className="touch-btn" aria-label="More thrust" {...hold({ x: 1 })}>+ Thrust</button>
+          {def.lateral && <button type="button" className="touch-btn" aria-label="Heading left" {...hold({ h: -1 })}>◀ Heading</button>}
+          {def.lateral && <button type="button" className="touch-btn" aria-label="Heading right" {...hold({ h: 1 })}>Heading ▶</button>}
         </div>
       )}
       {!full && <p className="rotate-hint small muted">Tip: rotate your device to landscape for a larger flight view.</p>}

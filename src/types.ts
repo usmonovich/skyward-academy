@@ -94,6 +94,25 @@ export type EnvId = 'sky' | 'countryside' | 'mountains' | 'coast' | 'desert' | '
 export type ObstacleType = 'storm' | 'balloon' | 'birds' | 'tower';
 export interface Decision { at: number; prompt: string; options: { text: string; correct?: boolean; feedback: string }[] }
 
+/**
+ * Simplified sideways-wind model for track-keeping missions. The game is a side view, so the sideways position ("track
+ * units", 0 is the centreline or planned track) is shown on a small track panel. Wind pushes the aircraft sideways and the
+ * pilot holds a heading correction; the faster the aircraft flies, the smaller the correction needed. This is an
+ * educational approximation, not a flight model.
+ */
+export interface LateralModel {
+  /** Steady sideways wind in knots (positive pushes right). */
+  wind: number;
+  /** Gust amplitude in knots. */
+  gust: number;
+  /** Half-width of the corridor that counts as on track, in track units. */
+  tol: number;
+  /** Route legs: one waypoint per checkpoint, with the sideways position the aircraft must cross it at. */
+  waypoints?: { lat: number; name: string }[];
+  /** Landing: half-width of the runway, in track units. */
+  runwayHalf?: number;
+}
+
 /** A flight mission is pure data; the engine in src/game interprets it. */
 export interface MissionDef {
   id: string;
@@ -114,6 +133,16 @@ export interface MissionDef {
   terrain?: number;
   altScale?: number;
   wind?: { vy: number; gust: number };
+  /** Sideways-wind and route model (crosswind, wind correction, navigation missions). */
+  lateral?: LateralModel;
+  /** Missions that have no lesson of their own open when all of these lessons are passed. */
+  requires?: string[];
+  /** One line saying which aviation concept the mission practises. */
+  concept?: string;
+  /** Go-around: the runway becomes occupied this many world pixels before the threshold. */
+  goAround?: { at: number };
+  /** Storm cells drift up and down, so the safe gap moves. */
+  stormDrift?: boolean;
   speedBand?: { min: number; max: number };
   energy?: boolean;
   fuel?: boolean;
@@ -138,6 +167,16 @@ export interface MissionStats {
   decisionsTotal: number;
   fuelLeft?: number;
   assisted: boolean;
+  /** Mean distance from the planned track, in track units (lateral missions). */
+  trackError?: number;
+  /** Largest distance from the planned track, in track units. */
+  maxOffset?: number;
+  /** Distance from the centreline at touchdown, in track units. */
+  touchdownOffset?: number;
+  /** How the go-around went. */
+  goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** Flight path samples every quarter second: [time s, distance, height, sideways track, speed kt]. Not saved, used by the debrief. */
+  trace?: number[][];
 }
 export interface MissionResult extends MissionStats { score: number; stars: number }
 

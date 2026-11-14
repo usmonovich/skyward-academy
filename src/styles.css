@@ -486,7 +486,7 @@ body.game-active .shell .toasts { visibility: visible; }
 .ga-btn { width: 44px; height: 44px; border-radius: 14px; border: 1.5px solid rgba(255, 255, 255, .5); background: rgba(11, 37, 69, .5); color: #fff; display: grid; place-items: center; text-decoration: none; font-size: 1.3rem; line-height: 1; touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; }
 .ga-btn:active { background: rgba(245, 130, 32, .78); }
 /* Portrait: the instructor message sits just under the HUD (138px tall, see PORTRAIT_HUD), the controls own the bottom 196px. */
-@media (orientation: portrait) { .game.full .game-msg { top: calc(env(safe-area-inset-top) + 144px); bottom: auto; font-size: .85rem; } }
+@media (orientation: portrait) { .game.full .game-msg { top: calc(env(safe-area-inset-top) + 144px + var(--hud-extra, 0px)); bottom: auto; font-size: .85rem; } }
 @media (max-width: 360px) { .tc-btn { width: 68px; height: 68px; } .ga-btn { width: 40px; height: 40px; } }
 @media (max-height: 520px) {
   .tc { gap: 8px; } .tc-btn { width: 70px; height: 70px; border-radius: 18px; }
@@ -496,3 +496,11 @@ body.game-active .shell .toasts { visibility: visible; }
   .game.full .overlay-card > .small.muted { display: none; }
 }
 .mc { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+
+/* Heading controls for sideways-wind missions, above the game bar. */
+.tc-center { position: absolute; z-index: 6; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 70px); display: flex; gap: 8px; }
+.tc-hdg { width: 88px; height: 54px; border-radius: 16px; border: 2px solid rgba(255, 255, 255, .6); background: rgba(11, 37, 69, .45); color: #fff; font: inherit; font-size: .78rem; font-weight: 800; letter-spacing: .04em; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.tc-hdg:active { background: rgba(245, 130, 32, .78); border-color: #fff; }
+.touch-controls:has(.touch-btn:nth-child(5)) { grid-template-columns: repeat(3, 1fr); }
+.concept { color: var(--navy-2); margin: 2px 0; }
+@media (max-width: 360px) { .tc-hdg { width: 78px; } }
