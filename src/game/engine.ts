@@ -179,7 +179,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   // Sideways track (lateral missions) and go-around state. Both are optional mission features.
   let lat = 0; let hdg = 0; let latIn = 0; let latAll = 0; let errSum = 0; let maxOff = 0; let touchOff: number | undefined;
   let gaState: 'idle' | 'active' = 'idle'; let gaAt = 0; let gaY = 0; let gaClimbed = false; let gaClimbT = 0; let gaLanded = false;
-  const trace: number[][] = []; let traceT = 0;
+  const trace: number[][] = []; let traceT = 0; const decisionLog: boolean[] = [];
   const keys = new Set<string>();
   const input = { x: 0, y: 0, h: 0 };
   let touchY: number | null = null;
@@ -217,7 +217,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
-      trace,
+      trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog],
     };
     audio.sfx(success ? 'win' : 'fail');
     cb.onEnd({ ...stats, ...scoreMission(def.parTime, stats) });
@@ -648,7 +648,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     },
     resize(cw, ch, safe) { layout(cw, ch, safe); render(); },
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
-    answerDecision(correct) { if (state !== 'decision') return; if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
+    answerDecision(correct) { if (state !== 'decision') return; decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); render(); },
     snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState }),
   };

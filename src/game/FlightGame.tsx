@@ -7,6 +7,7 @@ import { actions, useProgress } from '../store/progress';
 import { audio } from '../engine/audio';
 import { Btn, Chip, Icon, AircraftArt } from '../components/ui';
 import { MissionComplete } from '../components/MissionComplete';
+import { FlightReport } from '../components/FlightReport';
 import { createGame, debrief, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
 
@@ -248,7 +249,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             <div className="overlay-card">
               <Chip tone="warn">Mission not completed</Chip>
               <h2>Let's try that again</h2>
-              <ul className="debrief-list">{debrief(def, result).map((line) => <li key={line}>{line}</li>)}</ul>
+              <FlightReport def={def} result={result} compact />
               <div className="row gap wrap">
                 <Btn kind="accent" icon="refresh" onClick={start}>Retry mission</Btn>
                 <Btn kind="ghost" href={exitHref}>Exit</Btn>

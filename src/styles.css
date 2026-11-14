@@ -504,3 +504,26 @@ body.game-active .shell .toasts { visibility: visible; }
 .touch-controls:has(.touch-btn:nth-child(5)) { grid-template-columns: repeat(3, 1fr); }
 .concept { color: var(--navy-2); margin: 2px 0; }
 @media (max-width: 360px) { .tc-hdg { width: 78px; } }
+
+/* ===== Flight analysis ===== */
+.fr { width: 100%; text-align: left; display: grid; gap: 10px; margin-top: 4px; }
+.fr h3 { margin: 4px 0 0; font-size: 1rem; color: var(--navy); }
+.fr-charts { display: grid; gap: 8px; } .fr-charts figure { margin: 0; } .fr-charts figcaption { font-size: .78rem; font-weight: 700; color: var(--navy-2); margin-bottom: 3px; }
+.fr-charts svg { width: 100%; height: auto; display: block; }
+.fr-bg { fill: #e8f1fb; } .fr-ground { stroke: #8aa0b8; stroke-width: 1.2; } .fr-runway { fill: #4a5563; }
+.fr-gate { fill: none; stroke-width: 2.2; } .fr-gate.hit { stroke: var(--teal); } .fr-gate.miss { stroke: #d6453d; stroke-dasharray: 2 2; }
+.fr-path { fill: none; stroke: var(--orange); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; } .fr-end { fill: var(--navy); }
+.fr-corridor { fill: rgba(18, 165, 148, .22); } .fr-plan { fill: none; stroke: var(--teal-d); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.fr-wp { fill: #fff; stroke-width: 2; } .fr-wp.hit { stroke: var(--teal); } .fr-wp.miss { stroke: #d6453d; }
+.fr-key { margin: 3px 0 0; font-size: .72rem; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.fr-key i { display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+.k-hit { background: var(--teal); } .k-miss { background: #d6453d; } .k-path { background: var(--orange); } .k-corr { background: rgba(18, 165, 148, .5); }
+.fr-block { border-radius: 12px; padding: 9px 12px; } .fr-block h4 { margin: 0 0 4px; font-size: .85rem; display: flex; align-items: center; gap: 6px; }
+.fr-block ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: .88rem; }
+.fr-block.good { background: #e3f7f3; } .fr-block.good h4 { color: var(--teal-d); }
+.fr-block.bad { background: #fdecea; } .fr-block.bad h4 { color: #a5312a; }
+.fr-block.tip { background: #fff3e4; } .fr-block.tip h4 { color: var(--orange-d); }
+.fr.compact .fr-charts { grid-template-columns: 1fr; }
+@media (min-width: 700px) { .fr-charts { grid-template-columns: 1fr 1fr; } }
+/* The result screen sits inside the dark full-screen game container: set its own text colour. */
+.mc, .mc-card, .fr { color: var(--ink); }

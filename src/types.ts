@@ -175,6 +175,10 @@ export interface MissionStats {
   touchdownOffset?: number;
   /** How the go-around went. */
   goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** How each gate ended: hit, missed, or still open when the flight ended. */
+  gateStates?: ('hit' | 'missed' | 'open')[];
+  /** Whether each operational decision was answered correctly, in the order asked. */
+  decisionResults?: boolean[];
   /** Flight path samples every quarter second: [time s, distance, height, sideways track, speed kt]. Not saved, used by the debrief. */
   trace?: number[][];
 }

@@ -3,6 +3,7 @@ import type { MissionDef, MissionResult } from '../types';
 import { scoreParts } from '../engine/gamification';
 import { audio } from '../engine/audio';
 import { Chip, Icon } from './ui';
+import { FlightReport } from './FlightReport';
 
 const PARTS: [keyof ReturnType<typeof scoreParts>, string][] = [['gates', 'Gates'], ['safety', 'Safety'], ['time', 'Time'], ['objective', 'Objective']];
 const HEADLINE = ['Mission complete', 'Good flight', 'Well flown', 'Flawless flight'];
@@ -72,6 +73,7 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
               <div key={k} className="mc-part"><span>{label}</span><div className="mc-bar" aria-hidden="true"><i style={{ width: `${Math.round(parts[k] * 100)}%`, animationDelay: `${STAR_START + 300 + i * 120}ms` }} /></div><strong>{Math.round(parts[k] * 100)}%</strong></div>
             ))}
           </div>
+          <FlightReport def={def} result={result} />
           <details className="mc-notes"><summary>Flight notes</summary><ul className="debrief-list">{lines.map((l) => <li key={l}>{l}</li>)}</ul></details>
         </div>
         <div className="mc-actions">{actions}</div>
