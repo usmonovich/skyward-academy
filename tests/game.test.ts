@@ -37,3 +37,21 @@ describe('mission level generation', () => {
     expect(fail[0]).toBe('Ground contact.');
   });
 });
+
+describe('altitude display scale', () => {
+  const scaled = MISSIONS.filter((m) => m.altScale !== undefined);
+  it('is only used by high-altitude missions and is never a near-1 value', () => {
+    expect(scaled.length).toBeGreaterThan(20);
+    for (const m of scaled) expect(m.altScale, m.id).toBeGreaterThanOrEqual(10);
+  });
+  it.each(scaled.map((m) => [m.id, m] as const))('%s shows a believable cruise altitude and pressure at every gate', (_, def) => {
+    const ceilingFt = (GROUND - CEIL - 14) * (def.altScale ?? 10);
+    expect(ceilingFt).toBeGreaterThan(25000);
+    expect(ceilingFt).toBeLessThan(40000);
+    for (const g of buildLevel(def).gates) {
+      const ft = (GROUND - g.y - 14) * (def.altScale ?? 10);
+      expect(ft).toBeGreaterThan(0);
+      expect(ft).toBeLessThanOrEqual(ceilingFt);
+    }
+  });
+});

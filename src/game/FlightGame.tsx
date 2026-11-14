@@ -150,7 +150,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             <div className={`overlay-card${result.success && !reducedMotion ? ' celebrate' : ''}`}>
               <Chip tone={result.success ? 'ok' : 'warn'}>{result.success ? 'Mission complete' : 'Mission not completed'}</Chip>
               <h2>{result.success ? 'Post-flight debrief' : 'Let\'s try that again'}</h2>
-              {result.success && <div className="debrief-score"><Stars n={result.stars} size={30} /><div><strong>{result.score}</strong> / 1000 points</div>{gained > 0 ? <Chip tone="accent">+{gained} XP</Chip> : <Chip>Best result already recorded</Chip>}{prevBest === null ? <Chip tone="ok">First flight</Chip> : result.score > prevBest ? <Chip tone="ok">New best (was {prevBest})</Chip> : <Chip>Best {prevBest}</Chip>}</div>}
+              {result.success && <div className="debrief-score"><Stars n={result.stars} size={30} /><div><strong>{result.score}</strong> / 1000 points</div>{gained > 0 ? <Chip tone="accent">+{gained} XP</Chip> : <Chip>No new XP</Chip>}{prevBest === null ? <Chip tone="ok">First flight</Chip> : result.score > prevBest ? <Chip tone="ok">New best (was {prevBest})</Chip> : <Chip>Best {prevBest}</Chip>}</div>}
               {result.success && (
                 <div className="score-parts" role="group" aria-label="Score breakdown">
                   {PART_LABELS.map(([k, label, weight]) => { const v = scoreParts(def.parTime, result)[k]; return (
