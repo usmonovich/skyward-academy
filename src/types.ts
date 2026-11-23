@@ -238,6 +238,8 @@ export interface Progress {
   created: number;
   xp: number;
   lessons: Record<string, { passed: boolean; best: number; attempts: number; at?: number }>;
+  /** XP already earned today from repeatable activities, so repeating a quiz or a card review cannot farm unlimited XP. */
+  xpToday?: { date: string; exam: number; card: number };
   missions: Record<string, { stars: number; best: number; at: number; /** Best bonus XP already paid for this mission (radio calls and XP tokens), so replays never pay it twice. */ bonusXp?: number }>;
   /** Aviation English: radio-call accuracy by topic, from flights. */
   engTopics?: Record<string, { asked: number; correct: number }>;

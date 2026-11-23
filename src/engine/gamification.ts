@@ -95,7 +95,9 @@ export function scoreMission(parTime: number, s: MissionStats): { score: number;
   if (!s.success) return { score: 0, stars: 0 };
   const { gates, safety, time, objective } = scoreParts(parTime, s);
   const score = Math.round(1000 * (0.4 * gates + 0.25 * safety + 0.15 * time + 0.2 * objective));
-  const stars = score >= 850 ? 3 : score >= 600 ? 2 : 1;
+  // Three stars are for excellent flying: a high score, at least 90 percent of the rings and at most one contact. A high score alone is not enough.
+  const excellent = s.total > 0 ? s.checkpoints / s.total >= 0.9 && s.hits <= 1 : true;
+  const stars = score >= 850 && excellent ? 3 : score >= 600 ? 2 : 1;
   // A wrong operational decision or a wrong safety-critical radio call means the mission cannot earn a perfect rating, whatever the score.
   return { score, stars: (s.safetyWrong ?? 0) > 0 ? Math.min(stars, 2) : stars };
 }

@@ -71,7 +71,7 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
     if (s.state === 'ended') break;
     if (mode === 'good') {
       const wx = s.worldX + PLANE_X;
-      const gate = level.gates.find((q) => q.x > wx + 100);
+      const gate = level.gates.find((q) => q.x > wx + 60);
       let ty = gate ? gate.y + (o.ringOffset ?? 0) * gate.r : 260;
       // Terrain: never plan below the highest ground in the next 450 pixels.
       let gmin = GROUND; if (def.terrain) { for (let d = 0; d <= 450; d += 40) gmin = Math.min(gmin, GROUND - terrainHeight(def, wx + d)); ty = Math.min(ty, gmin - 95); }

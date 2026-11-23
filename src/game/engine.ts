@@ -107,6 +107,58 @@ function assignEnglish(def: MissionDef, gates: Gate[]) {
   }
 }
 
+/** Rings needed to complete a flight: 65 percent, or 50 percent in assisted mode. */
+export const needRings = (total: number, assisted: boolean): number => Math.ceil(total * (assisted ? 0.5 : 0.65));
+
+/**
+ * Keeps the ring heights from forming a straight line. Whatever single height an aircraft holds, it must not be able to collect more
+ * than 45 percent of the rings: while some height does, one ring in the biggest cluster is moved clear of it by a varied amount.
+ * Deterministic, and it never touches the random stream, so obstacles and boosters keep their places.
+ */
+function spreadGates(def: MissionDef, gates: Gate[]): void {
+  // Drifting-storm routes keep their designed ring heights: the deviation geometry is the point of those missions.
+  if (def.lateral || def.stormDrift || gates.length < 4) return;
+  const key = `${def.id}:${def.seed}:${gates.length}:${def.length}`;
+  const cached = SPREAD_CACHE.get(key);
+  if (cached) { gates.forEach((g, i) => { g.y = cached[i]; }); return; }
+  const limit = Math.floor(gates.length * 0.45);
+  const movable = (i: number) => !(def.landing && i >= gates.length - 5);
+  // counts[k] is how many rings a flight held at height 95 + 5k would collect (a ring is collected within 56 px).
+  const SLOTS = 62; const W = 12;
+  const counts = new Array<number>(SLOTS).fill(0);
+  const touch = (y: number, d: number) => { const c = Math.round((y - 95) / 5); for (let k = Math.max(0, c - W); k <= Math.min(SLOTS - 1, c + W); k++) counts[k] += d; };
+  gates.forEach((g) => touch(g.y, 1));
+  // The potential (sum of squared counts) falls as the rings spread out, which avoids plateaus where the biggest cluster cannot be lowered by one move.
+  const delta = (from: number, to: number) => {
+    const cf = Math.round((from - 95) / 5); const ct = Math.round((to - 95) / 5); let d = 0;
+    for (let k = Math.max(0, Math.min(cf, ct) - W); k <= Math.min(SLOTS - 1, Math.max(cf, ct) + W); k++) {
+      const inF = Math.abs(k - cf) <= W ? 1 : 0; const inT = Math.abs(k - ct) <= W ? 1 : 0;
+      const n = counts[k] - inF + inT; d += n * n - counts[k] * counts[k];
+    }
+    return d;
+  };
+  for (let guard = 0; guard < 60; guard++) {
+    if (Math.max(...counts) <= limit) break;
+    let pick: { i: number; y: number; score: number } | null = null;
+    gates.forEach((g, i) => {
+      if (!movable(i)) return;
+      const maxY = Math.min(400, GROUND - terrainHeight(def, g.x) - 95);
+      for (let y = 95; y <= maxY; y += 6) {
+        if (Math.abs(y - g.y) < 20) continue;
+        // Keep the route flyable: no ring more than 150 px above or below its neighbours.
+        if ((i > 0 && Math.abs(y - gates[i - 1].y) > 150) || (i < gates.length - 1 && Math.abs(y - gates[i + 1].y) > 150)) continue;
+        const score = delta(g.y, y) + Math.abs(y - g.y) / 12;
+        if (!pick || score < pick.score) pick = { i, y, score };
+      }
+    });
+    const chosen = pick as { i: number; y: number; score: number } | null;
+    if (!chosen || chosen.score >= 0) break;
+    touch(gates[chosen.i].y, -1); gates[chosen.i].y = chosen.y; touch(chosen.y, 1);
+  }
+  SPREAD_CACHE.set(key, gates.map((g) => g.y));
+}
+const SPREAD_CACHE = new Map<string, number[]>();
+
 export function buildLevel(def: MissionDef): Level {
   const rnd = mulberry32(def.seed * 7919);
   const x0 = def.takeoff ? 1700 : 900;
@@ -119,6 +171,7 @@ export function buildLevel(def: MissionDef): Level {
     y = clamp(y + (rnd() - 0.5) * 240, 95, maxY);
     gates.push({ x, y, r: 48, state: 'open', kind: 'cloud', value: 10 });
   }
+  spreadGates(def, gates);
   assignRings(def, gates);
   assignEnglish(def, gates);
   const obstacles: Obstacle[] = [];
@@ -131,8 +184,10 @@ export function buildLevel(def: MissionDef): Level {
     const r = type === 'storm' ? 46 : type === 'balloon' ? 26 : type === 'birds' ? 20 : 16;
     const h = type === 'tower' ? 90 + rnd() * 70 : 0;
     const oy = type === 'tower' ? floor - h : clamp(80 + rnd() * 320, 80, floor - 80);
-    if (gates.some((g) => Math.abs(g.x - x) < 190 && Math.abs(g.y - oy) < 125)) continue;
+    if (gates.some((g) => Math.abs(g.x - x) < 260 && Math.abs(g.y - oy) < 150)) continue;
     if (obstacles.some((o) => Math.abs(o.x - x) < 230)) continue;
+    // No clusters: at most two hazards within 700 px of each other, so every stretch of the route leaves a clear way through.
+    if (obstacles.filter((o) => Math.abs(o.x - x) < 700).length >= 2) continue;
     obstacles.push({ x, y: oy, r, type, phase: rnd() * 6.28, h });
   }
   return { gates, obstacles, pickups: placePickups(def, gates, obstacles, x0, x1), runwayStart: def.length - 1150, runwayEnd: def.length - 150 };
@@ -385,6 +440,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   function end(success: boolean, reason?: string) {
     if (state === 'ended') return;
     state = 'ended';
+    // Reaching the finish is not enough: the route has to be flown. At least 65 percent of the rings must be collected
+    // (50 percent in assisted mode). Flying straight and level through a route that bends cannot reach that.
+    const hitRings = level.gates.filter((g) => g.state === 'hit').length;
+    const need = needRings(level.gates.length, opts.assisted);
+    if (success && hitRings < need) { success = false; reason = `Only ${hitRings} of ${level.gates.length} rings collected. You need at least ${need} to complete this flight. Plan each climb and descent a little earlier.`; }
     audio.engineStop();
     const stats: MissionStats = {
       success, reason, time: t, checkpoints: level.gates.filter((g) => g.state === 'hit').length, total: level.gates.length, hits,

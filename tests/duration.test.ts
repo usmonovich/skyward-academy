@@ -5,8 +5,8 @@ import { TARGET_SECONDS, cruiseSpeed, extendMission, extendWaypoints, stageMessa
 import { validateMission } from '../src/content/validate';
 import { fly } from './helpers/autopilot';
 
-/** Missions the scripted autopilot cannot finish. They are reported, not hidden: a human can weave between the two birds that block it. */
-const AUTOPILOT_LIMITS = ['m-free-sunset'];
+/** Missions the scripted autopilot cannot finish. Empty: m-free-sunset was repaired by the no-cluster rule for hazards. */
+const AUTOPILOT_LIMITS: string[] = [];
 const MIN_SECONDS = 120;
 
 describe('round duration (scripted autopilot, not human playtesting)', () => {

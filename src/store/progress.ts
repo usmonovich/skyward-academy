@@ -141,6 +141,17 @@ function commit(fn: (p: Progress) => void) {
 }
 const bump = (p: Progress, key: string, n = 1) => { p.daily.counts[key] = (p.daily.counts[key] ?? 0) + n; };
 
+/** Daily limits for the repeatable XP sources. Flights, lessons and English exercises already pay only for first-time progress or improvement. */
+export const DAILY_XP_CAP = { exam: 90, card: 40 } as const;
+function dailyXp(p: Progress, kind: 'exam' | 'card', want: number): number {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!p.xpToday || p.xpToday.date !== today) p.xpToday = { date: today, exam: 0, card: 0 };
+  const room = Math.max(0, DAILY_XP_CAP[kind] - p.xpToday[kind]);
+  const got = Math.min(want, room);
+  p.xpToday[kind] += got;
+  return got;
+}
+
 export const actions = {
   /** Records one answered question for analytics, the mistake queue and daily challenges. */
   answer(q: Question, correct: boolean) {
@@ -200,12 +211,12 @@ export const actions = {
   addCard(termId: string) { commit((p) => { if (!p.cards[termId]) p.cards[termId] = newCard(); }); },
   removeCard(termId: string) { commit((p) => { delete p.cards[termId]; }); },
   reviewCard(termId: string, q: number) {
-    commit((p) => { p.cards[termId] = review(p.cards[termId] ?? newCard(), q); p.cardReviews++; p.xp += XP.card; bump(p, 'cards'); });
+    commit((p) => { p.cards[termId] = review(p.cards[termId] ?? newCard(), q); p.cardReviews++; p.xp += dailyXp(p, 'card', XP.card); bump(p, 'cards'); });
   },
   toggle(list: 'favTerms' | 'favFormulas' | 'savedQuestions' | 'savedLessons', id: string) {
     commit((p) => { p[list] = p[list].includes(id) ? p[list].filter((x) => x !== id) : [...p[list], id]; });
   },
-  exam(rec: ExamRecord) { commit((p) => { p.exams = [rec, ...p.exams].slice(0, 50); p.xp += rec.correct * XP.examPer; }); },
+  exam(rec: ExamRecord) { commit((p) => { p.exams = [rec, ...p.exams].slice(0, 50); p.xp += dailyXp(p, 'exam', rec.correct * XP.examPer); }); },
   english(id: string, score: number, xp: number) {
     commit((p) => {
       const prev = p.english[id];
