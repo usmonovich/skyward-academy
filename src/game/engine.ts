@@ -160,7 +160,7 @@ export interface GameCallbacks {
   onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
 }
-export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[] }
+export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low' }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
@@ -431,6 +431,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     let inY = (down ? 1 : 0) - (up ? 1 : 0) + input.y;
     const inX = clamp((right ? 1 : 0) - (left ? 1 : 0) + input.x, -1, 1);
     if (touchY !== null) inY = clamp((touchY - y) / 60, -1, 1);
+    inY *= clamp(opts.steer ?? 1, 0.4, 2);
     if (isActive('assist') && !onGround) {
       // Gentle help towards the next ring: it nudges the input, it never flies for you.
       const next = level.gates.find((q) => q.x > worldX + PLANE_X + 20 && q.state === 'open');
@@ -769,7 +770,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(ax, by - 9); ctx.lineTo(ax - 6, by + 5); ctx.lineTo(ax + 6, by + 5); ctx.closePath(); ctx.fill();
   }
 
+  // Picture quality. 'low' trims the decorative effects; 'auto' switches to it when about three quarters of a second of frames are slow.
+  let lite = opts.quality === 'low'; let slowRun = 0; let lastFrame = 0;
   function render() {
+    if (opts.quality !== 'high' && opts.quality !== 'low') {
+      const nowMs = performance.now(); const gap = lastFrame ? nowMs - lastFrame : 0; lastFrame = nowMs;
+      if (gap > 34 && gap < 200) slowRun++; else if (gap <= 34) slowRun = 0;
+      if (slowRun >= 45) lite = true;
+    }
     const { VW, VH, oy } = view;
     // Drawing camera: in portrait the aircraft is drawn nearer the left edge, so the world is drawn shifted. The simulation never reads this.
     const cam = worldX + view.camShift; const px = PLANE_X - view.camShift;
@@ -780,7 +788,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     sky.addColorStop(0, pal.top); sky.addColorStop(1, pal.bottom);
     ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, H);
     ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' || def.env === 'golden' ? 330 : 90, def.env === 'sunset' || def.env === 'golden' ? 54 : def.env === 'night' ? 26 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
-    drawSkyExtras(ctx, def.env, VW, GROUND, t, opts.reducedMotion);
+    drawSkyExtras(ctx, def.env, VW, GROUND, t, opts.reducedMotion, lite);
     for (const c of clouds) {
       const cx = ((c.x - cam * 0.25) % 1500 + 1500) % 1500 - 200;
       ctx.fillStyle = cloudColor(def.env);
@@ -868,8 +876,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     }
 
     // Rain, then the aircraft's trail (contrail at speed, glow at night). Drawn from a short history of positions; visual only.
-    drawRain(ctx, def.env, VW, GROUND, t, opts.reducedMotion);
-    if (!opts.reducedMotion && ac.kind !== 'single' && ac.kind !== 'twin' && !onGround && state !== 'rollout') {
+    drawRain(ctx, def.env, VW, GROUND, t, opts.reducedMotion, lite);
+    if (!opts.reducedMotion && !lite && ac.kind !== 'single' && ac.kind !== 'twin' && !onGround && state !== 'rollout') {
       if (!trail.length || t - trailT >= 0.06) { trailT = t; trail.push({ x: worldX + PLANE_X - 28 * ac.size, y, age: 0 }); if (trail.length > 24) trail.shift(); }
       trail.forEach((p, i) => { p.age = (trail.length - 1 - i) * 0.06; });
       drawTrail(ctx, trail, worldX, isNight(def.env));

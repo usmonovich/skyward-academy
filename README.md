@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 1012 unit tests
+npm test           # 1020 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -291,3 +291,11 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - **Performance and comfort:** each effect is a few dozen canvas primitives and is cut back with reduced motion (no twinkling, 14 still rain marks, no contrails). A briefing line states what the scene is.
 - **Aircraft:** turboprops, jets and airliners leave a short fading contrail (a night-time exhaust glow in the dark) while airborne. In the hangar, locked aircraft show a progress bar and the XP still needed. The 3D hangar is unchanged.
 - **Not done:** new aircraft models, aircraft unlock animations and per-aircraft sound. Frame rate was not measured on a phone.
+
+## Rewards, settings and the objective-to-mechanic table (Expansion, batch 7)
+
+- **Flight summary on the results screen:** rings collected (and by kind), bonus points (shown but never part of the stars), flight time, boosters used, questions answered correctly, radio calls split into comprehension and phraseology, and newly unlocked aircraft and liveries. Notes explain that boosters never change the educational result and that a wrong safety-critical choice keeps a flight at two stars or fewer. Every line comes from measured flight data.
+- **Steering sensitivity** (Profile → Settings, 60 to 160 percent, default 100) scales climb and descent input. At the default the flight is unchanged.
+- **Picture quality:** Auto, High or Low. Low trims rain, stars and contrails; Auto switches to Low if about three quarters of a second of frames stay slow. This is a visual effect level only. It does not change handling or scoring.
+- **Objective-to-mechanic table** (`src/game/objectives.ts`): one row per mechanic (speed band, wind, terrain, landing, decisions, radio calls and others) says what the player does and which learning objective it practises. It reads the mission data, so a new mission needs no extra wiring, and the briefing shows an "In the cockpit" line from it.
+- **Not done:** frame rate was not measured on a real phone, so the Auto threshold is untested on hardware; saving or syncing these two settings to an account is not built (they live in local progress with the other settings).

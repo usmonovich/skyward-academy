@@ -26,10 +26,10 @@ export const ENV_NOTES: Partial<Record<EnvId, string>> = {
 };
 
 /** Stars and moon glow, drawn on top of the sky gradient and below the clouds. */
-export function drawSkyExtras(ctx: CanvasRenderingContext2D, env: EnvId, w: number, groundY: number, t: number, still: boolean): void {
+export function drawSkyExtras(ctx: CanvasRenderingContext2D, env: EnvId, w: number, groundY: number, t: number, still: boolean, lite = false): void {
   if (env === 'night') {
     ctx.save();
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < (lite ? 25 : 60); i++) {
       const x = (i * 157) % w; const y = (i * 89) % (groundY - 120) + 6;
       const tw = still ? 0.8 : 0.55 + 0.45 * Math.sin(t * 1.5 + i);
       ctx.globalAlpha = tw; ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, i % 7 === 0 ? 2.4 : 1.6, i % 7 === 0 ? 2.4 : 1.6);
@@ -47,11 +47,11 @@ export function drawSkyExtras(ctx: CanvasRenderingContext2D, env: EnvId, w: numb
 }
 
 /** Rain streaks in front of the scenery and behind the aircraft. 70 short lines; a few still marks with reduced motion. */
-export function drawRain(ctx: CanvasRenderingContext2D, env: EnvId, w: number, groundY: number, t: number, still: boolean): void {
+export function drawRain(ctx: CanvasRenderingContext2D, env: EnvId, w: number, groundY: number, t: number, still: boolean, lite = false): void {
   if (env !== 'rain') return;
   ctx.save();
   ctx.strokeStyle = 'rgba(210,224,240,0.55)'; ctx.lineWidth = 1.3;
-  const n = still ? 14 : 70;
+  const n = still ? 14 : lite ? 30 : 70;
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
     const sp = 520 + (i % 5) * 60;

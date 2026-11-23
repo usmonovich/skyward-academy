@@ -115,6 +115,8 @@ export function Profile() {
           <Toggle label="Assisted mission mode" checked={s.assisted} onChange={(v) => actions.settings({ assisted: v })} hint="Contacts never end a mission, and landings are helped" />
           <Slider label="Volume" value={s.volume} min={0} max={1} step={0.05} onChange={(v) => actions.settings({ volume: v })} format={(v) => `${Math.round(v * 100)}%`} />
           <Slider label="Speech rate" value={s.speechRate} min={0.7} max={1.3} step={0.05} onChange={(v) => actions.settings({ speechRate: v })} format={(v) => `${Math.round(v * 100)}%`} />
+          <Slider label="Steering sensitivity" value={s.steering} min={0.6} max={1.6} step={0.1} onChange={(v) => actions.settings({ steering: v })} format={(v) => `${Math.round(v * 100)}%`} />
+          <div className="toggle"><span><strong>Picture quality</strong><span className="small muted">Auto lowers rain, stars and contrails if the frame rate drops. Low always keeps effects light.</span></span><span className="row gap" role="radiogroup" aria-label="Picture quality">{(["auto", "high", "low"] as const).map((q) => <Btn key={q} small kind={s.quality === q ? "accent" : "soft"} onClick={() => actions.settings({ quality: q })}>{q[0].toUpperCase() + q.slice(1)}</Btn>)}</span></div>
           <Slider label="Text size" value={s.textScale} min={0.9} max={1.3} step={0.05} onChange={(v) => actions.settings({ textScale: v })} format={(v) => `${Math.round(v * 100)}%`} />
           <Slider label="Daily study goal" value={s.dailyMinutes} min={10} max={90} step={5} unit="min" onChange={(v) => actions.settings({ dailyMinutes: v })} />
           <label className="field"><span>Licensing framework shown in the pathways</span>

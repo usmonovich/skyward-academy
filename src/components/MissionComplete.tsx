@@ -4,6 +4,27 @@ import { scoreParts } from '../engine/gamification';
 import { audio } from '../engine/audio';
 import { Chip, Icon } from './ui';
 import { FlightReport } from './FlightReport';
+import { GAME_AIRCRAFT, LIVERIES } from '../content/reference';
+import { BOOSTERS, RING_STYLE } from '../game/engine';
+import { useProgress } from '../store/progress';
+
+/** What the flight earned, in plain numbers. Everything here is measured by the flight; nothing is estimated. */
+export function flightSummary(result: MissionResult): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [];
+  rows.push({ label: 'Rings collected', value: `${result.checkpoints} of ${result.total}` });
+  const kinds = Object.entries(result.ringTypes ?? {}).filter(([, v]) => v && v.total > 0).map(([k, v]) => `${RING_STYLE[k as keyof typeof RING_STYLE]?.name ?? k} ${v!.hit}/${v!.total}`);
+  if (kinds.length > 1) rows.push({ label: 'By kind', value: kinds.join(' · ') });
+  if (result.bonus) rows.push({ label: 'Bonus points', value: `${result.bonus} (not part of the stars)` });
+  rows.push({ label: 'Flight time', value: `${Math.floor(result.time / 60)} min ${Math.round(result.time % 60)} s` });
+  const used = Object.entries(result.boosters?.used ?? {}).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `${BOOSTERS[k as keyof typeof BOOSTERS]?.name ?? k} ×${n}`);
+  rows.push({ label: 'Boosters used', value: used.length ? used.join(', ') : 'None' });
+  if (result.decisionsTotal > 0) rows.push({ label: 'Questions answered correctly', value: `${result.decisionsCorrect} of ${result.decisionsTotal}` });
+  if (result.english && result.english.asked > 0) {
+    const e = result.english; const part = (k: 'comprehension' | 'phraseology') => (e.bySkill[k].asked ? `${k} ${e.bySkill[k].correct}/${e.bySkill[k].asked}` : '');
+    rows.push({ label: 'Radio calls', value: [part('comprehension'), part('phraseology')].filter(Boolean).join(' · ') });
+  }
+  return rows;
+}
 
 const PARTS: [keyof ReturnType<typeof scoreParts>, string][] = [['gates', 'Gates'], ['safety', 'Safety'], ['time', 'Time'], ['objective', 'Objective']];
 const HEADLINE = ['Mission complete', 'Good flight', 'Well flown', 'Flawless flight'];
@@ -36,6 +57,11 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
   const score = useCount(result.score, 1300, STAR_START, still);
   const xp = useCount(gained, 1000, STAR_START + 300, still);
   const parts = scoreParts(def.parTime, result);
+  const p = useProgress();
+  const rows = flightSummary(result);
+  // Newly unlocked: aircraft and liveries whose XP threshold was crossed by this flight.
+  const before = p.xp - gained;
+  const fresh = [...GAME_AIRCRAFT.filter((a) => a.unlockXp > before && a.unlockXp <= p.xp).map((a) => `Aircraft: ${a.name}`), ...LIVERIES.filter((l) => l.xp > before && l.xp <= p.xp).map((l) => `Livery: ${l.name}`)];
 
   useEffect(() => {
     if (still) return;
@@ -73,6 +99,13 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
               <div key={k} className="mc-part"><span>{label}</span><div className="mc-bar" aria-hidden="true"><i style={{ width: `${Math.round(parts[k] * 100)}%`, animationDelay: `${STAR_START + 300 + i * 120}ms` }} /></div><strong>{Math.round(parts[k] * 100)}%</strong></div>
             ))}
           </div>
+          <div className="mc-summary" role="group" aria-label="Flight summary">
+            {rows.map((x) => <div key={x.label}><span>{x.label}</span><strong>{x.value}</strong></div>)}
+            {(result.safetyWrong ?? 0) > 0 && <p className="small">A wrong safety-critical decision or radio call keeps this flight at two stars or fewer.</p>}
+            {(result.boosters?.collected ?? 0) > 0 && <p className="small muted">Boosters are arcade help. They change bonus points and comfort, never the questions or the educational result.</p>}
+            {result.assisted && <p className="small muted">Assisted mode was on: contacts did not end the flight.</p>}
+          </div>
+          {fresh.length > 0 && <div className="mc-unlocks"><strong>Unlocked</strong><ul>{fresh.map((u) => <li key={u}>{u}</li>)}</ul></div>}
           <FlightReport def={def} result={result} />
           <details className="mc-notes"><summary>Flight notes</summary><ul className="debrief-list">{lines.map((l) => <li key={l}>{l}</li>)}</ul></details>
         </div>

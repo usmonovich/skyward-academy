@@ -10,7 +10,7 @@ const KEY = 'skyward.v1';
 interface Root { active: string; profiles: Record<string, Progress> }
 
 export const DEFAULT_SETTINGS: Settings = {
-  sfx: true, engine: true, voice: true, volume: 0.6, reducedMotion: false, textScale: 1,
+  sfx: true, engine: true, voice: true, volume: 0.6, reducedMotion: false, textScale: 1, steering: 1, quality: 'auto',
   assisted: false, jurisdiction: 'ICAO', dailyMinutes: 20, speechRate: 1,
 };
 

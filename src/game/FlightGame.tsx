@@ -14,6 +14,7 @@ import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
 import { ENV_NOTES } from './weather';
+import { learningLine } from './objectives';
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
 type Orientation = { lock?: (o: string) => Promise<void>; unlock?: () => void };
@@ -107,7 +108,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
 
   useEffect(() => {
     if (run === 0 || !canvasRef.current) return;
-    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion }, {
+    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: p.settings.steering, quality: p.settings.quality }, {
       onMessage: setMessage,
       onBoosters: setBoost,
       onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setHeard(null); setPhase('decision'); },
@@ -212,6 +213,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                   </ul>
                 </div>
               )}
+              <p className="small muted env-note">{learningLine(def)}</p>
               {ENV_NOTES[def.env] && <p className="small muted env-note">Scene: {ENV_NOTES[def.env]}</p>}
               <details className="guide">
                 <summary>Rings and boosters guide</summary>
