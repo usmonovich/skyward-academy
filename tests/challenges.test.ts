@@ -20,7 +20,7 @@ describe('challenge missions: content', () => {
   });
 
   it.each(CHALLENGES.map((m) => [m.id, m] as const))('%s names its concept, its prerequisite lessons and its simplifications', (_, m) => {
-    expect(MISSIONS).toContain(m);
+    expect(MISSIONS.some((x) => x.id === m.id)).toBe(true);
     expect(m.lessonId).toBeUndefined();
     expect(m.concept!.length).toBeGreaterThan(30);
     expect(m.requires!.length).toBeGreaterThan(0);

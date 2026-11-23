@@ -51,7 +51,7 @@ export function validateMission(value: unknown): string[] {
   const m = value as Partial<MissionDef> & Record<string, unknown>;
   const e: string[] = [];
   for (const k of ['id', 'title', 'objective', 'briefing', 'outcome', 'aircraftId', 'env']) if (!isStr(m[k])) e.push(`"${k}" is required.`);
-  if (typeof m.length !== 'number' || m.length < 4000 || m.length > 30000) e.push('"length" must be a number from 4000 to 30000.');
+  if (typeof m.length !== 'number' || m.length < 4000 || m.length > 100000) e.push('"length" must be a number from 4000 to 100000.');
   if (typeof m.parTime !== 'number' || m.parTime < 10) e.push('"parTime" must be at least 10 seconds.');
   if (typeof m.checkpoints !== 'number' || m.checkpoints < 0 || m.checkpoints > 20) e.push('"checkpoints" must be from 0 to 20.');
   if (!m.obstacles || typeof m.obstacles.density !== 'number' || !isArr(m.obstacles.types) || !m.obstacles.types.length) e.push('"obstacles" needs a "density" number and at least one obstacle type.');

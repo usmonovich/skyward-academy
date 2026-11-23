@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 594 unit tests
+npm test           # 817 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (594, all passing):** flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (817, all passing):** a scripted-autopilot flight of every mission (duration and winnability), flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -235,3 +235,10 @@ After every mission, successful or not, the result screen shows a flight analysi
 - **What went well, what to fix, next time:** every sentence comes from a measured value, not a template guess: gates (and for each missed gate whether it was too high or too low, or off the planned track, in feet), contacts, time against target, speed or track keeping, touchdown quality and centreline offset, go-around timing, fuel, and each wrong decision with the better choice. Up to four non-repeating tips. A failed flight gets the failure reason first and a suggestion to practise in Assisted mode.
 - The flight path is recorded every quarter second during the flight and is used only for this screen; it is not saved.
 - Fixed on the way: the result screen text was inheriting white from the dark game container and was nearly invisible.
+
+## Longer rounds (Expansion, batch 2)
+- **Measured, not assumed.** `tests/helpers/autopilot.ts` runs the real engine headlessly in Node and flies every mission with a scripted autopilot (this is scripted testing, not human playtesting). Before: the median clean flight was 39 s, the longest 66 s and 185 of 216 missions were under a minute. After: every mission lasts at least 133 s, the median is 150 s and the longest 252 s (active gameplay only: the engine does not count time spent on decision screens). A player who deliberately holds full thrust all the way can finish sooner.
+- **How.** `src/content/extend.ts` lengthens each route to its tier's target (Beginner 140 s, Intermediate 150 s, Advanced 165 s, Expert 185 s at the default cruise speed) instead of slowing or freezing anything. Gate spacing is kept, so there are more rings (up to 20), hazards scale with the route, par time scales with the length, fuel scales with the route, and route missions get one phonetic-named waypoint per ring. Every round is staged: introduction (no hazards in the first 12 percent), main flight, challenge and final approach, with a short instructor note at each stage.
+- **Fairness.** A contact light now comes back after 30 s of clean flying, so a long flight is not ended by early mistakes alone. The number of contacts used by the score is unchanged.
+- **Winnability.** The autopilot wins 215 of 216 missions. The exception, `m-free-sunset`, is two birds 240 px apart at very different heights, which this autopilot cannot weave through; it is recorded in the test as a known limit.
+- **Findings recorded for the scoring batch:** 71 of 216 missions can be completed with no input at all (1 to 2 stars), and 31 of the 81 decision missions still give 3 stars when every decision is wrong.

@@ -48,7 +48,8 @@ export function buildLevel(def: MissionDef): Level {
   const want = Math.round((def.obstacles.density * (x1 - x0)) / 400);
   for (let tries = 0; obstacles.length < want && tries < want * 8; tries++) {
     const type = def.obstacles.types[Math.floor(rnd() * def.obstacles.types.length)];
-    const x = x0 + rnd() * (x1 - x0);
+    // The first part of the route is the easy introduction: no hazards before 12 percent of the way.
+    const x = x0 + (0.12 + rnd() * 0.88) * (x1 - x0);
     const floor = GROUND - terrainHeight(def, x);
     const r = type === 'storm' ? 46 : type === 'balloon' ? 26 : type === 'birds' ? 20 : 16;
     const h = type === 'tower' ? 90 + rnd() * 70 : 0;
@@ -65,7 +66,7 @@ export interface GameCallbacks {
   onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
 }
-export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean }
+export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
@@ -165,6 +166,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   if (!onGround && def.speedBand) thr = clamp((kt - ac.minKt) / range, 0, 1);
   let t = 0;
   let hits = 0;
+  // Contacts counted for the score (hits) and contact lights (strikes). A light comes back after 30 s of clean flying, so a long flight is not ended by early mistakes alone.
+  let strikes = 0; let cleanFor = 0;
   let invuln = 0;
   let fuel = 1;
   let bandIn = 0; let bandAll = 0;
@@ -225,15 +228,16 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
   function hit(text: string) {
     if (invuln > 0) return;
-    hits++; invuln = 1.6; flash = 0.35;
+    hits++; strikes++; cleanFor = 0; invuln = 1.6; flash = 0.35;
     audio.sfx('hit');
     say(text);
-    if (!opts.assisted && hits >= 3) end(false, 'The aircraft took too much damage. Give obstacles more room and try again.');
+    if (!opts.assisted && strikes >= 3) end(false, 'The aircraft took too much damage. Give obstacles more room and try again.');
   }
 
   function update(dt: number) {
     t += dt;
     invuln = Math.max(0, invuln - dt);
+    if (strikes > 0 && (cleanFor += dt) >= 30) { strikes--; cleanFor = 0; say('Contact light restored after 30 seconds of clean flying.'); }
     flash = Math.max(0, flash - dt);
     const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W');
     const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S');
@@ -432,7 +436,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const y2 = y1 + 28;
     ctx.fillStyle = 'rgba(11,37,69,0.55)'; ctx.fillRect(x0, y2, w - 64, 6);
     ctx.fillStyle = '#f58220'; ctx.fillRect(x0, y2, (w - 64) * clamp((worldX + PLANE_X) / def.length, 0, 1), 6);
-    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x0 + w - 42 + i * 18, y2 + 3, 6, 0, 6.3); ctx.fill(); }
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - strikes ? '#f58220' : 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x0 + w - 42 + i * 18, y2 + 3, 6, 0, 6.3); ctx.fill(); }
     // Mission chips.
     const cwid = (w - 12) / 3; let ci = 0;
     const chipTop = y2 + 14 + (def.lateral ? TRACK_PANEL : 0);
@@ -598,7 +602,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     let ry = stack ? 112 : 12;
     panel(RX - 214, ry, 200, 34);
     label(`GATES ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
-    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - hits ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - strikes ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
     ry += 40;
     if (def.lateral) { trackPanel(RX - 214, ry, 200, 50); ry += 56; }
     if (def.fuel) { panel(RX - 214, ry, 200, 28); label('FUEL', RX - 200, ry + 19, 11, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(RX - 160, ry + 10, 134, 8); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(RX - 160, ry + 10, 134 * clamp(fuel, 0, 1), 8); ry += 34; }
@@ -649,7 +653,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     resize(cw, ch, safe) { layout(cw, ch, safe); render(); },
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
     answerDecision(correct) { if (state !== 'decision') return; decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
-    step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); render(); },
+    step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
     snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState }),
   };
 }
