@@ -29,7 +29,7 @@ describe('ring kinds', () => {
       const gates = buildLevel(m).gates;
       if (m.lateral?.waypoints) for (const g of gates) expect(g.kind, m.id).toBe('nav');
       else {
-        gates.forEach((g, i) => { if ((i + 1) % 4 === 0 && i < gates.length - 1) expect(g.kind, `${m.id} ring ${i + 1}`).toBe('gold'); });
+        gates.forEach((g, i) => { if ((i + 1) % 4 === 0 && i < gates.length - 1 && g.kind !== 'english') expect(g.kind, `${m.id} ring ${i + 1}`).toBe('gold'); });
         if (m.tier === 'Beginner') for (const g of gates) expect(g.kind, `${m.id} has no precision rings`).not.toBe('precision');
         const last = gates[gates.length - 1];
         if (last && !m.landing && (m.tier === 'Advanced' || m.tier === 'Expert')) expect(last.kind, `${m.id} ends on a special ring`).toBe('special');

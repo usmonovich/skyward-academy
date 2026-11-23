@@ -15,6 +15,7 @@ function Done({ id, score, detail, onAgain }: { id: string; score: number; detai
       <h3>{score >= 0.6 ? 'Exercise complete' : 'Keep practising'}</h3>
       <p className="big-number">{Math.round(score * 100)}%</p>
       <p className="muted">{detail}</p>
+      {score >= 0.6 && id.startsWith('en-') && <div className="unlock-banner"><Icon name="fly" size={18} /> <span><strong>Flight unlocked.</strong> Use what you just practised on a real route, with radio calls at the purple rings.</span><Btn kind="accent" icon="fly" href={`fly/e-${id.replace(/^en-/, '')}`}>Fly the radio flight</Btn></div>}
       <div className="row gap wrap center"><Btn kind="soft" icon="refresh" onClick={onAgain}>Try again</Btn><Btn kind="accent" href="english">Back to Aviation English</Btn></div>
       <p className="small muted">Exercise id: {id}. Scores are training feedback only.</p>
     </div>
@@ -275,7 +276,7 @@ function AtcSession({ scn, onExit }: { scn: AtcScenario; onExit: () => void }) {
           <div className="card-head"><h3>Scenario complete — training feedback</h3><Chip tone="warn">Provisional · not an ICAO rating</Chip></div>
           <div className="dims">{dimensionFeedback(turns, scn.steps.length).map((d) => <div key={d.dim} className="dim"><strong>{d.dim}</strong><p>{d.note}</p></div>)}</div>
           <p className="small muted">This feedback is generated from the text of your transmissions by a rule-based checker. It cannot hear pronunciation or stress and it does not award an ICAO language proficiency level. Official assessment is carried out only by examiners approved by your aviation authority.</p>
-          <div className="row gap wrap"><Btn kind="accent" onClick={onExit}>Choose another scenario</Btn><Btn kind="ghost" href="english">Back to Aviation English</Btn></div>
+          <div className="row gap wrap"><Btn kind="accent" icon="fly" href="fly/e-atc">Fly the radio flight</Btn><Btn kind="soft" onClick={onExit}>Choose another scenario</Btn><Btn kind="ghost" href="english">Back to Aviation English</Btn></div>
         </div>
       )}
     </div>
@@ -350,6 +351,7 @@ export function English({ exerciseId }: { exerciseId?: string }) {
                     <span className={`lesson-state${st?.done ? ' done' : ' open'}`}><Icon name={st?.done ? 'check' : e.kind === 'atc' ? 'mic' : e.kind === 'listening' || e.kind === 'numbers' ? 'sound' : 'play'} size={18} /></span>
                     <span className="grow"><strong>{e.title}</strong><span className="small muted"> · {e.minutes} min</span><br /><span className="small muted">{e.blurb}</span></span>
                     {st && <span className="small muted">Best {Math.round(st.best * 100)}%</span>}
+                    <Chip tone={st?.done ? 'accent' : 'default'}>{st?.done ? 'Flight unlocked' : 'Flight locked'}</Chip>
                   </a></li>
                 ); })}
               </ul>

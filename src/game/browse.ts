@@ -2,21 +2,26 @@
 // Used by the Fly page and the post-flight debrief. No storage, no side effects.
 import type { MissionDef, Progress } from '../types';
 
-export type Track = 'all' | 'free' | 'math' | 'phys' | 'ppl' | 'cpl' | 'atpl';
+export type Track = 'all' | 'free' | 'math' | 'phys' | 'ppl' | 'cpl' | 'atpl' | 'english';
 export type Status = 'all' | 'ready' | 'done' | 'locked';
 
-export const TRACKS: [Track, string][] = [['all', 'All tracks'], ['free', 'Free flight'], ['math', 'Mathematics'], ['phys', 'Physics'], ['ppl', 'PPL'], ['cpl', 'CPL'], ['atpl', 'ATPL']];
+export const TRACKS: [Track, string][] = [['all', 'All tracks'], ['free', 'Free flight'], ['math', 'Mathematics'], ['phys', 'Physics'], ['ppl', 'PPL'], ['cpl', 'CPL'], ['atpl', 'ATPL'], ['english', 'Aviation English']];
 export const STATUSES: [Status, string][] = [['all', 'Any status'], ['ready', 'Ready to fly'], ['done', 'Already flown'], ['locked', 'Locked']];
 
 /** Which curriculum track a mission belongs to, taken from its lesson id (free-flight missions have none). */
 export function trackOf(m: MissionDef): Exclude<Track, 'all'> {
+  if (m.requiresEnglish?.length) return 'english';
   const prefix = (m.lessonId ?? m.requires?.[0])?.split('-')[0];
   return prefix === 'math' || prefix === 'phys' || prefix === 'ppl' || prefix === 'cpl' || prefix === 'atpl' ? prefix : 'free';
 }
 
 /** The lessons that must be passed before a mission opens: its own lesson, or the lessons a challenge mission requires. */
 export const gateLessons = (m: MissionDef): string[] => (m.lessonId ? [m.lessonId] : m.requires ?? []);
-export const isOpen = (m: MissionDef, p: Progress): boolean => gateLessons(m).every((id) => !!p.lessons[id]?.passed);
+/** Aviation English exercises that must be passed (60 percent or more) before the mission opens. */
+export const gateEnglish = (m: MissionDef): string[] => m.requiresEnglish ?? [];
+export const isOpen = (m: MissionDef, p: Progress): boolean => gateLessons(m).every((id) => !!p.lessons[id]?.passed) && gateEnglish(m).every((id) => !!p.english[id]?.done);
+/** The first required English exercise that is not passed yet. */
+export const firstUnmetEnglish = (m: MissionDef, p: Progress): string | undefined => gateEnglish(m).find((id) => !p.english[id]?.done);
 /** The first required lesson that is not passed yet, or undefined when the mission is open. */
 export const firstUnmet = (m: MissionDef, p: Progress): string | undefined => gateLessons(m).find((id) => !p.lessons[id]?.passed);
 export const isFlown = (m: MissionDef, p: Progress): boolean => !!p.missions[m.id];

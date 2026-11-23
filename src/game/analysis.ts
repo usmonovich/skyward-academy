@@ -116,6 +116,21 @@ export function analyse(def: MissionDef, r: MissionResult): Analysis {
     if (results.some((x) => !x) && def.concept) tips.push(`Revisit the concept: ${def.concept}`);
   }
 
+  // ---- Radio calls (Aviation English flights): three separate things are reported, not one blended number -------------------
+  if (r.english && r.english.asked > 0) {
+    const e = r.english;
+    const part = (k: 'comprehension' | 'phraseology') => (e.bySkill[k].asked ? `${e.bySkill[k].correct} of ${e.bySkill[k].asked}` : null);
+    const summary = [part('comprehension') && `comprehension ${part('comprehension')}`, part('phraseology') && `phraseology ${part('phraseology')}`].filter(Boolean).join(', ');
+    if (e.correct === e.asked) strengths.push(`All ${e.asked} radio calls answered correctly (${summary}).`);
+    else if (e.correct / e.asked >= 0.6) strengths.push(`${e.correct} of ${e.asked} radio calls correct (${summary}).`);
+    for (const w of e.wrong.slice(0, 3)) mistakes.push(`Radio call missed${w.safetyCritical ? ' (safety-critical)' : ''}, ${w.topic}${w.transmission ? `: “${w.transmission.length > 90 ? w.transmission.slice(0, 90) + '…' : w.transmission}”` : ''}`);
+    if (e.wrong.length > 3) mistakes.push(`${e.wrong.length - 3} more radio calls missed.`);
+    if (e.wrong.some((w) => w.topic === 'readback')) tips.push('In a readback say the instruction itself and the numbers, then your call sign. "Roger" only means received.');
+    if (e.wrong.some((w) => w.topic === 'numbers' || w.topic === 'alphabet')) tips.push('Write digits and letters down as you hear them. One swapped digit changes the heading, level or frequency.');
+    if (e.wrong.some((w) => w.safetyCritical)) tips.push('A wrong safety-critical call keeps a mission at two stars. Slow down on calls that carry numbers or instructions.');
+    tips.push('Aircraft control, language comprehension and phraseology are scored separately. This is practice, not an ICAO language proficiency result.');
+  }
+
   if (!r.success && r.reason) mistakes.unshift(r.reason);
   if (!r.success) tips.push('Use Assisted mode in the briefing to practise the technique with the wind halved and no failure from contacts.');
 

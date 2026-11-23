@@ -170,11 +170,28 @@ export const actions = {
   mission(def: MissionDef, r: MissionResult): number {
     let gained = 0;
     commit((p) => {
+      // Radio-call accuracy by topic is learning data: it is kept whether or not the flight was completed.
+      let improved = 0;
+      if (r.english) {
+        const topics = (p.engTopics ??= {});
+        for (const [topic, v] of Object.entries(r.english.byTopic)) {
+          const old = topics[topic] ?? { asked: 0, correct: 0 };
+          const oldAcc = old.asked >= 5 ? old.correct / old.asked : null;
+          const newAcc = v.asked ? v.correct / v.asked : 0;
+          if (oldAcc !== null && oldAcc < 0.7 && newAcc - oldAcc >= 0.15 && v.asked >= 3) improved++;
+          topics[topic] = { asked: old.asked + v.asked, correct: old.correct + v.correct };
+        }
+      }
       if (!r.success) return;
       const prev = p.missions[def.id];
       const value = (stars: number) => def.xp + stars * 25;
       gained = prev ? Math.max(0, value(r.stars) - value(prev.stars)) : value(r.stars);
-      p.missions[def.id] = { stars: Math.max(prev?.stars ?? 0, r.stars), best: Math.max(prev?.best ?? 0, r.score), at: Date.now() };
+      // Capped extras: correct radio calls (5 XP each, up to 40), collected XP tokens (10 each, up to 30) and improving a
+      // weak Aviation English topic (10 each, up to 30). Only the part above what was already paid is added.
+      const bonusXp = Math.min(40, (r.english?.correct ?? 0) * 5) + Math.min(30, (r.boosters?.xpTokens ?? 0) * 10) + Math.min(30, improved * 10);
+      const paid = prev?.bonusXp ?? 0;
+      gained += Math.max(0, bonusXp - paid);
+      p.missions[def.id] = { stars: Math.max(prev?.stars ?? 0, r.stars), best: Math.max(prev?.best ?? 0, r.score), at: Date.now(), bonusXp: Math.max(paid, bonusXp) };
       p.xp += gained;
       bump(p, 'missions');
     });

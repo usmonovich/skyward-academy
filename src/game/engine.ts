@@ -1,7 +1,7 @@
 // Reusable 2D mission engine. A mission is plain data (MissionDef); this module turns it into a
 // playable side-scrolling flight with gates, obstacles, wind, terrain, fuel, take-off, landing and decisions.
 // The physics are deliberately simplified arcade physics — this is not a flight training device.
-import type { Decision, EnvId, GameAircraft, MissionDef, MissionResult, MissionStats, ObstacleType } from '../types';
+import type { Decision, EnglishRing, EnvId, GameAircraft, MissionDef, MissionResult, MissionStats, ObstacleType } from '../types';
 import { mulberry32 } from '../engine/assessment';
 import { scoreMission } from '../engine/gamification';
 import { isaPressure } from '../content/formulas';
@@ -29,7 +29,7 @@ export const RING_STYLE: Record<RingKind, RingStyle> = {
   english: { name: 'English challenge ring', color: '#7a5af5', dash: [2, 6], glyph: 'bubble', blurb: 'A radio question ring: answer the call correctly.' },
   special: { name: 'Special ring', color: '#e0457b', dash: [10, 4, 2, 4], glyph: 'diamond', blurb: 'A feature ring for advanced missions: a large bonus.' },
 };
-export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number }
+export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number; /** English rings: index of the radio call this ring carries. */ q?: number }
 export interface Obstacle { x: number; y: number; r: number; type: ObstacleType; phase: number; h: number }
 /**
  * Arcade boosters. These are game mechanics, not aviation capabilities: no real aircraft has a shield or can slow
@@ -92,6 +92,20 @@ function assignRings(def: MissionDef, gates: Gate[]) {
   });
 }
 
+/** English missions: the radio calls ride on rings spread evenly along the route, never the first or the last. */
+function assignEnglish(def: MissionDef, gates: Gate[]) {
+  const m = def.english?.rings.length ?? 0;
+  if (!m || gates.length < 4) return;
+  const used = new Set<number>();
+  for (let k = 0; k < m; k++) {
+    let idx = clamp(Math.round(((k + 1) / (m + 1)) * (gates.length - 1)), 1, gates.length - 2);
+    while (used.has(idx) && idx < gates.length - 2) idx++;
+    if (used.has(idx)) break;
+    used.add(idx);
+    const g = gates[idx]; g.kind = 'english'; g.value = 40; g.r = 48; g.q = k;
+  }
+}
+
 export function buildLevel(def: MissionDef): Level {
   const rnd = mulberry32(def.seed * 7919);
   const x0 = def.takeoff ? 1700 : 900;
@@ -105,6 +119,7 @@ export function buildLevel(def: MissionDef): Level {
     gates.push({ x, y, r: 48, state: 'open', kind: 'cloud', value: 10 });
   }
   assignRings(def, gates);
+  assignEnglish(def, gates);
   const obstacles: Obstacle[] = [];
   const want = Math.round((def.obstacles.density * (x1 - x0)) / 400);
   for (let tries = 0; obstacles.length < want && tries < want * 8; tries++) {
@@ -274,6 +289,9 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let collected = 0; let xpTokens = 0; let absorbed = 0; let emitAcc = 0;
   const ringTally: Partial<Record<RingKind, { hit: number; total: number }>> = {};
   const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
+  // Radio calls (English missions): the call being answered, and the record of every answer.
+  let pendingEnglish: EnglishRing | null = null;
+  const englishLog: { ring: EnglishRing; correct: boolean }[] = [];
   for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
   const keys = new Set<string>();
   const input = { x: 0, y: 0, h: 0 };
@@ -324,6 +342,24 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     bursts.push({ gi, x: g.x, y: g.y, t0: t, kind: g.kind, text: g.kind === 'cloud' || g.kind === 'nav' ? `${ringsHit}/${level.gates.length}` : `+${pts}` });
     if (bursts.length > 6) bursts.shift();
   }
+  const decisionResultsWrong = () => decisionLog.filter((x) => !x).length;
+  function englishSummary(): NonNullable<MissionStats['english']> {
+    const out: NonNullable<MissionStats['english']> = { asked: englishLog.length, correct: englishLog.filter((e) => e.correct).length, bySkill: { comprehension: { asked: 0, correct: 0 }, phraseology: { asked: 0, correct: 0 } }, byTopic: {}, wrong: [] };
+    for (const e of englishLog) {
+      const sk = out.bySkill[e.ring.skill]; sk.asked++; if (e.correct) sk.correct++;
+      const tp = (out.byTopic[e.ring.topic] ??= { asked: 0, correct: 0 }); tp.asked++; if (e.correct) tp.correct++;
+      if (!e.correct) out.wrong.push({ transmission: e.ring.transmission, topic: e.ring.topic, safetyCritical: !!e.ring.safetyCritical, skill: e.ring.skill });
+    }
+    return out;
+  }
+  /** Stops the flight for a radio call. The answer arrives through answerDecision, exactly like an operational decision. */
+  function askEnglish(q: number) {
+    const ring = def.english?.rings[q];
+    if (!ring || state !== 'run') return;
+    pendingEnglish = ring;
+    state = 'decision';
+    cb.onDecision({ at: 0, prompt: ring.prompt, options: ring.options, english: { transmission: ring.transmission, skill: ring.skill, topic: ring.topic, safetyCritical: !!ring.safetyCritical, voice: ring.voice } });
+  }
   /** Height of an obstacle right now: birds flap, and storm cells drift when the mission says so. Used by collisions and drawing alike. */
   const obstacleY = (o: { type: string; y: number; phase: number }) => (o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.type === 'storm' && def.stormDrift ? o.y + Math.sin(t * 0.8 + o.phase) * 60 : o.y);
   /** The sideways position the route asks for at the aircraft's distance: straight on, or a line through the waypoints. */
@@ -347,7 +383,9 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       success, reason, time: t, checkpoints: level.gates.filter((g) => g.state === 'hit').length, total: level.gates.length, hits,
       bandFraction: def.speedBand ? (bandAll > 0 ? bandIn / bandAll : 0) : def.lateral ? (latAll > 0 ? latIn / latAll : 0) : undefined, landing,
       // A go-around counts as one decision: right when the climb started within seven seconds of the call.
-      decisionsCorrect: decisionsCorrect + (def.goAround && gaClimbed && gaClimbT <= 7 ? 1 : 0), decisionsTotal: decisions.length + (def.goAround ? 1 : 0),
+      decisionsCorrect: decisionsCorrect + (def.goAround && gaClimbed && gaClimbT <= 7 ? 1 : 0) + englishLog.filter((e) => e.correct).length, decisionsTotal: decisions.length + (def.goAround ? 1 : 0) + englishLog.length,
+      english: def.english ? englishSummary() : undefined,
+      safetyWrong: decisionResultsWrong() + englishLog.filter((e) => !e.correct && e.ring.safetyCritical).length,
       fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
@@ -478,8 +516,9 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       if (g.state === 'open' && wx >= g.x) {
         const wp = def.lateral?.waypoints?.[level.gates.indexOf(g)];
         const sideOk = !wp || Math.abs(lat - wp.lat) <= def.lateral!.tol;
-        if (Math.abs(y - g.y) <= ringR(g) && sideOk) ringHit(g, level.gates.indexOf(g));
+        if (Math.abs(y - g.y) <= ringR(g) && sideOk) { ringHit(g, level.gates.indexOf(g)); if (g.kind === 'english' && g.q !== undefined) { askEnglish(g.q); break; } }
         else { g.state = 'missed'; if (wp && !sideOk) say(`Waypoint ${wp.name} missed: you were off the planned track. Turn earlier and hold the heading.`); }
+        if (g.kind === 'english' && g.q !== undefined) { askEnglish(g.q); break; }
       }
     }
     for (const pk of level.pickups) {
@@ -914,7 +953,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     activateBooster: (i) => activate(i),
     boosters: boosterView,
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
-    answerDecision(correct) { if (state !== 'decision') return; decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
+    answerDecision(correct) {
+      if (state !== 'decision') return;
+      if (pendingEnglish) { englishLog.push({ ring: pendingEnglish, correct }); pendingEnglish = null; }
+      else { decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; }
+      state = 'run'; last = performance.now(); keys.clear();
+    },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
     snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus }),
   };

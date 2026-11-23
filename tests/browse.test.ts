@@ -10,7 +10,7 @@ const fresh = () => freshProgress('t', 'T', true);
 
 describe('mission browser', () => {
   it('assigns every mission to a track', () => {
-    for (const m of missions) expect(['free', 'math', 'phys', 'ppl', 'cpl', 'atpl'], m.id).toContain(trackOf(m));
+    for (const m of missions) expect(['free', 'math', 'phys', 'ppl', 'cpl', 'atpl', 'english'], m.id).toContain(trackOf(m));
     expect(trackOf(missions.find((m) => m.id === 'm-atpl-mach')!)).toBe('atpl');
     expect(trackOf(missions.find((m) => !m.lessonId)!)).toBe('free');
   });

@@ -43,6 +43,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'exam-ready', name: 'Exam Ready', desc: 'Score 80% or more in a practice exam of at least 10 questions.', test: (p) => p.exams.some((e) => e.total >= 10 && e.correct / e.total >= 0.8) },
   { id: 'week-streak', name: 'Seven-Day Habit', desc: 'Study on 7 different days.', test: (p) => Object.keys(p.activity).length >= 7 },
   { id: 'ten-lessons', name: 'Ten Lessons Completed', desc: 'Pass 10 lessons.', test: (p) => passed(p) >= 10 },
+  { id: 'radio-ready', name: 'Radio Ready', desc: 'Complete an Aviation English flight.', test: (p) => Object.keys(p.missions).some((k) => k.startsWith('e-')) },
+  { id: 'clear-readback', name: 'Clear Readback', desc: 'Earn 3 stars on the AI Air Traffic Controller flight.', test: (p) => p.missions['e-atc']?.stars === 3 },
+  { id: 'sharp-ears', name: 'Sharp Ears', desc: 'Earn 3 stars on a listening flight.', test: (p) => ['e-listen-everyday', 'e-listen', 'e-listen-l4', 'e-listen-l5', 'e-listen-l6'].some((id) => p.missions[id]?.stars === 3) },
 ];
 
 export const newAchievements = (p: Progress) => ACHIEVEMENTS.filter((a) => !p.achievements[a.id] && a.test(p));
@@ -72,7 +75,7 @@ export function dailyFor(key: string): DailyChallenge {
   return DAILIES[h % DAILIES.length];
 }
 
-/** Mission scoring: 40% gates, 25% safety, 15% time, 20% mission objective. */
+/** Mission scoring: 40% gates, 25% safety, 15% time, 20% mission objective. Stars: 850+ three, 600+ two, otherwise one; any wrong safety-relevant decision caps the stars at two. */
 export interface ScoreParts { gates: number; safety: number; time: number; objective: number }
 
 /** The four components of a mission score, each from 0 to 1, in the order they are weighted (40/25/15/20). */
@@ -92,7 +95,9 @@ export function scoreMission(parTime: number, s: MissionStats): { score: number;
   if (!s.success) return { score: 0, stars: 0 };
   const { gates, safety, time, objective } = scoreParts(parTime, s);
   const score = Math.round(1000 * (0.4 * gates + 0.25 * safety + 0.15 * time + 0.2 * objective));
-  return { score, stars: score >= 850 ? 3 : score >= 600 ? 2 : 1 };
+  const stars = score >= 850 ? 3 : score >= 600 ? 2 : 1;
+  // A wrong operational decision or a wrong safety-critical radio call means the mission cannot earn a perfect rating, whatever the score.
+  return { score, stars: (s.safetyWrong ?? 0) > 0 ? Math.min(stars, 2) : stars };
 }
 
 /** Human-readable training stage for the dashboard. */

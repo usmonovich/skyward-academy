@@ -547,3 +547,9 @@ body.game-active .shell .toasts { visibility: visible; }
 .guide { background: var(--sky-l); border-radius: 12px; padding: 8px 12px; } .guide summary { cursor: pointer; font-weight: 700; color: var(--navy-2); min-height: 32px; }
 .guide-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 5px; font-size: .86rem; }
 .guide-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; border: 1.5px solid rgba(11, 37, 69, .5); }
+
+/* ===== Radio calls (Aviation English flights) ===== */
+.radio-call { background: #f1ecff; border: 1px solid #d8ccff; border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
+.radio-call blockquote { margin: 0; font-weight: 600; color: var(--navy); max-height: 120px; overflow-y: auto; }
+
+.unlock-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; text-align: left; background: #fff3e4; border: 1px solid #f8dcb8; border-radius: 14px; padding: 10px 14px; }

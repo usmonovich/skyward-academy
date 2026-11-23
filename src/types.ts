@@ -92,7 +92,11 @@ export interface EncyclopediaEntry {
 
 export type EnvId = 'sky' | 'countryside' | 'mountains' | 'coast' | 'desert' | 'sunset' | 'airfield' | 'highalt';
 export type ObstacleType = 'storm' | 'balloon' | 'birds' | 'tower';
-export interface Decision { at: number; prompt: string; options: { text: string; correct?: boolean; feedback: string }[] }
+/** A question the game asks mid-flight. English rings add the radio call, so the screen can play it and accept a spoken answer. */
+export interface Decision {
+  at: number; prompt: string; options: { text: string; correct?: boolean; feedback: string }[];
+  english?: { transmission: string; skill: 'comprehension' | 'phraseology'; topic: EnglishRing['topic']; safetyCritical: boolean; voice?: { label: string; any: string[] }[] };
+}
 
 /**
  * Simplified sideways-wind model for track-keeping missions. The game is a side view, so the sideways position ("track
@@ -115,8 +119,6 @@ export interface LateralModel {
 
 /** One radio question carried by an English challenge ring. The player answers when the ring is reached, before flying on. */
 export interface EnglishRing {
-  /** Index of the ring (0 based) that carries the question. */
-  ring: number;
   /** What the question exercises. Comprehension, phraseology and aircraft control are scored separately. */
   skill: 'comprehension' | 'phraseology';
   topic: 'alphabet' | 'numbers' | 'airport' | 'weather' | 'atc' | 'readback' | 'emergency' | 'plain';
@@ -126,6 +128,8 @@ export interface EnglishRing {
   options: { text: string; correct?: boolean; feedback: string }[];
   /** A wrong answer to a safety-critical communication can never earn a perfect rating. */
   safetyCritical?: boolean;
+  /** Readbacks: the items a spoken answer must contain (same shape as an ATC step), so a spoken answer can be checked. */
+  voice?: { label: string; any: string[] }[];
 }
 /** The English layer of a mission: radio questions on some rings. */
 export interface EnglishLayer { topic: string; rings: EnglishRing[] }
@@ -154,6 +158,8 @@ export interface MissionDef {
   lateral?: LateralModel;
   /** Aviation English layer: some rings carry a radio question (see EnglishRing). */
   english?: EnglishLayer;
+  /** Missions opened by passing Aviation English exercises (ids from the English page). */
+  requiresEnglish?: string[];
   /** Missions that have no lesson of their own open when all of these lessons are passed. */
   requires?: string[];
   /** One line saying which aviation concept the mission practises. */
@@ -194,6 +200,10 @@ export interface MissionStats {
   touchdownOffset?: number;
   /** How the go-around went. */
   goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** Radio calls in an English mission: how each skill went. Not an ICAO rating. */
+  english?: { asked: number; correct: number; bySkill: Record<'comprehension' | 'phraseology', { asked: number; correct: number }>; byTopic: Record<string, { asked: number; correct: number }>; wrong: { transmission: string; topic: string; safetyCritical: boolean; skill: string }[] };
+  /** Wrong operational decisions and wrong safety-critical radio calls. Any of these caps the mission at two stars. */
+  safetyWrong?: number;
   /** Boosters collected and used during the flight, and the contacts a shield absorbed. */
   boosters?: { collected: number; used: Partial<Record<'shield' | 'slow' | 'multiplier' | 'magnet' | 'speed' | 'assist' | 'xp' | 'recovery', number>>; xpTokens: number; absorbed: number };
   /** Bonus points collected from rings (shown and rewarded, never part of the star formula). */
@@ -228,7 +238,9 @@ export interface Progress {
   created: number;
   xp: number;
   lessons: Record<string, { passed: boolean; best: number; attempts: number; at?: number }>;
-  missions: Record<string, { stars: number; best: number; at: number }>;
+  missions: Record<string, { stars: number; best: number; at: number; /** Best bonus XP already paid for this mission (radio calls and XP tokens), so replays never pay it twice. */ bonusXp?: number }>;
+  /** Aviation English: radio-call accuracy by topic, from flights. */
+  engTopics?: Record<string, { asked: number; correct: number }>;
   cards: Record<string, CardState>;
   cardReviews: number;
   favTerms: string[];

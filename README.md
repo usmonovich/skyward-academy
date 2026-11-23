@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 874 unit tests
+npm test           # 940 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -264,3 +264,13 @@ Boosters are **arcade power-ups, not real aircraft systems** (the bar, the brief
 | Recovery | Brings back one contact light | Refused when there is nothing to recover; never undoes a wrong decision |
 
 `tests/boosters.test.ts` drives the engine headlessly and checks each effect, expiry, cooldown, the limits (3 held, 2 active), pause safety, that a wrong decision stays wrong with boosters running, and that ground contact still ends a flight with boosters active.
+
+## Aviation English flights (Expansion, batch 5)
+
+Every Aviation English exercise now unlocks its own radio flight (`e-<exercise>`, 17 in all). Pass the exercise (60 percent or more), then fly it from **Fly → Aviation English**.
+
+- **Purple rings** are radio calls. When the aircraft reaches one (hit or miss) the flight pauses and a call appears. Answers are by tap; **Hear the call** and **Answer by voice** are optional and the flight never depends on the speech API.
+- Questions are generated from the existing exercises: quiz questions, listening passages, a phonetic-alphabet generator, numbers by ear and ATC readbacks with distractors (changed number, opposite instruction, missing call sign, "Roger"). No new phraseology was invented. They are practice questions, not official examination questions, and the game gives no ICAO language proficiency rating.
+- **Three things are reported separately**: language comprehension, phraseology and aircraft control.
+- **A wrong safety-critical call (or a wrong operational decision in any mission) caps the flight at two stars.** This also fixed an earlier gap: 31 missions with decisions could give three stars after a wrong answer. Flights are always completable.
+- Capped bonus XP: 5 per correct call (up to 40), 10 for improving a weak topic. Only the part above what was already paid is added on a replay. Three new achievements.

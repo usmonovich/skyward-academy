@@ -9,6 +9,8 @@ import { Btn, Chip, Icon, AircraftArt } from '../components/ui';
 import { MissionComplete } from '../components/MissionComplete';
 import { FlightReport } from '../components/FlightReport';
 import { BoosterBar } from '../components/BoosterBar';
+import { canListen, canSpeak, listen, speak } from '../engine/speech';
+import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
 
@@ -62,6 +64,8 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [showHelp, setShowHelp] = useState(!p.seenTutorial);
   const [isFs, setIsFs] = useState(false);
   const [boost, setBoost] = useState<BoosterView | null>(null);
+  const [heard, setHeard] = useState<{ text: string; missing: string[] } | null>(null);
+  const [listening, setListening] = useState(false);
   const wantFs = useRef(true);
   const fsOk = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
 
@@ -105,7 +109,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion }, {
       onMessage: setMessage,
       onBoosters: setBoost,
-      onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setPhase('decision'); },
+      onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setHeard(null); setPhase('decision'); },
       onEnd: (r) => { setPrevBest(p.missions[def.id]?.best ?? null); setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
     });
     game.current = g;
@@ -242,7 +246,32 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
         {phase === 'decision' && decision && (
           <div className="overlay">
             <div className="overlay-card">
-              <Chip tone="accent">Operational decision</Chip>
+              <Chip tone="accent">{decision.english ? 'Radio call' : 'Operational decision'}</Chip>
+              {decision.english?.safetyCritical && <Chip tone="warn">Safety-critical call</Chip>}
+              {decision.english && (
+                <div className="radio-call">
+                  {decision.english.transmission && <blockquote>“{decision.english.transmission}”</blockquote>}
+                  <div className="row gap wrap">
+                    {decision.english.transmission && <Btn small kind="soft" icon="sound" onClick={() => { if (canSpeak()) speak(decision.english!.transmission, { rate: p.settings.speechRate }); }}>{canSpeak() ? 'Hear the call' : 'Read the call above'}</Btn>}
+                    {decision.english.voice && canListen() && !decisionFeedback && (
+                      <Btn small kind="soft" icon="mic" onClick={() => {
+                        setListening(true);
+                        listen({
+                          onResult: (text) => {
+                            const ev = evaluate({ kind: 'readback', required: decision.english!.voice!, model: '', style: 'Standard phraseology' }, text);
+                            setHeard({ text, missing: ev.missing });
+                            if (ev.complete) { const ok = decision.options.find((o) => o.correct); if (ok) { setDecisionFeedback({ text: ok.feedback, correct: true }); audio.sfx('ok'); } }
+                          },
+                          onError: () => setHeard({ text: '', missing: [] }),
+                          onEnd: () => setListening(false),
+                        });
+                      }}>{listening ? 'Listening…' : 'Answer by voice'}</Btn>
+                    )}
+                  </div>
+                  <p className="small muted">{decision.english.skill === 'phraseology' ? 'Radiotelephony phraseology: standard words matter.' : 'Language comprehension.'} Tapping an answer always works; voice is optional and checked by your browser, not an official assessment.</p>
+                  {heard && <p className="small" role="status">{heard.text ? `I heard: “${heard.text}”.` : 'I could not hear that.'} {heard.missing.length ? `Missing: ${heard.missing.join(', ')}. Try again or tap an answer.` : heard.text ? 'Complete readback.' : ''}</p>}
+                </div>
+              )}
               <p className="q-prompt">{decision.prompt}</p>
               {!decisionFeedback ? (
                 <div className="options">

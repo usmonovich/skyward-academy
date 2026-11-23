@@ -2,6 +2,7 @@ import type { MissionDef } from '../types';
 import { CHALLENGES } from './challenges';
 import { GAME_AIRCRAFT } from './reference';
 import { extendMission } from './extend';
+import { buildEnglishMissions } from './englishMissions';
 
 type Partial_ = Partial<MissionDef> & Pick<MissionDef, 'id' | 'title' | 'objective' | 'briefing' | 'outcome'>;
 
@@ -1312,7 +1313,7 @@ const CORE_MISSIONS: MissionDef[] = [
 ];
 
 /** Lesson missions and challenge missions together, each lengthened to its tier's target duration (see extend.ts). Challenge missions open when the lessons they require are passed. */
-export const MISSIONS: MissionDef[] = [...CORE_MISSIONS, ...CHALLENGES].map((mission) => {
+export const MISSIONS: MissionDef[] = [...CORE_MISSIONS, ...CHALLENGES, ...buildEnglishMissions()].map((mission) => {
   const ac = GAME_AIRCRAFT.find((a) => a.id === mission.aircraftId) ?? GAME_AIRCRAFT[0];
   return extendMission(mission, ac.minKt, ac.maxKt);
 });
