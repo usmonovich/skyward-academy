@@ -119,7 +119,7 @@ function ringsFor(ex: EnglishExercise, seed: number): EnglishRing[] {
 
 const TIER = (stage: number): MissionDef['tier'] => (stage <= 3 ? 'Beginner' : stage <= 5 ? 'Intermediate' : stage <= 7 ? 'Advanced' : 'Expert');
 const AIRCRAFT = ['sparrow', 'sparrow', 'kestrel', 'kestrel', 'gemini', 'albatross', 'falcon', 'skyliner'];
-const ENV: Record<string, MissionDef['env']> = { quiz: 'countryside', alphabet: 'airfield', numbers: 'sky', listening: 'coast', atc: 'sunset' };
+const ENV: Record<string, MissionDef['env']> = { quiz: 'countryside', alphabet: 'airfield', numbers: 'golden', listening: 'overcast', atc: 'night' };
 
 export function buildEnglishMissions(): MissionDef[] {
   return EN_EXERCISES.map((ex, i) => {

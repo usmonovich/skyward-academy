@@ -111,7 +111,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
                 <span className="small muted">{a.cls}</span>
                 <p className="small">{a.blurb}</p>
                 <p className="small muted">Speed {a.minKt}–{a.maxKt} kt · Agility {Math.round(a.agility * 100)}%</p>
-                {locked ? <Chip><Icon name="lock" size={13} /> Unlocks at {a.unlockXp} XP</Chip> : selected ? <Chip tone="ok">Selected</Chip> : <Btn small kind="soft" onClick={() => actions.selectAircraft(a.id)}>Select</Btn>}
+                {locked ? <><div className="unlock-progress" role="progressbar" aria-label={`Progress to unlock ${a.name}`} aria-valuemin={0} aria-valuemax={a.unlockXp} aria-valuenow={Math.min(p.xp, a.unlockXp)}><i style={{ width: `${Math.min(100, (p.xp / a.unlockXp) * 100)}%` }} /></div><Chip><Icon name="lock" size={13} /> {a.unlockXp - p.xp} XP to unlock ({a.unlockXp} XP)</Chip></> : selected ? <Chip tone="ok">Selected</Chip> : <Btn small kind="soft" onClick={() => actions.selectAircraft(a.id)}>Select</Btn>}
                 <Btn small kind="ghost" icon="fly" onClick={() => setView3d(view3d === a.id ? null : a.id)}>{view3d === a.id ? 'Hide 3D' : 'View in 3D'}</Btn>
               </div>
             );

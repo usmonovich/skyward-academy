@@ -90,7 +90,7 @@ export interface EncyclopediaEntry {
   specs: [string, string][]; systems: string[]; lessons: string[]; art: string; note: string;
 }
 
-export type EnvId = 'sky' | 'countryside' | 'mountains' | 'coast' | 'desert' | 'sunset' | 'airfield' | 'highalt';
+export type EnvId = 'sky' | 'countryside' | 'mountains' | 'coast' | 'desert' | 'sunset' | 'airfield' | 'highalt' | 'overcast' | 'rain' | 'night' | 'golden' | 'arctic';
 export type ObstacleType = 'storm' | 'balloon' | 'birds' | 'tower';
 /** A question the game asks mid-flight. English rings add the radio call, so the screen can play it and accept a spoken answer. */
 export interface Decision {

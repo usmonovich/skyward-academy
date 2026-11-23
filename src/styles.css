@@ -553,3 +553,6 @@ body.game-active .shell .toasts { visibility: visible; }
 .radio-call blockquote { margin: 0; font-weight: 600; color: var(--navy); max-height: 120px; overflow-y: auto; }
 
 .unlock-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; text-align: left; background: #fff3e4; border: 1px solid #f8dcb8; border-radius: 14px; padding: 10px 14px; }
+
+.env-overcast .mission-art { background: linear-gradient(180deg, #7f8fa3, #d3dae3); } .env-rain .mission-art { background: linear-gradient(180deg, #4b5a6e, #aab6c4); } .env-night .mission-art { background: linear-gradient(180deg, #050b1f, #233a6b); } .env-golden .mission-art { background: linear-gradient(180deg, #e08a3c, #ffe0a0); } .env-arctic .mission-art { background: linear-gradient(180deg, #6fa8d8, #eaf4fb); }
+.env-note { margin: 6px 0; } .unlock-progress { height: 6px; border-radius: 99px; background: var(--line, #d7dee8); overflow: hidden; margin: 4px 0; } .unlock-progress > i { display: block; height: 100%; background: var(--accent, #f58220); }

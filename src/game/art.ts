@@ -6,7 +6,7 @@ function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number
 }
 
 /** Draws an aircraft centred on the origin, nose to the right. `t` animates the propeller. */
-export function drawAircraft(ctx: CanvasRenderingContext2D, ac: GameAircraft, color: string, t = 0, gearDown = true) {
+export function drawAircraft(ctx: CanvasRenderingContext2D, ac: GameAircraft, color: string, t = 0, gearDown = true, lights = false) {
   const s = ac.size;
   const long = ac.kind === 'airliner' ? 1.5 : ac.kind === 'turboprop' ? 1.3 : ac.kind === 'jet' ? 1.15 : 1;
   const L = 30 * s * long;
@@ -68,4 +68,13 @@ export function drawAircraft(ctx: CanvasRenderingContext2D, ac: GameAircraft, co
   if (ac.kind === 'turboprop') { ellipse(ctx, 6, -h + 2, 13 * s, 4.6, '#dbe4ee'); prop(6 + 14 * s, -h + 2, 13 * s); }
   if (ac.kind === 'jet') { ctx.fillStyle = '#dbe4ee'; ctx.fillRect(-L + 16, -h - 5, 18 * s, 6.5); ctx.fillStyle = dark; ctx.fillRect(-L + 16 + 18 * s - 3, -h - 5, 3, 6.5); }
   if (ac.kind === 'airliner') { ctx.fillStyle = '#dbe4ee'; ctx.fillRect(-4, h, 19 * s, 7.5); ctx.fillStyle = dark; ctx.fillRect(-4 + 19 * s - 3, h, 3, 7.5); }
+  if (lights) {
+    // Navigation lights for dim scenes: a blinking white strobe on the tail, a red beacon on the fuselage and a soft landing light ahead.
+    const blink = t === 0 || Math.floor(t * 2.2) % 2 === 0;
+    const lamp = (x: number, y: number, c: string) => { ctx.globalAlpha = 0.3; ellipse(ctx, x, y, 7, 7, c); ctx.globalAlpha = 1; ellipse(ctx, x, y, 2.4, 2.4, c); };
+    if (blink) lamp(-L - 3, -h - 12 * s, '#ffffff');
+    lamp(2, -h - 1, blink ? '#ff4d4d' : '#a83030');
+    const beam = ctx.createLinearGradient(L + 6, 0, L + 120, 0); beam.addColorStop(0, 'rgba(255,244,200,0.45)'); beam.addColorStop(1, 'rgba(255,244,200,0)');
+    ctx.fillStyle = beam; ctx.beginPath(); ctx.moveTo(L + 6, 2); ctx.lineTo(L + 120, -16); ctx.lineTo(L + 120, 26); ctx.closePath(); ctx.fill();
+  }
 }

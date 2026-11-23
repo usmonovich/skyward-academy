@@ -7,6 +7,7 @@ import { scoreMission } from '../engine/gamification';
 import { isaPressure } from '../content/formulas';
 import { audio } from '../engine/audio';
 import { drawAircraft } from './art';
+import { cloudColor, drawRain, drawRunwayLights, drawSkyExtras, drawTrail, isLowLight, isNight } from './weather';
 
 export const W = 960;
 export const H = 540;
@@ -187,6 +188,11 @@ const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: st
   desert: { top: '#f0a052', bottom: '#fde6b6', far: '#e3aa6e', mid: '#cb8a45', ground: '#d7a25c', sun: '#fff8dc' },
   sunset: { top: '#3b2d6b', bottom: '#ff9d5c', far: '#8a5486', mid: '#553868', ground: '#3d2c52', sun: '#ffd27a' },
   highalt: { top: '#0d2a5c', bottom: '#79b8ee', far: '#cfe2f5', mid: '#e8f2fb', ground: '#f7fbff', sun: '#ffffff' },
+  overcast: { top: '#7f8fa3', bottom: '#d3dae3', far: '#9fb0a6', mid: '#7c9a82', ground: '#5f8650', sun: '#eef2f7' },
+  rain: { top: '#4b5a6e', bottom: '#aab6c4', far: '#7f9186', mid: '#5f7a67', ground: '#4a6b44', sun: '#cfd8e3' },
+  night: { top: '#050b1f', bottom: '#233a6b', far: '#1b2a4a', mid: '#16233d', ground: '#0f1a2e', sun: '#e9eefc' },
+  golden: { top: '#e08a3c', bottom: '#ffe0a0', far: '#c98a5a', mid: '#8f8a52', ground: '#6f8a43', sun: '#fff0b8' },
+  arctic: { top: '#6fa8d8', bottom: '#eaf4fb', far: '#cddbe8', mid: '#e1ecf5', ground: '#f3f8fc', sun: '#ffffff' },
 };
 
 /**
@@ -291,6 +297,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
   // Radio calls (English missions): the call being answered, and the record of every answer.
   let pendingEnglish: EnglishRing | null = null;
+  const trail: { x: number; y: number; age: number }[] = []; let trailT = -1;
   const englishLog: { ring: EnglishRing; correct: boolean }[] = [];
   for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
   const keys = new Set<string>();
@@ -772,10 +779,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
     sky.addColorStop(0, pal.top); sky.addColorStop(1, pal.bottom);
     ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, H);
-    ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' ? 330 : 90, def.env === 'sunset' ? 54 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' || def.env === 'golden' ? 330 : 90, def.env === 'sunset' || def.env === 'golden' ? 54 : def.env === 'night' ? 26 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
+    drawSkyExtras(ctx, def.env, VW, GROUND, t, opts.reducedMotion);
     for (const c of clouds) {
       const cx = ((c.x - cam * 0.25) % 1500 + 1500) % 1500 - 200;
-      ctx.fillStyle = def.env === 'sunset' ? 'rgba(255,214,190,0.55)' : 'rgba(255,255,255,0.8)';
+      ctx.fillStyle = cloudColor(def.env);
       ctx.beginPath(); ctx.ellipse(cx, c.y, 46 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx + 26 * c.s, c.y - 9 * c.s, 30 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx - 28 * c.s, c.y - 4 * c.s, 26 * c.s, 12 * c.s, 0, 0, 6.3); ctx.fill();
     }
     hills(0.12, GROUND - (def.env === 'mountains' ? 150 : 95), def.env === 'mountains' ? 85 : 38, 210, pal.far);
@@ -797,6 +805,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       ctx.fillStyle = '#ffffff';
       for (let x = sx + 20; x < ex - 30; x += 70) ctx.fillRect(x, GROUND + 3, 34, 3);
       ctx.fillRect(sx + 4, GROUND - 1, 8, 10); ctx.fillRect(ex - 12, GROUND - 1, 8, 10);
+      if (isLowLight(def.env)) drawRunwayLights(ctx, Math.max(sx, -20), Math.min(ex, VW + 20), GROUND - 3, t, opts.reducedMotion);
     };
     if (def.takeoff) runway(60, TAKEOFF_RUNWAY);
     if (def.landing) {
@@ -858,12 +867,19 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       for (let i = 0; i < 12; i++) { const sx = (i * 97 + t * -260) % VW; const sy = (i * 71 + t * wind * 0.8) % (GROUND - 40) + 20; const px = (sx + VW) % VW; const py = ((sy % GROUND) + GROUND) % GROUND; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 26, py - wind * 0.12); ctx.stroke(); }
     }
 
+    // Rain, then the aircraft's trail (contrail at speed, glow at night). Drawn from a short history of positions; visual only.
+    drawRain(ctx, def.env, VW, GROUND, t, opts.reducedMotion);
+    if (!opts.reducedMotion && ac.kind !== 'single' && ac.kind !== 'twin' && !onGround && state !== 'rollout') {
+      if (!trail.length || t - trailT >= 0.06) { trailT = t; trail.push({ x: worldX + PLANE_X - 28 * ac.size, y, age: 0 }); if (trail.length > 24) trail.shift(); }
+      trail.forEach((p, i) => { p.age = (trail.length - 1 - i) * 0.06; });
+      drawTrail(ctx, trail, worldX, isNight(def.env));
+    } else trail.length = 0;
     // Aircraft
     ctx.save();
     ctx.translate(px, y);
     ctx.rotate(onGround || state === 'rollout' ? 0 : clamp(vy / 520, -0.45, 0.45));
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
-    drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing);
+    drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing, isLowLight(def.env));
     ctx.restore(); ctx.globalAlpha = 1;
     for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
     drawBoosterEffects(cam, px);

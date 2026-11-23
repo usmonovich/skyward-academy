@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 1007 unit tests
+npm test           # 1012 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -283,3 +283,11 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - **Physics:** free fall, projectile motion, circular motion, buoyancy, hydraulics, humidity and dew point, lapse rates, the Doppler effect, electromagnetic induction, wing loading, the lift curve.
 - **Experiments:** 23 new interactive formula labs (for example projectile range, buoyancy, centripetal force, wind-triangle groundspeed, lift coefficient against angle of attack). The simplified ones (lift curve, halving model, dew point rule of thumb) say so in their "Model limits" line.
 - **Honest limits:** these lessons teach the physics and arithmetic. They are not authoritative operating procedures, and each says to use the flight manual, METAR or approved planner for real flight. The content is original material, not copied from any publication, and still needs expert review before use in formal training. Earlier lessons, progress and unlocks are unchanged.
+
+## Environments and aircraft polish (Expansion, batch 6)
+
+- **Five new environments:** overcast, rain, night, golden hour and arctic, used by real missions (the Aviation English radio flights and several maths and physics missions). Night adds stars, a smaller moon, runway lights and aircraft lights (blinking tail strobe, red beacon, landing beam); rain adds 70 light streaks over a grey sky; overcast and golden hour change the sky, light and clouds.
+- **Visual only.** Weather never changes handling, scoring or the rings (a test flies the same mission in every environment and compares the results). Rings keep their colours, outlines and glyphs, and I checked them in the night and rain scenes in the browser.
+- **Performance and comfort:** each effect is a few dozen canvas primitives and is cut back with reduced motion (no twinkling, 14 still rain marks, no contrails). A briefing line states what the scene is.
+- **Aircraft:** turboprops, jets and airliners leave a short fading contrail (a night-time exhaust glow in the dark) while airborne. In the hangar, locked aircraft show a progress bar and the XP still needed. The 3D hangar is unchanged.
+- **Not done:** new aircraft models, aircraft unlock animations and per-aircraft sound. Frame rate was not measured on a phone.

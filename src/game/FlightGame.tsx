@@ -13,6 +13,7 @@ import { canListen, canSpeak, listen, speak } from '../engine/speech';
 import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
+import { ENV_NOTES } from './weather';
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
 type Orientation = { lock?: (o: string) => Promise<void>; unlock?: () => void };
@@ -211,6 +212,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                   </ul>
                 </div>
               )}
+              {ENV_NOTES[def.env] && <p className="small muted env-note">Scene: {ENV_NOTES[def.env]}</p>}
               <details className="guide">
                 <summary>Rings and boosters guide</summary>
                 <ul className="guide-list">
