@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 854 unit tests
+npm test           # 874 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (854, all passing):** ring kinds and ring-to-scoring correspondence, a scripted-autopilot flight of every mission (duration and winnability), flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (874, all passing):** boosters (collection, activation, effects, expiry, cooldown, pause), ring kinds and ring-to-scoring correspondence, a scripted-autopilot flight of every mission (duration and winnability), flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -248,3 +248,19 @@ After every mission, successful or not, the result screen shows a flight analysi
 - **Look:** soft cloud puffs around a coloured boundary with a soft glow and a dark outline for contrast on bright sky, white clouds, sunset and dark weather; gentle puff movement (off with reduced motion); the ring is drawn in two halves so the aircraft flies through it. Passing through gives an expanding ring, particles (fewer with reduced motion), a floating label ("3/20" or "+50"), a sound, and the ring swells and fades away. Rings still off screen show as coloured markers at the right edge (portrait and landscape).
 - **The drawn opening is the scoring area.** The boundary is drawn at exactly the scoring radius. `tests/rings.test.ts` flies 30 missions with no input (constant height) and checks that every ring, of every kind, is hit exactly when the aircraft is inside that ring's own radius.
 - Kinds come from a separate random stream, so adding them did not move any ring or hazard. Bonus points are shown and rewarded but never change the star formula.
+
+## Boosters (Expansion, batch 4)
+Boosters are **arcade power-ups, not real aircraft systems** (the bar, the briefing guide and every activation message say so). They are earned in flight: 2 to 8 coloured pickups are placed along each route (from their own random stream, clear of rings and hazards, at reachable heights), collected into a 3-slot bar, and used by tapping the slot or pressing 1 to 3. At most two are active at once; each has a duration and a cooldown (`BOOSTERS` in `src/game/engine.ts`); all timers run on real time that stops while paused.
+
+| Booster | Effect | Limit |
+|---|---|---|
+| Shield | Absorbs the next minor contact (balloon, birds, tower) | Not storms, not the ground, not the runway; 15 s |
+| Time slow | The game runs at 60 percent | 8 s |
+| Score x2 | Doubles ring bonus points | Bonus only, never stars; 12 s |
+| Ring magnet | Widens golden rings and pickups (drawn wider too) | Never helps compulsory rings; 12 s |
+| Speed boost | 1.35 times faster over the ground | Steering is 25 percent less responsive; 6 s |
+| Precision assist | Guide line and gentle steering nudge to the next ring | Cannot win a mission alone; 10 s |
+| Bonus XP token | Collected instantly, small XP bonus at the end | |
+| Recovery | Brings back one contact light | Refused when there is nothing to recover; never undoes a wrong decision |
+
+`tests/boosters.test.ts` drives the engine headlessly and checks each effect, expiry, cooldown, the limits (3 held, 2 active), pause safety, that a wrong decision stays wrong with boosters running, and that ground contact still ends a flight with boosters active.

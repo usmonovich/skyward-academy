@@ -8,7 +8,8 @@ import { audio } from '../engine/audio';
 import { Btn, Chip, Icon, AircraftArt } from '../components/ui';
 import { MissionComplete } from '../components/MissionComplete';
 import { FlightReport } from '../components/FlightReport';
-import { createGame, debrief, type GameHandle, type Safe } from './engine';
+import { BoosterBar } from '../components/BoosterBar';
+import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
@@ -60,6 +61,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [run, setRun] = useState(0);
   const [showHelp, setShowHelp] = useState(!p.seenTutorial);
   const [isFs, setIsFs] = useState(false);
+  const [boost, setBoost] = useState<BoosterView | null>(null);
   const wantFs = useRef(true);
   const fsOk = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
 
@@ -84,7 +86,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
 
   const start = useCallback(() => {
     setResult(null); setMessage(''); setDecision(null); setDecisionFeedback(null);
-    setPhase('flying'); setRun((r) => r + 1);
+    setPhase('flying'); setRun((r) => r + 1); setBoost(null);
     if (!p.seenTutorial) actions.seenTutorial();
     setShowHelp(false);
     if (full && wantFs.current) enterFs();
@@ -102,6 +104,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     if (run === 0 || !canvasRef.current) return;
     const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion }, {
       onMessage: setMessage,
+      onBoosters: setBoost,
       onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setPhase('decision'); },
       onEnd: (r) => { setPrevBest(p.missions[def.id]?.best ?? null); setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
     });
@@ -174,6 +177,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
         </div>
       )}
 
+      {!full && (phase === 'flying' || phase === 'paused') && boost && <BoosterBar view={boost} onUse={(i) => game.current?.activateBooster(i)} />}
       <div className="game-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="game-canvas" tabIndex={0} aria-label={`Flight mission: ${def.title}. Use the arrow keys or W A S D to fly.`} />
         {message && phase === 'flying' && <div className="game-msg" role="status" aria-live="polite"><span className="instructor-dot" />{message}</div>}
@@ -203,6 +207,16 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                   </ul>
                 </div>
               )}
+              <details className="guide">
+                <summary>Rings and boosters guide</summary>
+                <ul className="guide-list">
+                  {Object.values(RING_STYLE).filter((r) => r.name !== 'English challenge ring' || def.english).map((r) => <li key={r.name}><i className="guide-dot" style={{ background: r.color }} /> <strong>{r.name}.</strong> {r.blurb}</li>)}
+                </ul>
+                <p className="small"><strong>Boosters</strong> are arcade power-ups you collect in flight, not real aircraft systems. Tap a collected booster (or press 1 to 3) to use it. Two at a time at most. They never change a decision or an answer.</p>
+                <ul className="guide-list">
+                  {Object.values(BOOSTERS).map((b) => <li key={b.name}><i className="guide-dot" style={{ background: b.color }} /> <strong>{b.name}.</strong> {b.blurb}</li>)}
+                </ul>
+              </details>
               {full && portrait && <p className="small rotate-tip">Tip: turn your phone sideways for a wider view of the route ahead. The game works in both orientations.</p>}
               {full && !fsOk && <p className="small muted">This browser keeps its own toolbar. The game fills the visible screen instead.</p>}
               <div className="row gap wrap">
@@ -259,6 +273,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
         )}
       </div>
 
+      {full && (phase === 'flying' || phase === 'paused') && boost && <BoosterBar floating view={boost} onUse={(i) => game.current?.activateBooster(i)} />}
       {full && phase === 'flying' && (
         <>
           <div className="tc tc-left" role="group" aria-label="Pitch controls">

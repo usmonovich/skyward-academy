@@ -3,7 +3,7 @@
 // and scoring, not how a mission feels.
 import type { MissionDef, MissionResult } from '../../src/types';
 import { GAME_AIRCRAFT } from '../../src/content/reference';
-import { GROUND, PLANE_X, buildLevel, createGame, terrainHeight } from '../../src/game/engine';
+import { GROUND, PLANE_X, buildLevel, createGame, terrainHeight, type BoosterView, type GameHandle, type GameOptions } from '../../src/game/engine';
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -21,6 +21,15 @@ function stubBrowser() {
 function fakeCanvas(): HTMLCanvasElement {
   const ctx: unknown = new Proxy(function () {}, { get: () => ctx, set: () => true, apply: () => ctx });
   return { width: 0, height: 0, clientWidth: 0, clientHeight: 0, getContext: () => ctx, addEventListener() {}, removeEventListener() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 960, height: 540 }), setPointerCapture() {} } as unknown as HTMLCanvasElement;
+}
+
+/** A live headless game for tests that drive the engine step by step. */
+export function headless(def: MissionDef, o: Partial<GameOptions> = {}): { g: GameHandle; messages: string[]; result: () => MissionResult | undefined; views: BoosterView[] } {
+  stubBrowser();
+  const ac = GAME_AIRCRAFT.find((x) => x.id === def.aircraftId)!;
+  const messages: string[] = []; const views: BoosterView[] = []; let result: MissionResult | undefined;
+  const g = createGame(fakeCanvas(), def, ac, { assisted: false, livery: '#f58220', reducedMotion: true, noRender: true, ...o }, { onMessage: (m) => messages.push(m), onBoosters: (v) => views.push(v), onDecision() {}, onEnd: (r) => { result = r; } });
+  return { g, messages, views, result: () => result };
 }
 
 export interface FlightOptions {

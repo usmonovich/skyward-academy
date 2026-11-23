@@ -31,7 +31,34 @@ export const RING_STYLE: Record<RingKind, RingStyle> = {
 };
 export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number }
 export interface Obstacle { x: number; y: number; r: number; type: ObstacleType; phase: number; h: number }
-export interface Level { gates: Gate[]; obstacles: Obstacle[]; runwayStart: number; runwayEnd: number }
+/**
+ * Arcade boosters. These are game mechanics, not aviation capabilities: no real aircraft has a shield or can slow
+ * time. Durations are in seconds of real time (paused time never counts); a cooldown stops the same booster being
+ * activated again straight away. At most two boosters are active at once and the inventory holds three.
+ */
+export type BoosterKind = 'shield' | 'slow' | 'multiplier' | 'magnet' | 'speed' | 'assist' | 'xp' | 'recovery';
+export interface BoosterInfo { name: string; short: string; color: string; duration: number; cooldown: number; blurb: string }
+export const BOOSTERS: Record<BoosterKind, BoosterInfo> = {
+  shield: { name: 'Shield', short: 'S', color: '#2bb3d9', duration: 15, cooldown: 8, blurb: 'Absorbs the next minor contact with a balloon, birds or a tower. Not storms, and not the ground.' },
+  slow: { name: 'Time slow', short: '\u23F1', color: '#5b7cfa', duration: 8, cooldown: 10, blurb: 'Slows the game to 60 percent so you have more time to react.' },
+  multiplier: { name: 'Score x2', short: 'x2', color: '#f2b705', duration: 12, cooldown: 8, blurb: 'Doubles the bonus points from rings while it lasts. It does not change your stars.' },
+  magnet: { name: 'Ring magnet', short: 'M', color: '#e0457b', duration: 12, cooldown: 8, blurb: 'Widens golden rings and booster pickups. It never helps with compulsory rings.' },
+  speed: { name: 'Speed boost', short: '\u00BB', color: '#f58220', duration: 6, cooldown: 12, blurb: 'A burst of speed. The trade-off: steering is harder while it lasts.' },
+  assist: { name: 'Precision assist', short: '\u25CE', color: '#12a594', duration: 10, cooldown: 10, blurb: 'A guide line to the next ring and gentle steering help. You still fly the aircraft.' },
+  xp: { name: 'Bonus XP token', short: 'XP', color: '#7a5af5', duration: 0, cooldown: 0, blurb: 'Collected instantly: a small bonus of XP when you complete the mission.' },
+  recovery: { name: 'Recovery', short: '+', color: '#3aa655', duration: 0, cooldown: 20, blurb: 'Brings back one contact light after a minor mistake. It cannot undo a wrong decision.' },
+};
+export interface Pickup { x: number; y: number; kind: BoosterKind; taken: boolean }
+export interface Level { gates: Gate[]; obstacles: Obstacle[]; pickups: Pickup[]; runwayStart: number; runwayEnd: number }
+export const MAX_ACTIVE = 2;
+export const MAX_HELD = 3;
+/** What the booster bar shows. */
+export interface BoosterView {
+  held: BoosterKind[];
+  active: { kind: BoosterKind; left: number; total: number }[];
+  cooldown: Partial<Record<BoosterKind, number>>;
+  xpTokens: number;
+}
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -92,28 +119,48 @@ export function buildLevel(def: MissionDef): Level {
     if (obstacles.some((o) => Math.abs(o.x - x) < 230)) continue;
     obstacles.push({ x, y: oy, r, type, phase: rnd() * 6.28, h });
   }
-  return { gates, obstacles, runwayStart: def.length - 1150, runwayEnd: def.length - 150 };
+  return { gates, obstacles, pickups: placePickups(def, gates, obstacles, x0, x1), runwayStart: def.length - 1150, runwayEnd: def.length - 150 };
+}
+
+/** Booster pickups, spread along the route from their own random stream so they never move a ring or a hazard. */
+function placePickups(def: MissionDef, gates: Gate[], obstacles: Obstacle[], x0: number, x1: number): Pickup[] {
+  const rnd = mulberry32(def.seed * 15485863 + 11);
+  const n = clamp(Math.round((x1 - x0) / 7500), 2, 8);
+  const bag: BoosterKind[] = ['shield', 'shield', 'shield', 'xp', 'xp', 'xp', 'slow', 'slow', 'multiplier', 'multiplier', 'magnet', 'magnet', 'speed', 'assist', 'assist', 'recovery'];
+  const out: Pickup[] = [];
+  for (let i = 0; i < n; i++) {
+    let x = x0 + ((i + 0.5) / n) * (x1 - x0) + (rnd() - 0.5) * 500;
+    for (let k = 0; k < 6 && (gates.some((g) => Math.abs(g.x - x) < 260) || obstacles.some((o) => Math.abs(o.x - x) < 230)); k++) x += 140;
+    const floor = GROUND - terrainHeight(def, x);
+    out.push({ x, y: clamp(120 + rnd() * 260, 110, floor - 110), kind: bag[Math.floor(rnd() * bag.length)], taken: false });
+  }
+  return out;
 }
 
 export interface GameCallbacks {
   onMessage: (text: string) => void;
+  /** Called when the booster bar changes, and about four times a second while a booster runs. */
+  onBoosters?: (v: BoosterView) => void;
   onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
 }
-export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean }
+export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[] }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
   pause(): void; resume(): void; destroy(): void;
   /** x: thrust, y: pitch, h: heading correction (crosswind and navigation missions). */
   setInput(i: { x?: number; y?: number; h?: number }): void;
+  /** Activates the held booster in slot i. Returns whether it was activated. */
+  activateBooster(i: number): boolean;
+  boosters(): BoosterView;
   answerDecision(correct: boolean): void;
   /** Test hook: advances the simulation by one fixed time step and redraws (used when animation frames are throttled). */
   step(dt: number): void;
   /** Debug/test hook: read-only snapshot of the simulation. */
   /** Fits the camera to the canvas's CSS size and the screen insets. Called on every size or orientation change. */
   resize(cssWidth: number, cssHeight: number, safe?: Safe): void;
-  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string };
+  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string; strikes: number; bonus: number };
 }
 
 const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: string; ground: string; sun: string }> = {
@@ -219,6 +266,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const trace: number[][] = []; let traceT = 0; const decisionLog: boolean[] = [];
   // Ring bonus and the pass-through effects. Bonus points are shown and rewarded, but never change the star formula.
   let bonus = 0; let ringsHit = 0;
+  // Boosters: the held inventory, the active ones with their time left, per-kind cooldowns and the tallies for the debrief.
+  const held: BoosterKind[] = [...(opts.startBoosters ?? [])].slice(0, MAX_HELD);
+  const active: { kind: BoosterKind; left: number; total: number }[] = [];
+  const cooldown: Partial<Record<BoosterKind, number>> = {};
+  const used: Partial<Record<BoosterKind, number>> = {};
+  let collected = 0; let xpTokens = 0; let absorbed = 0; let emitAcc = 0;
   const ringTally: Partial<Record<RingKind, { hit: number; total: number }>> = {};
   const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
   for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
@@ -229,14 +282,46 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const decisions = [...(def.decisions ?? [])].sort((a, b) => a.at - b.at);
   const clouds = Array.from({ length: 9 }, (_, i) => ({ x: (i * 173 + def.seed * 37) % 1500, y: 50 + ((i * 97 + def.seed * 13) % 190), s: 0.6 + ((i * 31) % 10) / 12 }));
 
-  const pxSpeed = () => (kt < ac.minKt ? 140 * (kt / ac.minKt) : 140 + clamp((kt - ac.minKt) / range, 0, 1.1) * 200);
+  const pxSpeed = () => (kt < ac.minKt ? 140 * (kt / ac.minKt) : 140 + clamp((kt - ac.minKt) / range, 0, 1.1) * 200) * (isActive('speed') ? 1.35 : 1);
   const groundY = (wx: number) => GROUND - terrainHeight(def, wx);
   const say = (text: string) => cb.onMessage(text);
+  const isActive = (k: BoosterKind) => active.some((a) => a.kind === k);
+  const boosterView = (): BoosterView => ({ held: [...held], active: active.map((a) => ({ ...a })), cooldown: { ...cooldown }, xpTokens });
+  const emitBoosters = () => { emitAcc = 0; cb.onBoosters?.(boosterView()); };
+  /** Ticks booster timers with real (unslowed) time. Paused time never reaches here because update() does not run. */
+  function tickBoosters(dt: number) {
+    let changed = false;
+    for (let i = active.length - 1; i >= 0; i--) {
+      active[i].left -= dt;
+      if (active[i].left <= 0) { const k = active[i].kind; active.splice(i, 1); cooldown[k] = BOOSTERS[k].cooldown; changed = true; say(BOOSTERS[k].name + ' has run out.'); }
+    }
+    for (const k of Object.keys(cooldown) as BoosterKind[]) { cooldown[k]! -= dt; if (cooldown[k]! <= 0) { delete cooldown[k]; changed = true; } }
+    emitAcc += dt;
+    if (changed || (emitAcc >= 0.25 && (active.length || Object.keys(cooldown).length))) emitBoosters();
+  }
+  function activate(i: number): boolean {
+    if (state !== 'run' && state !== 'rollout') return false;
+    const kind = held[i];
+    if (!kind) return false;
+    if (active.length >= MAX_ACTIVE) { say('Two boosters at a time is the limit. Wait for one to run out.'); return false; }
+    if (isActive(kind) || cooldown[kind]) { say(BOOSTERS[kind].name + ' is not ready yet.'); return false; }
+    if (kind === 'recovery' && strikes === 0) { say('There is no contact light to bring back.'); return false; }
+    held.splice(i, 1);
+    used[kind] = (used[kind] ?? 0) + 1;
+    audio.sfx('unlock');
+    if (kind === 'recovery') { strikes--; cleanFor = 0; flash = 0.25; cooldown.recovery = BOOSTERS.recovery.cooldown; say('Recovery: a contact light is back. (Arcade booster.)'); }
+    else { active.push({ kind, left: BOOSTERS[kind].duration, total: BOOSTERS[kind].duration }); say(BOOSTERS[kind].name + ' is on. (Arcade booster, not a real aircraft system.)'); }
+    emitBoosters();
+    return true;
+  }
+  /** Radius that counts for a ring right now: the ring magnet widens golden rings only, and the drawing uses the same value. */
+  const ringR = (g: Gate) => (g.kind === 'gold' && isActive('magnet') ? g.r * 1.4 : g.r);
   function ringHit(g: Gate, gi: number) {
-    g.state = 'hit'; bonus += g.value; ringsHit++;
+    const pts = g.value * (isActive('multiplier') ? 2 : 1);
+    g.state = 'hit'; bonus += pts; ringsHit++;
     const tally = ringTally[g.kind]; if (tally) tally.hit++;
     audio.sfx(g.kind === 'gold' || g.kind === 'special' ? 'unlock' : 'gate');
-    bursts.push({ gi, x: g.x, y: g.y, t0: t, kind: g.kind, text: g.kind === 'cloud' || g.kind === 'nav' ? `${ringsHit}/${level.gates.length}` : `+${g.value}` });
+    bursts.push({ gi, x: g.x, y: g.y, t0: t, kind: g.kind, text: g.kind === 'cloud' || g.kind === 'nav' ? `${ringsHit}/${level.gates.length}` : `+${pts}` });
     if (bursts.length > 6) bursts.shift();
   }
   /** Height of an obstacle right now: birds flap, and storm cells drift when the mission says so. Used by collisions and drawing alike. */
@@ -267,20 +352,29 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
       trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog], bonus, ringTypes: ringTally,
+      boosters: { collected, used: { ...used }, xpTokens, absorbed },
     };
     audio.sfx(success ? 'win' : 'fail');
     cb.onEnd({ ...stats, ...scoreMission(def.parTime, stats) });
   }
 
-  function hit(text: string) {
+  function hit(text: string, minor = false) {
     if (invuln > 0) return;
+    // The shield soaks up one minor contact (balloons, birds, towers). Storms, the ground and the runway are never minor.
+    if (minor && isActive('shield')) {
+      active.splice(active.findIndex((a) => a.kind === 'shield'), 1); cooldown.shield = BOOSTERS.shield.cooldown; absorbed++;
+      invuln = 1; flash = 0.2; audio.sfx('ok'); say('Shield absorbed the contact. (Arcade booster.)'); emitBoosters();
+      return;
+    }
     hits++; strikes++; cleanFor = 0; invuln = 1.6; flash = 0.35;
     audio.sfx('hit');
     say(text);
     if (!opts.assisted && strikes >= 3) end(false, 'The aircraft took too much damage. Give obstacles more room and try again.');
   }
 
-  function update(dt: number) {
+  function update(rawDt: number) {
+    const dt = rawDt * (isActive('slow') ? 0.6 : 1);
+    tickBoosters(rawDt);
     t += dt;
     invuln = Math.max(0, invuln - dt);
     if (strikes > 0 && (cleanFor += dt) >= 30) { strikes--; cleanFor = 0; say('Contact light restored after 30 seconds of clean flying.'); }
@@ -292,6 +386,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     let inY = (down ? 1 : 0) - (up ? 1 : 0) + input.y;
     const inX = clamp((right ? 1 : 0) - (left ? 1 : 0) + input.x, -1, 1);
     if (touchY !== null) inY = clamp((touchY - y) / 60, -1, 1);
+    if (isActive('assist') && !onGround) {
+      // Gentle help towards the next ring: it nudges the input, it never flies for you.
+      const next = level.gates.find((q) => q.x > worldX + PLANE_X + 20 && q.state === 'open');
+      if (next) inY += clamp((next.y - y) / 200, -0.3, 0.3);
+    }
     inY = clamp(inY, -1, 1);
     const wx = worldX + PLANE_X;
 
@@ -326,7 +425,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     // Airborne
     const wind = def.wind ? def.wind.vy + Math.sin(t * 1.3) * def.wind.gust : 0;
     const autoland = opts.assisted && def.landing && wx > level.runwayStart - 700;
-    vy += (inY * ac.agility * 520 - vy * 2.6) * dt;
+    vy += (inY * ac.agility * (isActive('speed') ? 0.75 : 1) * 520 - vy * 2.6) * dt;
     if (keys.has(' ')) vy -= vy * 6 * dt;
     if (autoland) vy += (65 - vy) * 3 * dt;
     if (def.energy) {
@@ -379,15 +478,24 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       if (g.state === 'open' && wx >= g.x) {
         const wp = def.lateral?.waypoints?.[level.gates.indexOf(g)];
         const sideOk = !wp || Math.abs(lat - wp.lat) <= def.lateral!.tol;
-        if (Math.abs(y - g.y) <= g.r && sideOk) ringHit(g, level.gates.indexOf(g));
+        if (Math.abs(y - g.y) <= ringR(g) && sideOk) ringHit(g, level.gates.indexOf(g));
         else { g.state = 'missed'; if (wp && !sideOk) say(`Waypoint ${wp.name} missed: you were off the planned track. Turn earlier and hold the heading.`); }
+      }
+    }
+    for (const pk of level.pickups) {
+      if (pk.taken) continue;
+      const grab = isActive('magnet') ? 1.6 : 1;
+      if (Math.abs(pk.x - wx) < 30 * grab && Math.abs(pk.y - y) < 36 * grab) {
+        if (pk.kind === 'xp') { pk.taken = true; xpTokens++; collected++; audio.sfx('ok'); say('Bonus XP token collected.'); emitBoosters(); }
+        else if (held.length < MAX_HELD) { pk.taken = true; held.push(pk.kind); collected++; audio.sfx('ok'); say(BOOSTERS[pk.kind].name + ' collected. Tap it to use it.'); emitBoosters(); }
+        else if (wx - pk.x < 4) say('Booster slots are full. Use one first.');
       }
     }
     for (const o of level.obstacles) {
       const oy = obstacleY(o);
       const dx = Math.abs(o.x - wx);
-      if (o.type === 'tower') { if (dx < 26 && y > oy - 8) hit('Obstacle strike. Keep well above towers.'); }
-      else if (dx < o.r + 18 && Math.abs(oy - y) < o.r + 10) hit(o.type === 'storm' ? 'You entered a storm cell. Avoid them by a wide margin.' : o.type === 'birds' ? 'Bird strike. Look ahead and plan around flocks.' : 'Obstacle contact. Give it more room.');
+      if (o.type === 'tower') { if (dx < 26 && y > oy - 8) hit('Obstacle strike. Keep well above towers.', true); }
+      else if (dx < o.r + 18 && Math.abs(oy - y) < o.r + 10) hit(o.type === 'storm' ? 'You entered a storm cell. Avoid them by a wide margin.' : o.type === 'birds' ? 'Bird strike. Look ahead and plan around flocks.' : 'Obstacle contact. Give it more room.', o.type !== 'storm');
     }
 
     const gy = groundY(wx);
@@ -452,7 +560,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     }
     const missed = g.state === 'missed';
     const st = RING_STYLE[g.kind];
-    const rx = Math.max(19, g.r * 0.5) * scale; const ry = g.r * scale;
+    const rr = ringR(g);
+    const rx = Math.max(19, rr * 0.5) * scale; const ry = rr * scale;
     ctx.save();
     ctx.globalAlpha = missed ? 0.5 : alpha;
     ctx.beginPath(); ctx.rect(half === 'back' ? sx : sx - 4000, -4000, 4000, 8000); ctx.clip();
@@ -480,6 +589,33 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       else if (st.glyph === 'ticks') { ctx.lineWidth = 2.5; ctx.strokeStyle = st.color; ctx.beginPath(); ctx.ellipse(sx, g.y, Math.max(2, rx * 0.5), ry * 0.5, 0, 0, 6.2832); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx, g.y - ry - 12); ctx.lineTo(sx, g.y - ry - 3); ctx.moveTo(sx, g.y + ry + 3); ctx.lineTo(sx, g.y + ry + 12); ctx.stroke(); }
     }
     ctx.restore();
+  }
+
+  /** A booster pickup: a pulsing disc with the booster's own letter, colour and a dark outline so it reads on any background. */
+  function drawPickups(cam: number) {
+    for (const pk of level.pickups) {
+      if (pk.taken) continue;
+      const sx = pk.x - cam; if (sx < -40 || sx > view.VW + 40) continue;
+      const b = BOOSTERS[pk.kind]; const pulse = opts.reducedMotion ? 0 : Math.sin(t * 4 + pk.x) * 2;
+      ctx.save();
+      ctx.fillStyle = 'rgba(11,37,69,0.55)'; ctx.beginPath(); ctx.arc(sx, pk.y, 24 + pulse, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = b.color; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(sx, pk.y, 19 + pulse * 0.5, 0, 6.2832); ctx.fill(); ctx.stroke();
+      label(b.short, sx, pk.y + 6, pk.kind === 'xp' ? 13 : 16, '#ffffff', 'center', 800);
+      ctx.restore();
+    }
+  }
+
+  /** What an active booster looks like on the aircraft and in the sky. */
+  function drawBoosterEffects(cam: number, px: number) {
+    if (isActive('shield')) { ctx.save(); ctx.strokeStyle = 'rgba(43,179,217,0.9)'; ctx.fillStyle = 'rgba(43,179,217,0.18)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(px, y, 46, 30, 0, 0, 6.2832); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    if (isActive('magnet')) { ctx.save(); ctx.setLineDash([5, 6]); ctx.strokeStyle = 'rgba(224,69,123,0.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(px, y, 54 + (opts.reducedMotion ? 0 : Math.sin(t * 5) * 3), 0, 6.2832); ctx.stroke(); ctx.restore(); }
+    if (isActive('speed') && !opts.reducedMotion) { ctx.save(); ctx.strokeStyle = 'rgba(245,130,32,0.8)'; ctx.lineWidth = 3; for (let k = 0; k < 6; k++) { const yy = y - 20 + k * 8; const len = 30 + ((k * 17 + t * 300) % 40); ctx.beginPath(); ctx.moveTo(px - 36, yy); ctx.lineTo(px - 36 - len, yy); ctx.stroke(); } ctx.restore(); }
+    if (isActive('multiplier')) label('x2', px + 4, y - 36, 16, '#f2b705', 'center', 800);
+    if (isActive('assist')) {
+      const next = level.gates.find((q) => q.x > worldX + PLANE_X + 20 && q.state === 'open');
+      if (next) { ctx.save(); ctx.setLineDash([4, 7]); ctx.strokeStyle = 'rgba(18,165,148,0.95)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px + 30, y); ctx.lineTo(next.x - cam, next.y); ctx.stroke(); ctx.restore(); }
+    }
+    if (isActive('slow')) { ctx.save(); ctx.fillStyle = 'rgba(91,124,250,0.10)'; ctx.fillRect(0, -view.oy, view.VW, view.VH); ctx.restore(); }
   }
 
   /** The reward: an expanding ring, a spray of particles (fewer with reduced motion) and a label that floats up. */
@@ -674,6 +810,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       }
     }
 
+    drawPickups(cam);
+
     // Wind streaks
     if (def.wind) {
       const wind = def.wind.vy + Math.sin(t * 1.3) * def.wind.gust;
@@ -689,6 +827,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing);
     ctx.restore(); ctx.globalAlpha = 1;
     for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
+    drawBoosterEffects(cam, px);
     drawBursts(cam);
     if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
 
@@ -748,6 +887,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
 
   const onKey = (e: KeyboardEvent) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+    if (e.type === 'keydown' && /^[1-3]$/.test(e.key)) { activate(Number(e.key) - 1); return; }
     if (e.type === 'keydown') keys.add(e.key); else keys.delete(e.key);
   };
   const toCanvasY = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return ((e.clientY - r.top) / r.height) * view.VH - view.oy; };
@@ -758,6 +898,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
   audio.engineStart();
+  emitBoosters();
   raf = requestAnimationFrame((n) => { last = n; frame(n); });
 
   return {
@@ -770,10 +911,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
     },
     resize(cw, ch, safe) { layout(cw, ch, safe); render(); },
+    activateBooster: (i) => activate(i),
+    boosters: boosterView,
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
     answerDecision(correct) { if (state !== 'decision') return; decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; state = 'run'; last = performance.now(); keys.clear(); },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
-    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState }),
+    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus }),
   };
 }
 

@@ -113,6 +113,23 @@ export interface LateralModel {
   runwayHalf?: number;
 }
 
+/** One radio question carried by an English challenge ring. The player answers when the ring is reached, before flying on. */
+export interface EnglishRing {
+  /** Index of the ring (0 based) that carries the question. */
+  ring: number;
+  /** What the question exercises. Comprehension, phraseology and aircraft control are scored separately. */
+  skill: 'comprehension' | 'phraseology';
+  topic: 'alphabet' | 'numbers' | 'airport' | 'weather' | 'atc' | 'readback' | 'emergency' | 'plain';
+  /** The transmission, shown as text and spoken when speech output is available. */
+  transmission: string;
+  prompt: string;
+  options: { text: string; correct?: boolean; feedback: string }[];
+  /** A wrong answer to a safety-critical communication can never earn a perfect rating. */
+  safetyCritical?: boolean;
+}
+/** The English layer of a mission: radio questions on some rings. */
+export interface EnglishLayer { topic: string; rings: EnglishRing[] }
+
 /** A flight mission is pure data; the engine in src/game interprets it. */
 export interface MissionDef {
   id: string;
@@ -135,6 +152,8 @@ export interface MissionDef {
   wind?: { vy: number; gust: number };
   /** Sideways-wind and route model (crosswind, wind correction, navigation missions). */
   lateral?: LateralModel;
+  /** Aviation English layer: some rings carry a radio question (see EnglishRing). */
+  english?: EnglishLayer;
   /** Missions that have no lesson of their own open when all of these lessons are passed. */
   requires?: string[];
   /** One line saying which aviation concept the mission practises. */
@@ -175,6 +194,8 @@ export interface MissionStats {
   touchdownOffset?: number;
   /** How the go-around went. */
   goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** Boosters collected and used during the flight, and the contacts a shield absorbed. */
+  boosters?: { collected: number; used: Partial<Record<'shield' | 'slow' | 'multiplier' | 'magnet' | 'speed' | 'assist' | 'xp' | 'recovery', number>>; xpTokens: number; absorbed: number };
   /** Bonus points collected from rings (shown and rewarded, never part of the star formula). */
   bonus?: number;
   /** Rings hit and available, by kind. */
