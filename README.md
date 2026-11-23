@@ -277,7 +277,7 @@ Every Aviation English exercise now unlocks its own radio flight (`e-<exercise>`
 
 ## Mathematics and Physics expansion (Expansion, batch 1)
 
-Audit before this batch: 36 mathematics and 41 physics lessons. **21 new lessons were added** (10 mathematics, 11 physics), each with objectives, prerequisites, an explanation, formulas with variables, units and limits, worked examples, an interactive experiment, five practice and at least five assessment questions with explanations, a caution or model limit, a source, and its own flight mission.
+Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (223 live lessons across all tracks). **21 new lessons were added** (10 mathematics, 11 physics), each with objectives, prerequisites, an explanation, formulas with variables, units and limits, worked examples, an interactive experiment, five practice and at least five assessment questions with explanations, a caution or model limit, a source, and its own flight mission.
 
 - **Mathematics:** direct and inverse proportion, circles and arcs, area and volume, sine and cosine rules, exponential (halving) change, the wind triangle, moments and the centre of gravity, time and UTC, accuracy and rounding, probability and risk.
 - **Physics:** free fall, projectile motion, circular motion, buoyancy, hydraulics, humidity and dew point, lapse rates, the Doppler effect, electromagnetic induction, wing loading, the lift curve.
