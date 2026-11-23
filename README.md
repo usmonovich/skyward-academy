@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 817 unit tests
+npm test           # 854 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -100,7 +100,7 @@ Admin edits are stored in the browser and follow Draft → Technical Review → 
 
 ## What was tested
 
-**Unit tests (817, all passing):** a scripted-autopilot flight of every mission (duration and winnability), flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
+**Unit tests (854, all passing):** ring kinds and ring-to-scoring correspondence, a scripted-autopilot flight of every mission (duration and winnability), flight analysis, challenge missions and their unlock rule, portrait layout zones, full-screen camera for every phone size and the empty-href link fix, 3D component text and model geometry, automatic backups, recovery from an unreadable save, restore and lesson search, mission browser filters and the score breakdown, grading of every question type, number parsing, SM-2 scheduling, ranks, mission scoring, the ATC evaluator, XP rules, profile migration, export/import, structural validity and cross-links of every lesson, formula values taught in lessons, the standard atmosphere model, level generation for every mission.
 
 **In a real browser (Chromium), through the user interface:**
 
@@ -242,3 +242,9 @@ After every mission, successful or not, the result screen shows a flight analysi
 - **Fairness.** A contact light now comes back after 30 s of clean flying, so a long flight is not ended by early mistakes alone. The number of contacts used by the score is unchanged.
 - **Winnability.** The autopilot wins 215 of 216 missions. The exception, `m-free-sunset`, is two birds 240 px apart at very different heights, which this autopilot cannot weave through; it is recorded in the test as a known limit.
 - **Findings recorded for the scoring batch:** 71 of 216 missions can be completed with no input at all (1 to 2 stars), and 31 of the 81 decision missions still give 3 stars when every decision is wrong.
+
+## Cloud rings (Expansion, batch 3)
+- **Six ring kinds**, each with its own colour, outline pattern and glyph, so no kind is told apart by colour alone: cloud (blue, plain), golden (gold, star, +50), precision (orange, double ring and tick marks, smaller, +30), navigation (teal, dashed, chevron, +20, used on route missions), English challenge (purple, dotted, speech bubble; used by the English missions batch) and special (magenta, dash-dot, diamond, larger, +100, the last ring of Advanced and Expert flights).
+- **Look:** soft cloud puffs around a coloured boundary with a soft glow and a dark outline for contrast on bright sky, white clouds, sunset and dark weather; gentle puff movement (off with reduced motion); the ring is drawn in two halves so the aircraft flies through it. Passing through gives an expanding ring, particles (fewer with reduced motion), a floating label ("3/20" or "+50"), a sound, and the ring swells and fades away. Rings still off screen show as coloured markers at the right edge (portrait and landscape).
+- **The drawn opening is the scoring area.** The boundary is drawn at exactly the scoring radius. `tests/rings.test.ts` flies 30 missions with no input (constant height) and checks that every ring, of every kind, is hit exactly when the aircraft is inside that ring's own radius.
+- Kinds come from a separate random stream, so adding them did not move any ring or hazard. Bonus points are shown and rewarded but never change the star formula.

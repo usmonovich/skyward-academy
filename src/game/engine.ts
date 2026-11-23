@@ -15,7 +15,21 @@ export const CEIL = 46;
 export const PLANE_X = 220;
 const TAKEOFF_RUNWAY = 1300;
 
-export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed' }
+/**
+ * Ring kinds. Each has its own colour, outline pattern and a glyph, so no kind is told apart by colour alone.
+ * The drawn opening of every ring is exactly its scoring radius r.
+ */
+export type RingKind = 'cloud' | 'gold' | 'precision' | 'nav' | 'english' | 'special';
+export interface RingStyle { name: string; color: string; dash: number[]; glyph: 'none' | 'star' | 'ticks' | 'chevron' | 'bubble' | 'diamond'; blurb: string }
+export const RING_STYLE: Record<RingKind, RingStyle> = {
+  cloud: { name: 'Cloud ring', color: '#3a8dde', dash: [], glyph: 'none', blurb: 'A normal checkpoint. Fly through the opening.' },
+  gold: { name: 'Golden ring', color: '#f2b705', dash: [], glyph: 'star', blurb: 'A bonus ring: extra points when you fly through it.' },
+  precision: { name: 'Precision ring', color: '#f58220', dash: [], glyph: 'ticks', blurb: 'A smaller ring for accurate flying: a bigger bonus.' },
+  nav: { name: 'Navigation ring', color: '#12a594', dash: [8, 5], glyph: 'chevron', blurb: 'A waypoint on your route: cross it on the planned track.' },
+  english: { name: 'English challenge ring', color: '#7a5af5', dash: [2, 6], glyph: 'bubble', blurb: 'A radio question ring: answer the call correctly.' },
+  special: { name: 'Special ring', color: '#e0457b', dash: [10, 4, 2, 4], glyph: 'diamond', blurb: 'A feature ring for advanced missions: a large bonus.' },
+};
+export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number }
 export interface Obstacle { x: number; y: number; r: number; type: ObstacleType; phase: number; h: number }
 export interface Level { gates: Gate[]; obstacles: Obstacle[]; runwayStart: number; runwayEnd: number }
 
@@ -32,6 +46,25 @@ export function terrainHeight(def: MissionDef, x: number): number {
 }
 
 /** Deterministic level generation from the mission seed. */
+/**
+ * Gives the rings their kinds from a separate random stream, so adding kinds never moves a ring or a hazard.
+ * Navigation rings for route missions; every fourth ring is golden; Intermediate and harder missions add smaller
+ * precision rings; the last ring of an Advanced or Expert flight is a larger special ring.
+ */
+function assignRings(def: MissionDef, gates: Gate[]) {
+  const rnd = mulberry32(def.seed * 104729 + 7);
+  const n = gates.length;
+  gates.forEach((g, i) => {
+    rnd();
+    if (def.lateral?.waypoints) { g.kind = 'nav'; g.value = 20; return; }
+    const last = i === n - 1;
+    if (last && !def.landing && (def.tier === 'Advanced' || def.tier === 'Expert')) { g.kind = 'special'; g.r = 56; g.value = 100; }
+    else if ((i + 1) % 4 === 0 && !last) { g.kind = 'gold'; g.value = 50; }
+    else if (def.tier !== 'Beginner' && i % 5 === 2 && !last) { g.kind = 'precision'; g.r = 36; g.value = 30; }
+    g.y = Math.max(g.y, CEIL + g.r + 6);
+  });
+}
+
 export function buildLevel(def: MissionDef): Level {
   const rnd = mulberry32(def.seed * 7919);
   const x0 = def.takeoff ? 1700 : 900;
@@ -42,8 +75,9 @@ export function buildLevel(def: MissionDef): Level {
     const x = x0 + ((i + 0.5) * (x1 - x0)) / def.checkpoints;
     const maxY = Math.min(400, GROUND - terrainHeight(def, x) - 95);
     y = clamp(y + (rnd() - 0.5) * 240, 95, maxY);
-    gates.push({ x, y, r: 48, state: 'open' });
+    gates.push({ x, y, r: 48, state: 'open', kind: 'cloud', value: 10 });
   }
+  assignRings(def, gates);
   const obstacles: Obstacle[] = [];
   const want = Math.round((def.obstacles.density * (x1 - x0)) / 400);
   for (let tries = 0; obstacles.length < want && tries < want * 8; tries++) {
@@ -183,6 +217,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let lat = 0; let hdg = 0; let latIn = 0; let latAll = 0; let errSum = 0; let maxOff = 0; let touchOff: number | undefined;
   let gaState: 'idle' | 'active' = 'idle'; let gaAt = 0; let gaY = 0; let gaClimbed = false; let gaClimbT = 0; let gaLanded = false;
   const trace: number[][] = []; let traceT = 0; const decisionLog: boolean[] = [];
+  // Ring bonus and the pass-through effects. Bonus points are shown and rewarded, but never change the star formula.
+  let bonus = 0; let ringsHit = 0;
+  const ringTally: Partial<Record<RingKind, { hit: number; total: number }>> = {};
+  const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
+  for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
   const keys = new Set<string>();
   const input = { x: 0, y: 0, h: 0 };
   let touchY: number | null = null;
@@ -193,6 +232,13 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const pxSpeed = () => (kt < ac.minKt ? 140 * (kt / ac.minKt) : 140 + clamp((kt - ac.minKt) / range, 0, 1.1) * 200);
   const groundY = (wx: number) => GROUND - terrainHeight(def, wx);
   const say = (text: string) => cb.onMessage(text);
+  function ringHit(g: Gate, gi: number) {
+    g.state = 'hit'; bonus += g.value; ringsHit++;
+    const tally = ringTally[g.kind]; if (tally) tally.hit++;
+    audio.sfx(g.kind === 'gold' || g.kind === 'special' ? 'unlock' : 'gate');
+    bursts.push({ gi, x: g.x, y: g.y, t0: t, kind: g.kind, text: g.kind === 'cloud' || g.kind === 'nav' ? `${ringsHit}/${level.gates.length}` : `+${g.value}` });
+    if (bursts.length > 6) bursts.shift();
+  }
   /** Height of an obstacle right now: birds flap, and storm cells drift when the mission says so. Used by collisions and drawing alike. */
   const obstacleY = (o: { type: string; y: number; phase: number }) => (o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.type === 'storm' && def.stormDrift ? o.y + Math.sin(t * 0.8 + o.phase) * 60 : o.y);
   /** The sideways position the route asks for at the aircraft's distance: straight on, or a line through the waypoints. */
@@ -220,7 +266,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
-      trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog],
+      trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog], bonus, ringTypes: ringTally,
     };
     audio.sfx(success ? 'win' : 'fail');
     cb.onEnd({ ...stats, ...scoreMission(def.parTime, stats) });
@@ -333,7 +379,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       if (g.state === 'open' && wx >= g.x) {
         const wp = def.lateral?.waypoints?.[level.gates.indexOf(g)];
         const sideOk = !wp || Math.abs(lat - wp.lat) <= def.lateral!.tol;
-        if (Math.abs(y - g.y) <= g.r && sideOk) { g.state = 'hit'; audio.sfx('gate'); }
+        if (Math.abs(y - g.y) <= g.r && sideOk) ringHit(g, level.gates.indexOf(g));
         else { g.state = 'missed'; if (wp && !sideOk) say(`Waypoint ${wp.name} missed: you were off the planned track. Turn earlier and hold the heading.`); }
       }
     }
@@ -391,21 +437,94 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     ctx.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`; ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(text, x, yy);
   }
 
+  /**
+   * A ring: soft cloud puffs around a coloured boundary. Drawn in two halves, the far half behind the aircraft and the
+   * near half in front, so the aircraft visibly flies through the opening. The boundary sits exactly at the scoring
+   * radius (vertical radius g.r, centred on the ring), the puffs lie outside it, and a dark outline keeps the ring
+   * readable on bright sky, white clouds, sunset and dark weather.
+   */
+  function drawRing(g: Gate, sx: number, gi: number, half: 'back' | 'front') {
+    let scale = 1; let alpha = 1;
+    if (g.state === 'hit') {
+      const b = bursts.find((x) => x.gi === gi); const age = b ? t - b.t0 : 9;
+      if (age > 0.5) return;
+      scale = 1 + age * 0.8; alpha = 1 - age / 0.5; // the ring swells and fades away
+    }
+    const missed = g.state === 'missed';
+    const st = RING_STYLE[g.kind];
+    const rx = Math.max(19, g.r * 0.5) * scale; const ry = g.r * scale;
+    ctx.save();
+    ctx.globalAlpha = missed ? 0.5 : alpha;
+    ctx.beginPath(); ctx.rect(half === 'back' ? sx : sx - 4000, -4000, 4000, 8000); ctx.clip();
+    const bob = opts.reducedMotion ? 0 : 1;
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 6.2832;
+      const pr = (7.5 + ((gi * 13 + k * 7) % 5) * 1.2) * (g.r / 48) * (0.9 + 0.1 * scale);
+      const px = sx + Math.cos(a) * (rx + 3) + bob * Math.sin(t * 1.4 + k + gi) * 1.2; const py = g.y + Math.sin(a) * (ry + 4) + bob * Math.cos(t * 1.1 + k) * 1.4;
+      ctx.fillStyle = missed ? 'rgba(200,208,218,0.9)' : 'rgba(255,255,255,0.96)'; ctx.strokeStyle = 'rgba(11,37,69,0.4)'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, 6.2832); ctx.fill(); ctx.stroke();
+    }
+    const edge = () => { ctx.beginPath(); ctx.ellipse(sx, g.y, rx, ry, 0, 0, 6.2832); ctx.stroke(); };
+    // Soft glow in the ring colour, then a dark outline for contrast, then the coloured boundary itself.
+    ctx.setLineDash([]); ctx.lineWidth = 14; ctx.globalAlpha *= 0.22; ctx.strokeStyle = missed ? '#8a96a5' : st.color; edge(); ctx.globalAlpha = missed ? 0.5 : alpha;
+    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(11,37,69,0.35)'; edge();
+    ctx.setLineDash(missed ? [4, 4] : st.dash); ctx.lineWidth = 4; ctx.strokeStyle = missed ? '#8a96a5' : st.color; edge();
+    ctx.setLineDash([]); ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(sx, g.y, Math.max(2, rx - 3), Math.max(2, ry - 3), 0, 0, 6.2832); ctx.stroke();
+    if (!missed && g.state === 'open') {
+      ctx.fillStyle = st.color; ctx.strokeStyle = 'rgba(11,37,69,0.7)'; ctx.lineWidth = 1.2;
+      const top = g.y - ry - 18;
+      if (st.glyph === 'star') { ctx.beginPath(); for (let k = 0; k < 10; k++) { const rr = k % 2 ? 4.5 : 10; const a = -1.5708 + (k * 3.1416) / 5; ctx.lineTo(sx + Math.cos(a) * rr, top + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (st.glyph === 'diamond') { ctx.beginPath(); ctx.moveTo(sx, top - 9); ctx.lineTo(sx + 8, top); ctx.lineTo(sx, top + 9); ctx.lineTo(sx - 8, top); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (st.glyph === 'chevron') { ctx.lineWidth = 3; ctx.strokeStyle = st.color; ctx.beginPath(); ctx.moveTo(sx - 5, top - 7); ctx.lineTo(sx + 4, top); ctx.lineTo(sx - 5, top + 7); ctx.stroke(); }
+      else if (st.glyph === 'bubble') { ctx.beginPath(); ctx.arc(sx, top, 8, 0, 6.2832); ctx.fill(); ctx.stroke(); label('?', sx, top + 4, 11, '#ffffff', 'center', 800); }
+      else if (st.glyph === 'ticks') { ctx.lineWidth = 2.5; ctx.strokeStyle = st.color; ctx.beginPath(); ctx.ellipse(sx, g.y, Math.max(2, rx * 0.5), ry * 0.5, 0, 0, 6.2832); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx, g.y - ry - 12); ctx.lineTo(sx, g.y - ry - 3); ctx.moveTo(sx, g.y + ry + 3); ctx.lineTo(sx, g.y + ry + 12); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  /** The reward: an expanding ring, a spray of particles (fewer with reduced motion) and a label that floats up. */
+  function drawBursts(cam: number) {
+    for (const b of bursts) {
+      const age = t - b.t0;
+      if (age < 0 || age > 1) continue;
+      const sx = b.x - cam; const st = RING_STYLE[b.kind];
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - age / 0.45);
+      ctx.strokeStyle = st.color; ctx.lineWidth = 5 * (1 - age / 0.45) + 1;
+      ctx.beginPath(); ctx.ellipse(sx, b.y, 18 + age * 90, 40 + age * 110, 0, 0, 6.2832); ctx.stroke();
+      ctx.restore();
+      if (!opts.reducedMotion) {
+        const n = b.kind === 'gold' || b.kind === 'special' ? 18 : 10;
+        ctx.fillStyle = st.color; ctx.strokeStyle = 'rgba(11,37,69,0.5)'; ctx.lineWidth = 1;
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * 6.2832 + b.x; const sp = 70 + ((k * 37) % 60);
+          ctx.globalAlpha = Math.max(0, 1 - age / 0.9);
+          ctx.beginPath(); ctx.arc(sx + Math.cos(a) * sp * age, b.y + Math.sin(a) * sp * age + 60 * age * age, 3.2 - age * 2, 0, 6.2832); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - Math.max(0, age - 0.4) / 0.6);
+      label(b.text, sx, b.y - 34 - age * 38, 18, '#ffffff', 'center', 800);
+      ctx.restore();
+    }
+  }
+
   /** Small markers at the right edge for gates and hazards that are still off screen, so the shorter portrait view never hides what is coming. */
-  function lookAhead(cam: number) {
+  function lookAhead(cam: number, ringsOnly = false) {
     const reach = 650;
+    let ringColor = '#f58220';
     const mark = (wx: number, my: number, kind: 'gate' | 'hazard') => {
       const d = wx - cam - view.VW;
       if (d < 0 || d > reach) return;
       const a = 0.35 + 0.65 * (1 - d / reach);
       const yy = clamp(my, CEIL + 8, GROUND - 8);
       ctx.globalAlpha = a;
-      if (kind === 'gate') { ctx.strokeStyle = '#f58220'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(view.VW - 12, yy, 6, 11, 0, 0, 6.3); ctx.stroke(); }
+      if (kind === 'gate') { ctx.strokeStyle = 'rgba(11,37,69,0.6)'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(view.VW - 12, yy, 6, 11, 0, 0, 6.3); ctx.stroke(); ctx.strokeStyle = ringColor; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(view.VW - 12, yy, 6, 11, 0, 0, 6.3); ctx.stroke(); }
       else { ctx.fillStyle = '#d6453d'; ctx.beginPath(); ctx.moveTo(view.VW - 4, yy); ctx.lineTo(view.VW - 20, yy - 9); ctx.lineTo(view.VW - 20, yy + 9); ctx.closePath(); ctx.fill(); }
       ctx.globalAlpha = 1;
     };
-    for (const g of level.gates) if (g.state === 'open') mark(g.x, g.y, 'gate');
-    for (const o of level.obstacles) mark(o.x, o.type === 'tower' ? o.y + o.h / 2 : o.y, 'hazard');
+    for (const g of level.gates) if (g.state === 'open') { ringColor = RING_STYLE[g.kind].color; mark(g.x, g.y, 'gate'); }
+    if (!ringsOnly) for (const o of level.obstacles) mark(o.x, o.type === 'tower' ? o.y + o.h / 2 : o.y, 'hazard');
   }
 
   /** Portrait HUD in screen pixels: one instrument panel, the speed tape, the route bar, then a row of mission chips. */
@@ -423,7 +542,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     cell(0, 'ALTITUDE', `${alt.toLocaleString('en-US')} ft`);
     cell(1, 'SPEED', `${Math.round(kt)} kt`, def.speedBand ? (inBand ? '#5ee6c8' : '#ffb26b') : '#ffffff');
     cell(2, 'TIME', `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
-    cell(3, 'GATES', `${gatesHit}/${level.gates.length}`);
+    cell(3, 'RINGS', `${gatesHit}/${level.gates.length}`);
     // Speed tape with the target band, the rotate mark and the speed marker.
     const y1 = y0 + 60;
     panel(x0, y1, w, 20);
@@ -526,10 +645,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     for (const [gi, g] of level.gates.entries()) {
       const sx = g.x - cam;
       if (sx < -60 || sx > VW + 60) continue;
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = g.state === 'hit' ? '#12a594' : g.state === 'missed' ? 'rgba(120,130,145,0.6)' : '#f58220';
-      ctx.beginPath(); ctx.ellipse(sx, g.y, 15, g.r, 0, 0, 6.3); ctx.stroke();
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(sx, g.y, 15, g.r, 0, 0, 6.3); ctx.stroke();
+      drawRing(g, sx, gi, 'back');
       const wpn = def.lateral?.waypoints?.[gi]; if (wpn) label(wpn.name, sx, g.y - g.r - 10, 12, '#ffffff', 'center', 800);
       if (def.showPressure) { const hpa = Math.round(isaPressure((GROUND - g.y - 14) * altScale)); panel(sx - 34, g.y - g.r - 30, 68, 22); label(`${hpa} hPa`, sx, g.y - g.r - 14, 12, '#fff', 'center'); }
     }
@@ -572,9 +688,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
     drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing);
     ctx.restore(); ctx.globalAlpha = 1;
+    for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
+    drawBursts(cam);
     if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
 
-    if (view.portrait) { lookAhead(cam); portraitHud(); return; }
+    lookAhead(cam, !view.portrait);
+    if (view.portrait) { portraitHud(); return; }
 
     // HUD. Drawn at screen-readable size: on a phone the world is scaled down, so the HUD is scaled up to a
     // minimum of 0.85 and stacked in two blocks when the screen is too narrow to hold both side by side.
@@ -601,7 +720,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const RX = (VW - view.safeR) / hk;
     let ry = stack ? 112 : 12;
     panel(RX - 214, ry, 200, 34);
-    label(`GATES ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
+    label(`RINGS ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
     for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - strikes ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
     ry += 40;
     if (def.lateral) { trackPanel(RX - 214, ry, 200, 50); ry += 56; }

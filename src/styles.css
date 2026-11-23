@@ -527,3 +527,5 @@ body.game-active .shell .toasts { visibility: visible; }
 @media (min-width: 700px) { .fr-charts { grid-template-columns: 1fr 1fr; } }
 /* The result screen sits inside the dark full-screen game container: set its own text colour. */
 .mc, .mc-card, .fr { color: var(--ink); }
+/* Landscape: the instructor message sits at the top centre, between the left and right HUD blocks, clear of the play area. */
+@media (orientation: landscape) { .game.full .game-msg { top: calc(max(10px, env(safe-area-inset-top))); bottom: auto; left: 52%; max-width: 33%; font-size: .8rem; padding: 7px 14px; border-radius: 16px; } }

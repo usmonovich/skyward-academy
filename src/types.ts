@@ -175,6 +175,10 @@ export interface MissionStats {
   touchdownOffset?: number;
   /** How the go-around went. */
   goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** Bonus points collected from rings (shown and rewarded, never part of the star formula). */
+  bonus?: number;
+  /** Rings hit and available, by kind. */
+  ringTypes?: Partial<Record<'cloud' | 'gold' | 'precision' | 'nav' | 'english' | 'special', { hit: number; total: number }>>;
   /** How each gate ended: hit, missed, or still open when the flight ended. */
   gateStates?: ('hit' | 'missed' | 'open')[];
   /** Whether each operational decision was answered correctly, in the order asked. */

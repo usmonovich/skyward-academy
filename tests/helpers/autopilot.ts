@@ -29,6 +29,8 @@ export interface FlightOptions {
   assisted?: boolean;
   /** Answer every decision wrongly. */
   wrongDecisions?: boolean;
+  /** Aim at this fraction of each ring's own radius above (negative) or below (positive) its centre, to test the edge of the scoring area. */
+  ringOffset?: number;
   /** Give up after this many seconds of simulated time. */
   maxSeconds?: number;
 }
@@ -61,7 +63,7 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
     if (mode === 'good') {
       const wx = s.worldX + PLANE_X;
       const gate = level.gates.find((q) => q.x > wx + 100);
-      let ty = gate ? gate.y : 260;
+      let ty = gate ? gate.y + (o.ringOffset ?? 0) * gate.r : 260;
       // Terrain: never plan below the highest ground in the next 450 pixels.
       let gmin = GROUND; if (def.terrain) { for (let d = 0; d <= 450; d += 40) gmin = Math.min(gmin, GROUND - terrainHeight(def, wx + d)); ty = Math.min(ty, gmin - 95); }
       // Vertical wind: hold against the mean push with feed-forward.
