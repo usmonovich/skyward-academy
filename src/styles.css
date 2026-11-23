@@ -558,3 +558,7 @@ body.game-active .shell .toasts { visibility: visible; }
 .env-note { margin: 6px 0; } .unlock-progress { height: 6px; border-radius: 99px; background: var(--line, #d7dee8); overflow: hidden; margin: 4px 0; } .unlock-progress > i { display: block; height: 100%; background: var(--accent, #f58220); }
 
 .mc-summary { display: grid; gap: 4px; margin: 10px 0; text-align: left; } .mc-summary > div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--line, #d7dee8); } .mc-summary span { color: var(--muted, #5d6b7e); } .mc-unlocks { margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: rgba(245,130,32,0.12); text-align: left; } .mc-unlocks ul { margin: 4px 0 0; padding-left: 18px; }
+
+.fps-readout { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 8px; background: rgba(8,16,30,0.72); color: #fff; font: 600 12px/1.4 ui-monospace, monospace; pointer-events: none; z-index: 5; }
+
+.mc-aircraft { display: grid; justify-items: center; gap: 4px; margin: 10px 0; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(245,130,32,0.18), rgba(58,141,222,0.12)); text-align: center; } .mc-aircraft.pop { animation: mc-pop 700ms cubic-bezier(.2,1.4,.4,1) both; } @keyframes mc-pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } } @media (prefers-reduced-motion: reduce) { .mc-aircraft.pop { animation: none; } }

@@ -292,12 +292,16 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   // extend the sky above and the ground below. Only drawing reads these values; the simulation, collisions and
   // scoring work in world units and never see them.
   const view = { s: 1, VW: W, VH: H, oy: 0, camShift: 0, portrait: false, safeL: 0, safeR: 0, safeT: 0, safeB: 0 };
+  // Picture quality also sets the canvas resolution: the 'low' level (or auto after slow frames) draws about a third of the pixels.
+  let lite = opts.quality === 'low';
+  let lastLayout: [number, number, Safe | undefined] = [0, 0, undefined];
   function layout(cw: number, ch: number, safe: Safe = { top: 0, right: 0, bottom: 0, left: 0 }) {
+    lastLayout = [cw, ch, safe];
     if (cw > 0 && ch > 0) {
       const v = computeView(cw, ch, safe, def.lateral ? TRACK_PANEL : 0); const k = v.s;
       view.s = k; view.VW = v.VW; view.VH = v.VH; view.oy = v.oy; view.camShift = v.camShift; view.portrait = v.portrait;
       view.safeT = safe.top / k; view.safeR = safe.right / k; view.safeB = safe.bottom / k; view.safeL = safe.left / k;
-      dpr = Math.min(dprBase, Math.sqrt(3.4e6 / (cw * ch)));
+      dpr = Math.min(lite ? Math.min(dprBase, 1.25) : dprBase, Math.sqrt((lite ? 1.1e6 : 3.4e6) / (cw * ch)));
       canvas.width = Math.max(1, Math.round(cw * dpr)); canvas.height = Math.max(1, Math.round(ch * dpr));
     } else {
       Object.assign(view, { s: 1, VW: W, VH: H, oy: 0, camShift: 0, portrait: false, safeL: 0, safeR: 0, safeT: 0, safeB: 0 });
@@ -352,7 +356,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
   // Radio calls (English missions): the call being answered, and the record of every answer.
   let pendingEnglish: EnglishRing | null = null;
-  const trail: { x: number; y: number; age: number }[] = []; let trailT = -1;
+  const trail: { x: number; y: number; age: number }[] = []; let trailT = -1; let visPitch = 0;
   const englishLog: { ring: EnglishRing; correct: boolean }[] = [];
   for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
   const keys = new Set<string>();
@@ -831,12 +835,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   }
 
   // Picture quality. 'low' trims the decorative effects; 'auto' switches to it when about three quarters of a second of frames are slow.
-  let lite = opts.quality === 'low'; let slowRun = 0; let lastFrame = 0;
+  let slowRun = 0; let lastFrame = 0;
   function render() {
     if (opts.quality !== 'high' && opts.quality !== 'low') {
       const nowMs = performance.now(); const gap = lastFrame ? nowMs - lastFrame : 0; lastFrame = nowMs;
       if (gap > 34 && gap < 200) slowRun++; else if (gap <= 34) slowRun = 0;
-      if (slowRun >= 45) lite = true;
+      if (slowRun >= 45 && !lite) { lite = true; layout(lastLayout[0], lastLayout[1], lastLayout[2]); }
     }
     const { VW, VH, oy } = view;
     // Drawing camera: in portrait the aircraft is drawn nearer the left edge, so the world is drawn shifted. The simulation never reads this.
@@ -945,7 +949,10 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     // Aircraft
     ctx.save();
     ctx.translate(px, y);
-    ctx.rotate(onGround || state === 'rollout' ? 0 : clamp(vy / 520, -0.45, 0.45));
+    // The visible pitch eases towards the target, so the nose follows the climb smoothly (drawing only; the simulation never reads it).
+    const wantPitch = onGround || state === 'rollout' ? 0 : clamp(vy / 520, -0.45, 0.45);
+    visPitch = opts.reducedMotion ? wantPitch : visPitch + (wantPitch - visPitch) * 0.2;
+    ctx.rotate(visPitch);
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
     drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing, isLowLight(def.env));
     ctx.restore(); ctx.globalAlpha = 1;
@@ -1020,13 +1027,13 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKey);
   canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
-  audio.engineStart();
+  audio.engineStart(ac.kind);
   emitBoosters();
   raf = requestAnimationFrame((n) => { last = n; frame(n); });
 
   return {
     pause() { if (state === 'run' || state === 'rollout') { state = 'paused'; audio.engineStop(); } },
-    resume() { if (state === 'paused') { state = landing ? 'rollout' : 'run'; last = performance.now(); audio.engineStart(); } },
+    resume() { if (state === 'paused') { state = landing ? 'rollout' : 'run'; last = performance.now(); audio.engineStart(ac.kind); } },
     destroy() {
       cancelAnimationFrame(raf); audio.engineStop();
       window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKey);

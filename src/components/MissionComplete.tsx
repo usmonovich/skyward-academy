@@ -2,11 +2,19 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { MissionDef, MissionResult } from '../types';
 import { scoreParts } from '../engine/gamification';
 import { audio } from '../engine/audio';
-import { Chip, Icon } from './ui';
+import { AircraftArt, Chip, Icon } from './ui';
 import { FlightReport } from './FlightReport';
 import { GAME_AIRCRAFT, LIVERIES } from '../content/reference';
 import { BOOSTERS, RING_STYLE } from '../game/engine';
 import { useProgress } from '../store/progress';
+
+/** Aircraft and liveries whose XP threshold was crossed when XP went from `before` to `after`. */
+export function unlockedBetween(before: number, after: number) {
+  return {
+    aircraft: GAME_AIRCRAFT.filter((a) => a.unlockXp > before && a.unlockXp <= after),
+    liveries: LIVERIES.filter((l) => l.xp > before && l.xp <= after),
+  };
+}
 
 /** What the flight earned, in plain numbers. Everything here is measured by the flight; nothing is estimated. */
 export function flightSummary(result: MissionResult): { label: string; value: string }[] {
@@ -61,7 +69,10 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
   const rows = flightSummary(result);
   // Newly unlocked: aircraft and liveries whose XP threshold was crossed by this flight.
   const before = p.xp - gained;
-  const fresh = [...GAME_AIRCRAFT.filter((a) => a.unlockXp > before && a.unlockXp <= p.xp).map((a) => `Aircraft: ${a.name}`), ...LIVERIES.filter((l) => l.xp > before && l.xp <= p.xp).map((l) => `Livery: ${l.name}`)];
+  const unlocked = unlockedBetween(before, p.xp);
+  const newAircraft = unlocked.aircraft;
+  useEffect(() => { if (newAircraft.length && !still) audio.sfx('unlock'); }, [newAircraft.length, still]);
+  const fresh = unlocked.liveries.map((l) => `Livery: ${l.name}`);
 
   useEffect(() => {
     if (still) return;
@@ -105,6 +116,14 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
             {(result.boosters?.collected ?? 0) > 0 && <p className="small muted">Boosters are arcade help. They change bonus points and comfort, never the questions or the educational result.</p>}
             {result.assisted && <p className="small muted">Assisted mode was on: contacts did not end the flight.</p>}
           </div>
+          {newAircraft.map((a) => (
+            <div key={a.id} className={`mc-aircraft${still ? '' : ' pop'}`} role="status">
+              <strong>New aircraft unlocked</strong>
+              <AircraftArt ac={a} color={LIVERIES.find((l) => l.id === p.livery)?.color ?? '#f58220'} width={190} />
+              <span>{a.name} · {a.cls}</span>
+              <span className="small muted">Speed {a.minKt}–{a.maxKt} kt · Agility {Math.round(a.agility * 100)}%. {a.blurb}</span>
+            </div>
+          ))}
           {fresh.length > 0 && <div className="mc-unlocks"><strong>Unlocked</strong><ul>{fresh.map((u) => <li key={u}>{u}</li>)}</ul></div>}
           <FlightReport def={def} result={result} />
           <details className="mc-notes"><summary>Flight notes</summary><ul className="debrief-list">{lines.map((l) => <li key={l}>{l}</li>)}</ul></details>

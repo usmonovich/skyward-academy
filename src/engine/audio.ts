@@ -4,7 +4,7 @@ type Sfx = 'click' | 'ok' | 'bad' | 'gate' | 'hit' | 'win' | 'fail' | 'radio' | 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let cfg = { sfx: true, engine: true, volume: 0.6 };
-let eng: { osc: OscillatorNode; osc2: OscillatorNode; gain: GainNode } | null = null;
+let eng: { osc: OscillatorNode; osc2: OscillatorNode; gain: GainNode; lp: BiquadFilterNode; kind: string; nodes: AudioScheduledSourceNode[] } | null = null;
 
 function ac(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -75,27 +75,47 @@ export const audio = {
       case 'unlock': [660, 880, 1175].forEach((f, i) => tone(f, 0.18, 'sine', 0.15, i * 0.09)); break;
     }
   },
-  engineStart() {
+  /**
+   * Original synthesised engine sound, a different character for each kind of aircraft. A handful of oscillator and filter
+   * nodes, all stopped together; there are no audio files. The "Aircraft engine sound" setting turns it off.
+   */
+  engineStart(kind: 'single' | 'twin' | 'turboprop' | 'jet' | 'airliner' = 'single') {
     const c = ac();
     if (!c || !master || !cfg.engine || eng) return;
-    const osc = c.createOscillator(); const osc2 = c.createOscillator(); const gain = c.createGain();
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
-    osc.type = 'sawtooth'; osc2.type = 'square';
+    const nodes: AudioScheduledSourceNode[] = [];
+    const gain = c.createGain(); const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+    const osc = c.createOscillator(); const osc2 = c.createOscillator();
+    const mix = (n: AudioNode) => n.connect(lp);
+    if (kind === 'single') { osc.type = 'sawtooth'; osc2.type = 'square'; lp.frequency.value = 420; gain.gain.value = 0.045; }
+    else if (kind === 'twin') { osc.type = 'sawtooth'; osc2.type = 'sawtooth'; lp.frequency.value = 380; gain.gain.value = 0.045; }
+    else if (kind === 'turboprop') {
+      osc.type = 'triangle'; osc2.type = 'sawtooth'; lp.frequency.value = 520; gain.gain.value = 0.05;
+      // The propeller throb: a slow tremolo on the level.
+      const lfo = c.createOscillator(); const depth = c.createGain(); lfo.frequency.value = 14; depth.gain.value = 0.018; lfo.connect(depth).connect(gain.gain); lfo.start(); nodes.push(lfo);
+    } else {
+      // Jets and airliners: a low rumble plus filtered noise for the rush of air through the engines.
+      osc.type = 'sine'; osc2.type = 'triangle'; lp.frequency.value = kind === 'airliner' ? 500 : 900; gain.gain.value = kind === 'airliner' ? 0.05 : 0.04;
+      const len = Math.floor(c.sampleRate * 1.5); const buf = c.createBuffer(1, len, c.sampleRate); const d = buf.getChannelData(0);
+      for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf; src.loop = true; const ng = c.createGain(); ng.gain.value = 0.5; src.connect(ng); mix(ng); src.start(); nodes.push(src);
+    }
     osc.frequency.value = 70; osc2.frequency.value = 35;
-    gain.gain.value = 0.045;
-    osc.connect(lp); osc2.connect(lp); lp.connect(gain).connect(master);
-    osc.start(); osc2.start();
-    eng = { osc, osc2, gain };
+    mix(osc); mix(osc2); lp.connect(gain).connect(master);
+    osc.start(); osc2.start(); nodes.push(osc, osc2);
+    eng = { osc, osc2, gain, lp, kind, nodes };
   },
   engineSet(throttle: number) {
     if (!eng || !ctx) return;
-    const f = 60 + throttle * 70;
+    const jetty = eng.kind === 'jet' || eng.kind === 'airliner';
+    const f = (jetty ? 45 : 60) + throttle * (jetty ? 40 : 70);
     eng.osc.frequency.setTargetAtTime(f, ctx.currentTime, 0.15);
-    eng.osc2.frequency.setTargetAtTime(f / 2, ctx.currentTime, 0.15);
+    eng.osc2.frequency.setTargetAtTime(eng.kind === 'twin' ? f * 1.03 : f / 2, ctx.currentTime, 0.15);
+    // A jet gets brighter as the throttle opens.
+    if (jetty) eng.lp.frequency.setTargetAtTime((eng.kind === 'airliner' ? 400 : 700) + throttle * 900, ctx.currentTime, 0.2);
   },
   engineStop() {
     if (!eng) return;
-    try { eng.osc.stop(); eng.osc2.stop(); } catch { /* already stopped */ }
+    for (const n of eng.nodes) { try { n.stop(); } catch { /* already stopped */ } }
     eng = null;
   },
 };

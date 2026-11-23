@@ -68,6 +68,20 @@ export function drawAircraft(ctx: CanvasRenderingContext2D, ac: GameAircraft, co
   if (ac.kind === 'turboprop') { ellipse(ctx, 6, -h + 2, 13 * s, 4.6, '#dbe4ee'); prop(6 + 14 * s, -h + 2, 13 * s); }
   if (ac.kind === 'jet') { ctx.fillStyle = '#dbe4ee'; ctx.fillRect(-L + 16, -h - 5, 18 * s, 6.5); ctx.fillStyle = dark; ctx.fillRect(-L + 16 + 18 * s - 3, -h - 5, 3, 6.5); }
   if (ac.kind === 'airliner') { ctx.fillStyle = '#dbe4ee'; ctx.fillRect(-4, h, 19 * s, 7.5); ctx.fillStyle = dark; ctx.fillRect(-4 + 19 * s - 3, h, 3, 7.5); }
+  // Details that tell the aircraft apart at a glance: the same body is not enough once there are six of them.
+  const fin = (x: number) => { ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x, -h - 12 * s); ctx.lineTo(x + 8, -h - 12 * s); ctx.lineTo(x + 3, -h - 2); ctx.closePath(); ctx.fill(); };
+  if (ac.kind === 'single') { ellipse(ctx, L - 10, -h + 5, 2.4, 2.4, '#ffd27a'); }                                         // cowling lamp
+  if (ac.kind === 'twin') { ellipse(ctx, 4 + 12 * s, h - 3, 2.6, 2.6, '#ffd27a'); fin(-L + 4); }                          // nacelle lamp, striped fin
+  if (ac.kind === 'turboprop') { ctx.fillStyle = dark; ctx.fillRect(6 - 9 * s, -h - 4, 5, 3); ellipse(ctx, 22 * s, -h - 1, 2.4, 2.4, '#ff6b5e'); fin(-L + 4); } // exhaust stack, wing-tip light
+  if (ac.kind === 'jet') {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-6, h - 3); ctx.lineTo(-14, h - 12); ctx.lineTo(-8, h - 3); ctx.closePath(); ctx.fill();   // winglet
+    ctx.strokeStyle = '#8fa5bd'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(-L + 16, -h - 1.5, 3.3, 0, 6.3); ctx.stroke(); fin(-L + 4);   // intake ring
+  }
+  if (ac.kind === 'airliner') {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-14 * s, h - 3); ctx.lineTo(-24 * s, h - 15); ctx.lineTo(-16 * s, h - 3); ctx.closePath(); ctx.fill(); // winglet
+    ctx.strokeStyle = '#8fa5bd'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-4 + 19 * s, h + 3.7, 3.4, 0, 6.3); ctx.stroke();       // fan face
+    ctx.fillStyle = '#e9eff6'; ctx.fillRect(-L + 22, h - 1.2, 2 * L - 44, 2.2); fin(-L + 4);                                          // belly fairing
+  }
   if (lights) {
     // Navigation lights for dim scenes: a blinking white strobe on the tail, a red beacon on the fuselage and a soft landing light ahead.
     const blink = t === 0 || Math.floor(t * 2.2) % 2 === 0;

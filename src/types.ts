@@ -228,7 +228,7 @@ export interface ExamRecord {
 
 export interface Settings {
   sfx: boolean; engine: boolean; voice: boolean; volume: number; reducedMotion: boolean;
-  textScale: number; /** Steering sensitivity for climb and descent input, 0.6 to 1.6 (1 is the original feel). */ steering: number; /** Picture quality: auto lowers effects if the frame rate drops. */ quality: 'auto' | 'high' | 'low'; assisted: boolean; jurisdiction: 'ICAO' | 'EASA' | 'FAA'; dailyMinutes: number; speechRate: number;
+  textScale: number; /** Steering sensitivity for climb and descent input, 0.6 to 1.6 (1 is the original feel). */ steering: number; /** Shows a small frame-rate readout during flights, for checking performance on a real device. */ showFps: boolean; /** Picture quality: auto lowers effects if the frame rate drops. */ quality: 'auto' | 'high' | 'low'; assisted: boolean; jurisdiction: 'ICAO' | 'EASA' | 'FAA'; dailyMinutes: number; speechRate: number;
 }
 
 export interface Progress {

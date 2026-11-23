@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 1020 unit tests
+npm test           # 1043 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -299,3 +299,27 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - **Picture quality:** Auto, High or Low. Low trims rain, stars and contrails; Auto switches to Low if about three quarters of a second of frames stay slow. This is a visual effect level only. It does not change handling or scoring.
 - **Objective-to-mechanic table** (`src/game/objectives.ts`): one row per mechanic (speed band, wind, terrain, landing, decisions, radio calls and others) says what the player does and which learning objective it practises. It reads the mission data, so a new mission needs no extra wiring, and the briefing shows an "In the cockpit" line from it.
 - **Not done:** frame rate was not measured on a real phone, so the Auto threshold is untested on hardware; saving or syncing these two settings to an account is not built (they live in local progress with the other settings).
+
+## Gameplay quality and final polish
+
+**Corrected counts (verified by `tests/counts.test.ts`)**
+- Pathway entries: Mathematics 40, Physics 47, PPL 59, CPL 32, ATPL 49, a sum of **227**. There are **223 unique published lessons**: PPL Phase A re-uses four Pre-Flight Academy lessons (`math-units`, `math-dst`, `phys-pressure`, `phys-lift`), so they appear in two pathways but are one lesson each. There are no placeholder lessons, and every published lesson passes the content validator.
+- Missions: **254** = 223 lesson missions + 12 challenges + 17 Aviation English flights + 2 free flights. The earlier analysis covered 216 because it ran before the 21 maths and physics missions and 17 English flights were added (216 + 38 = 254).
+
+**Passive completion fixed**
+- Before: 77 of 254 missions finished with zero input. **Now 0.** Reaching the finish is not enough: at least **65 percent of the rings** must be collected (**50 percent in assisted mode**), and the result says why a flight did not count.
+- Ring heights are spread so no single constant height can collect more than about 45 percent of the rings; hazards no longer form clusters (at most two within 700 px). Tests fly every mission with no input, with no input in assisted mode, and holding five different fixed heights: none succeeds.
+- Landing and storm-drift missions keep their designed ring layout where it matters (last five rings of a landing, drifting storms), protected by the ring threshold and the landing itself.
+- `m-free-sunset` (the only mission the autopilot could not finish) was a cluster of five balloons around a high ring; the no-cluster rule repaired it. **All 254 missions are now won by the scripted autopilot**, each lasting at least two minutes of active play. This is a scripted autopilot, not a human playtest.
+
+**Rewards**
+- Three stars now need a score of at least 850, at least 90 percent of the rings and at most one contact. A wrong safety-critical decision still caps a flight at two stars. Boosters held and used with no flying still fail every sampled mission.
+- Anti-farming: flights pay only first-time and improved ratings; bonus XP is capped and paid once; exam answers are capped at 90 XP per day and flashcard reviews at 40 XP per day; lesson and English XP are first-time only.
+
+**Mobile**
+- Checked at 375×667, 360×640, 390×844, 412×915, 430×932, 844×390 and 915×412 in the in-app browser's device emulation: no game control smaller than 40 px (the thumb buttons are 78×78 px), no overflow, canvas fills the screen. Dispatching touch pointer events on the climb and descend buttons moves the aircraft up and down.
+- **Not physical devices.** This browser pane throttles animation frames (3.6 fps on an idle page), so frame rates measured here are not meaningful. CPU cost of one simulated and drawn frame was about 0.13 ms on this desktop. A new **Show frame rate in flights** setting (Profile) prints live FPS and the worst frame time, so real phones can be measured. Low quality (and Auto after slow frames) now also cuts the canvas resolution to about a third of the pixels.
+
+**Aircraft**
+- Per-aircraft visual details (winglets, fan faces, striped fins, lamps), smoother pitch easing, a card with the aircraft and its specs when a flight unlocks one, and an original synthesised engine sound with a different character for single, twin, turboprop, jet and airliner (no audio files; it follows the existing engine-sound setting).
+- The unlock card is covered by a unit test of the unlock logic; I did not see it on screen.

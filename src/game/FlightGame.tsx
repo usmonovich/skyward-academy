@@ -66,6 +66,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [showHelp, setShowHelp] = useState(!p.seenTutorial);
   const [isFs, setIsFs] = useState(false);
   const [boost, setBoost] = useState<BoosterView | null>(null);
+  const [fps, setFps] = useState<{ fps: number; worst: number } | null>(null);
   const [heard, setHeard] = useState<{ text: string; missing: string[] } | null>(null);
   const [listening, setListening] = useState(false);
   const wantFs = useRef(true);
@@ -105,6 +106,19 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     const r = st.getBoundingClientRect();
     g.resize(r.width, r.height, full ? measureSafe() : undefined);
   }, [full]);
+
+  // Optional frame-rate readout (Profile → Settings). Counts real animation frames, so it shows what the device actually delivers.
+  useEffect(() => {
+    if (!p.settings.showFps || phase !== 'flying') { setFps(null); return; }
+    let raf = 0; let n = 0; let last = performance.now(); let t0 = last; let worst = 0;
+    const tick = (now: number) => {
+      n++; worst = Math.max(worst, now - last); last = now;
+      if (now - t0 >= 1000) { setFps({ fps: Math.round((n * 1000) / (now - t0)), worst: Math.round(worst) }); n = 0; worst = 0; t0 = now; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [p.settings.showFps, phase]);
 
   useEffect(() => {
     if (run === 0 || !canvasRef.current) return;
@@ -186,6 +200,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
       {!full && (phase === 'flying' || phase === 'paused') && boost && <BoosterBar view={boost} onUse={(i) => game.current?.activateBooster(i)} />}
       <div className="game-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="game-canvas" tabIndex={0} aria-label={`Flight mission: ${def.title}. Use the arrow keys or W A S D to fly.`} />
+        {p.settings.showFps && phase === 'flying' && fps && <div className="fps-readout" aria-hidden="true">{fps.fps} fps · worst frame {fps.worst} ms</div>}
         {message && phase === 'flying' && <div className="game-msg" role="status" aria-live="polite"><span className="instructor-dot" />{message}</div>}
 
         {phase === 'briefing' && (
