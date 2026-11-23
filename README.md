@@ -9,7 +9,7 @@ Skyward Academy is a training aid. It does not issue pilot licences, ratings or 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 940 unit tests
+npm test           # 1007 unit tests
 npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 ```
@@ -274,3 +274,12 @@ Every Aviation English exercise now unlocks its own radio flight (`e-<exercise>`
 - **Three things are reported separately**: language comprehension, phraseology and aircraft control.
 - **A wrong safety-critical call (or a wrong operational decision in any mission) caps the flight at two stars.** This also fixed an earlier gap: 31 missions with decisions could give three stars after a wrong answer. Flights are always completable.
 - Capped bonus XP: 5 per correct call (up to 40), 10 for improving a weak topic. Only the part above what was already paid is added on a replay. Three new achievements.
+
+## Mathematics and Physics expansion (Expansion, batch 1)
+
+Audit before this batch: 36 mathematics and 41 physics lessons. **21 new lessons were added** (10 mathematics, 11 physics), each with objectives, prerequisites, an explanation, formulas with variables, units and limits, worked examples, an interactive experiment, five practice and at least five assessment questions with explanations, a caution or model limit, a source, and its own flight mission.
+
+- **Mathematics:** direct and inverse proportion, circles and arcs, area and volume, sine and cosine rules, exponential (halving) change, the wind triangle, moments and the centre of gravity, time and UTC, accuracy and rounding, probability and risk.
+- **Physics:** free fall, projectile motion, circular motion, buoyancy, hydraulics, humidity and dew point, lapse rates, the Doppler effect, electromagnetic induction, wing loading, the lift curve.
+- **Experiments:** 23 new interactive formula labs (for example projectile range, buoyancy, centripetal force, wind-triangle groundspeed, lift coefficient against angle of attack). The simplified ones (lift curve, halving model, dew point rule of thumb) say so in their "Model limits" line.
+- **Honest limits:** these lessons teach the physics and arithmetic. They are not authoritative operating procedures, and each says to use the flight manual, METAR or approved planner for real flight. The content is original material, not copied from any publication, and still needs expert review before use in formal training. Earlier lessons, progress and unlocks are unchanged.

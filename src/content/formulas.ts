@@ -1,3 +1,4 @@
+import { FORMULAS_EXPANSION } from './formulas2';
 import type { Formula } from '../types';
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -5,7 +6,7 @@ const rad = (d: number) => (d * Math.PI) / 180;
 /** ISA static pressure (hPa) in the troposphere for a pressure altitude in feet. */
 export const isaPressure = (ft: number) => 1013.25 * Math.pow(1 - 6.87535e-6 * Math.min(ft, 36089), 5.2561);
 
-export const FORMULAS: Formula[] = [
+const BASE_FORMULAS: Formula[] = [
   {
     id: 'pressure', name: 'Pressure', expr: 'P = F / A', subject: 'Physics', topic: 'Pressure', level: 1,
     plain: 'Pressure is the force pressing on a surface divided by the area it presses on.',
@@ -1597,5 +1598,7 @@ export const FORMULAS: Formula[] = [
     related: ['pax-load', 'percent-of'], lessonId: 'atpl-airline-operational-concepts',
   },
 ];
+
+export const FORMULAS: Formula[] = [...BASE_FORMULAS, ...FORMULAS_EXPANSION];
 
 export const formulaById = (id: string) => FORMULAS.find((f) => f.id === id);

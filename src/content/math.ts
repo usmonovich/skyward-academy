@@ -3,6 +3,7 @@ import { lesson, mcq, num, order, planned, tf, match } from './q';
 import { angles, arithmetic, estimation, fractions, negatives, percentages, powers, ratios } from './math2';
 import { algebra, decimals, equations, geometry, sciNotation, triangles } from './math3';
 import { calculus, coordinates, fuelMath, functions, gradients, linearRel, oneInSixty, quadratics, rateOfChange, statistics } from './math4';
+import { accuracy, areaVolume, circles, exponentialDecay, moments, probability, proportion, sineCosine, timeUtc, windTriangle } from './math5';
 
 const SRC = ['si-brochure', 'phak'];
 
@@ -277,10 +278,11 @@ export const mathTrack: Track = {
   modules: [
     { id: 'math-numbers', title: 'Numbers and Arithmetic', lessons: [arithmetic, negatives, fractions, decimals, percentages, ratios, estimation] },
     { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, sciNotation] },
-    { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange] },
-    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, triangles, pythagoras, trig] },
+    { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange, proportion] },
+    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, circles, areaVolume, triangles, pythagoras, trig, sineCosine] },
     { id: 'math-vectors-m', title: 'Vectors and Coordinates', lessons: [vectors, coordinates] },
-    { id: 'math-functions', title: 'Functions and Change', lessons: [functions, linearRel, quadratics, rateOfChange, calculus, statistics] },
-    { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, oneInSixty, gradients, fuelMath] },
+    { id: 'math-functions', title: 'Functions and Change', lessons: [functions, linearRel, quadratics, exponentialDecay, rateOfChange, calculus, statistics] },
+    { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, oneInSixty, gradients, fuelMath, windTriangle, moments, timeUtc] },
+    { id: 'math-applied', title: 'Accuracy and Risk', lessons: [accuracy, probability] },
   ],
 };

@@ -4,6 +4,7 @@ import { acceleration, bernoulli, continuity, drag, friction, gasLaws, momentum,
 import { displacement, gravity, power, quantities, scalarsVectors, siUnits, temperature } from './physics3';
 import { heat, performance, sound, thermo, thrust, viscosity, waves } from './physics4';
 import { centreOfGravity, circuits, electricity, equilibrium, magnetism, rotational } from './physics5';
+import { adiabatic, buoyancy, circularMotion, doppler, freeFall, humidity, hydraulics, induction, liftCurve, projectile, wingLoading } from './physics6';
 
 const speed = lesson('Speed and velocity', {
   id: 'phys-speed', title: 'Speed and Velocity', minutes: 9, level: 1,
@@ -376,14 +377,14 @@ export const physicsTrack: Track = {
   blurb: 'Forces, pressure, energy and the real physics of flight — explained from zero.',
   modules: [
     { id: 'phys-basics', title: 'Quantities and Units', lessons: [quantities, siUnits, scalarsVectors] },
-    { id: 'phys-motion', title: 'Motion', lessons: [speed, acceleration, displacement] },
-    { id: 'phys-forces', title: 'Forces', lessons: [newton, weight, friction, momentum, gravity] },
-    { id: 'phys-fluids', title: 'Pressure and Fluids', lessons: [pressure, density, atmos, continuity, bernoulli, viscosity] },
+    { id: 'phys-motion', title: 'Motion', lessons: [speed, acceleration, displacement, freeFall, projectile] },
+    { id: 'phys-forces', title: 'Forces', lessons: [newton, weight, friction, momentum, gravity, circularMotion] },
+    { id: 'phys-fluids', title: 'Pressure and Fluids', lessons: [pressure, density, atmos, continuity, bernoulli, viscosity, buoyancy, hydraulics] },
     { id: 'phys-energy-m', title: 'Work and Energy', lessons: [energy, power] },
-    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, temperature, heat, thermo] },
-    { id: 'phys-waves', title: 'Waves and Sound', lessons: [waves, sound] },
-    { id: 'phys-electric', title: 'Electricity and Magnetism', lessons: [electricity, magnetism, circuits] },
+    { id: 'phys-thermo', title: 'Heat and Gases', lessons: [gasLaws, temperature, heat, thermo, humidity, adiabatic] },
+    { id: 'phys-waves', title: 'Waves and Sound', lessons: [waves, sound, doppler] },
+    { id: 'phys-electric', title: 'Electricity and Magnetism', lessons: [electricity, magnetism, circuits, induction] },
     { id: 'phys-rotation', title: 'Rotation and Balance', lessons: [torque, rotational, equilibrium, centreOfGravity] },
-    { id: 'phys-flight', title: 'Principles of Flight', lessons: [lift, drag, thrust, performance] },
+    { id: 'phys-flight', title: 'Principles of Flight', lessons: [lift, liftCurve, wingLoading, drag, thrust, performance] },
   ],
 };
