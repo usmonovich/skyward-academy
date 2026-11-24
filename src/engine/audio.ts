@@ -1,5 +1,5 @@
 // Synthesised audio (Web Audio API): no audio files, works offline, fully adjustable.
-type Sfx = 'click' | 'ok' | 'bad' | 'gate' | 'hit' | 'win' | 'fail' | 'radio' | 'unlock';
+type Sfx = 'click' | 'ok' | 'bad' | 'gate' | 'hit' | 'win' | 'fail' | 'radio' | 'unlock' | 'thunder';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -55,6 +55,22 @@ function noise(dur: number, gain = 0.08) {
   src.start();
 }
 
+/** Thunder: low-passed noise with a slow swell and a long tail. Synthesised, no recording. */
+function rumble() {
+  const c = ac();
+  if (!c || !master) return;
+  const dur = 2.6;
+  const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
+  const d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < d.length; i++) { last = last * 0.96 + (Math.random() * 2 - 1) * 0.04; d[i] = last * 6; }
+  const src = c.createBufferSource(); const f = c.createBiquadFilter(); const g = c.createGain();
+  f.type = 'lowpass'; f.frequency.value = 180;
+  const t0 = c.currentTime;
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.buffer = buf; src.connect(f).connect(g).connect(master); src.start(t0);
+}
+
 export const audio = {
   configure(next: { sfx: boolean; engine: boolean; volume: number }) {
     cfg = { ...next };
@@ -73,6 +89,7 @@ export const audio = {
       case 'fail': tone(330, 0.2, 'triangle', 0.14); tone(247, 0.35, 'triangle', 0.14, 0.18); break;
       case 'radio': noise(0.12, 0.07); break;
       case 'unlock': [660, 880, 1175].forEach((f, i) => tone(f, 0.18, 'sine', 0.15, i * 0.09)); break;
+      case 'thunder': rumble(); break;
     }
   },
   /**

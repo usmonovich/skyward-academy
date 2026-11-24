@@ -133,6 +133,7 @@ export function Profile() {
           <div className="choice"><span><strong>Touch controls</strong><span className="small muted">{{ floating: 'The joystick appears where your thumb lands.', fixed: 'The joystick stays in the corner.', buttons: 'Classic climb, descend and thrust buttons.' }[s.controls ?? 'floating']}</span></span>
             <span className="segmented" role="group" aria-label="Touch controls">{([['floating', 'Floating stick'], ['fixed', 'Fixed stick'], ['buttons', 'Buttons']] as const).map(([k, name]) => <button key={k} type="button" className={(s.controls ?? 'floating') === k ? 'seg on' : 'seg'} aria-pressed={(s.controls ?? 'floating') === k} onClick={() => actions.settings({ controls: k })}>{name}</button>)}</span></div>
           <Toggle label="Left-handed layout" checked={!!s.leftHanded} onChange={(v) => actions.settings({ leftHanded: v })} hint="Joystick on the right, throttle on the left" />
+          <Toggle label="Reduce lightning flashes" checked={!!s.reduceFlashing} onChange={(v) => actions.settings({ reduceFlashing: v })} hint="Storm flights show the lightning bolt without brightening the screen. Always on with Reduce motion." />
           <Slider label="Joystick dead zone" value={s.deadZone ?? 0.12} min={0.05} max={0.3} step={0.01} onChange={(v) => actions.settings({ deadZone: v })} format={(v) => `${Math.round(v * 100)}%`} />
           <p className="small muted">Steering sensitivity (above) also sets how strongly the joystick responds. Keyboard controls always work on a computer.</p>
         </div>

@@ -7,7 +7,7 @@ import { scoreMission } from '../engine/gamification';
 import { isaPressure } from '../content/formulas';
 import { audio } from '../engine/audio';
 import { drawAircraft } from './art';
-import { cloudColor, drawRain, drawRunwayLights, drawSkyExtras, drawTrail, isLowLight, isNight } from './weather';
+import { cloudColor, drawFog, drawLightning, drawPrecip, drawRain, drawRunwayLights, drawSkyExtras, drawStormSky, drawTornado, drawTrail, isLowLight, isNight, lightningAt } from './weather';
 import { AIM, PHASES, approachStart, glideY, phaseAt, phasePlan, slopeLights, touchdownZone, type PhaseId } from './phases';
 
 export const W = 960;
@@ -227,7 +227,7 @@ export interface GameCallbacks {
   /** Called when the flight moves into a new phase (take-off, climb, cruise, approach, landing, complete). */
   onPhase?: (p: PhaseId) => void;
 }
-export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low'; /** Drag on the canvas to steer (default true). Off while the touch joystick is shown, so two inputs never fight. */ canvasDrag?: boolean }
+export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low'; /** Drag on the canvas to steer (default true). Off while the touch joystick is shown, so two inputs never fight. */ canvasDrag?: boolean; /** Lightning without full-screen flashes. */ reduceFlashing?: boolean }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
@@ -385,6 +385,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let phase: PhaseId = 'cruise'; const phasesFlown: PhaseId[] = [];
   let apAll = 0; let apStable = 0; let goArounds = 0; let tdZone: 'in' | 'long' | undefined; let fade = 0;
   const smoke: { x: number; t0: number; k: number }[] = [];
+  // Weather: the tornado sits beside the route (sideways track model only), lightning and thunder follow a fixed schedule.
+  const WX = def.weather;
+  const TOR = WX?.tornado && def.lateral ? { ...WX.tornado, x: WX.tornado.at * def.length } : null;
+  let torWarned = false; let torMin = Infinity; let tooCloseT = -99; let stormHits = 0; let lastStrike = -1; let thunderAt = -1; let turbSaid = false;
+  const fogAmount = WX?.fog ?? (WX?.rain === 'heavy' ? 0.22 : 0);
   const phaseNow = (): PhaseId => phaseAt(def, { wx: worldX + PLANE_X, onGround, airborneAt, rollout: state === 'rollout', ended: state === 'ended', approachFrom: apStart });
   function trackPhase() {
     const p = phaseNow();
@@ -493,6 +498,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
       phases: [...phasesFlown], touchdownZone: tdZone,
+      weather: WX ? { tornadoMin: TOR && Number.isFinite(torMin) ? Math.round(torMin) : undefined, stormHits } : undefined,
       approach: def.landing && !def.goAround && (apAll > 0 || goArounds > 0) ? { stability: apAll > 0 ? apStable / apAll : 0, goArounds } : undefined,
       trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog], bonus, ringTypes: ringTally,
       boosters: { collected, used: { ...used }, xpTokens, absorbed },
@@ -598,6 +604,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const wind = def.wind ? def.wind.vy + Math.sin(t * 1.3) * def.wind.gust : 0;
     const autoland = opts.assisted && def.landing && wx > level.runwayStart - 700;
     vy += (inY * ac.agility * (isActive('speed') ? 0.75 : 1) * 520 - vy * 2.6) * dt;
+    if (WX?.turbulence) {
+      // Turbulence: smooth, irregular vertical bumps (two mixed waves). Half as strong in assisted mode.
+      const bump = Math.sin(t * 2.3 + def.seed) * 0.6 + Math.sin(t * 5.7 + def.seed * 2) * 0.4;
+      vy += WX.turbulence * bump * 380 * (opts.assisted ? 0.5 : 1) * dt;
+      if (!turbSaid && t > 2) { turbSaid = true; say('Turbulence. Keep the wings level and make small, smooth corrections. Do not chase every bump.'); }
+    }
     if (keys.has(' ')) vy -= vy * 6 * dt;
     if (autoland) vy += (65 - vy) * 3 * dt;
     if (def.energy) {
@@ -623,6 +635,18 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       latAll += dt; if (err <= L.tol) latIn += dt;
       errSum += err * dt; maxOff = Math.max(maxOff, err);
       if (Math.abs(lat) > 105) hit('You left the route corridor. Hold a heading correction against the wind and re-centre earlier.');
+      if (TOR) {
+        const dx = TOR.x - wx; const d = Math.abs(lat - TOR.lat);
+        if (!torWarned && dx < 2600) { torWarned = true; say(`TORNADO WARNING: a funnel ahead, ${TOR.lat > 0 ? 'right' : 'left'} of track (red on the track panel). Follow the diversion route and stay well clear.`); audio.sfx('bad'); }
+        // Inflow: near the funnel the air is drawn towards it (arcade effect), so the correction has to be held.
+        if (Math.abs(dx) < 900) lat += Math.sign(TOR.lat - lat) * 10 * (1 - Math.abs(dx) / 900) * (opts.assisted ? 0.5 : 1) * dt;
+        if (Math.abs(dx) < 260) torMin = Math.min(torMin, d);
+        if (Math.abs(dx) < 700 && d < TOR.radius * 1.8 && t - tooCloseT > 4) { tooCloseT = t; say('Too close to the tornado. Turn away now.'); audio.sfx('bad'); }
+        if (Math.abs(dx) < 120 && d < TOR.radius) {
+          if (opts.assisted) { hit('Inside the tornado danger area. Assisted mode pushed you clear: divert earlier.'); lat += Math.sign(lat - TOR.lat || 1) * 30; }
+          else return end(false, 'You flew into the tornado danger area. In real flying, recognise the warning early and divert far away from severe storms and tornadoes.');
+        }
+      }
     }
     if (def.goAround) {
       const wxa = worldX + PLANE_X;
@@ -631,6 +655,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
         if (!gaClimbed && y <= Math.min(GROUND - 110, gaY - 60)) { gaClimbed = true; gaClimbT = t - gaAt; say(gaClimbT <= 7 ? 'Positive climb. Go-around flown correctly.' : 'You are climbing, but a go-around has to start sooner.'); }
         if (wxa >= level.runwayStart && wxa <= level.runwayEnd && y > GROUND - 70) hit('Too low over an occupied runway.');
       }
+    }
+    if (WX?.lightning) {
+      const L = lightningAt(t, def.seed);
+      if (t >= L.struck && L.struck !== lastStrike) { lastStrike = L.struck; thunderAt = t + 0.9 + (def.seed % 4) * 0.4; }
+      if (thunderAt > 0 && t >= thunderAt) { thunderAt = -1; audio.sfx('thunder'); }
     }
     trackPhase();
     if (phase === 'approach') {
@@ -675,7 +704,10 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       const oy = obstacleY(o);
       const dx = Math.abs(o.x - wx);
       if (o.type === 'tower') { if (dx < 26 && y > oy - 8) hit('Obstacle strike. Keep well above towers.', true); }
-      else if (dx < o.r + 18 && Math.abs(oy - y) < o.r + 10) hit(o.type === 'storm' ? 'You entered a storm cell. Avoid them by a wide margin.' : o.type === 'birds' ? 'Bird strike. Look ahead and plan around flocks.' : 'Obstacle contact. Give it more room.', o.type !== 'storm');
+      else if (dx < o.r + 18 && Math.abs(oy - y) < o.r + 10) {
+        if (o.type === 'storm' && invuln <= 0) stormHits++;
+        hit(o.type === 'storm' ? 'You entered a storm cell. Avoid them by a wide margin.' : o.type === 'birds' ? 'Bird strike. Look ahead and plan around flocks.' : 'Obstacle contact. Give it more room.', o.type !== 'storm');
+      }
     }
 
     const gy = groundY(wx);
@@ -923,6 +955,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const tgt = planned(worldX + PLANE_X);
     ctx.fillStyle = 'rgba(18,165,148,0.6)'; ctx.fillRect(cx + (tgt - L.tol) * sc, by - 6, 2 * L.tol * sc, 12);
     if (L.runwayHalf !== undefined) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeRect(cx - L.runwayHalf * sc, by - 8, 2 * L.runwayHalf * sc, 16); }
+    if (TOR && TOR.x - (worldX + PLANE_X) < 3500 && TOR.x - (worldX + PLANE_X) > -400) { ctx.fillStyle = 'rgba(239,68,68,0.55)'; ctx.fillRect(cx + (TOR.lat - TOR.radius) * sc, by - 9, 2 * TOR.radius * sc, 18); }
     if (L.waypoints) { ctx.fillStyle = '#f58220'; ctx.beginPath(); ctx.moveTo(cx + tgt * sc, by - 10); ctx.lineTo(cx + tgt * sc + 5, by - 15); ctx.lineTo(cx + tgt * sc, by - 20); ctx.lineTo(cx + tgt * sc - 5, by - 15); ctx.closePath(); ctx.fill(); }
     const ax = cx + clamp(lat, -108, 108) * sc;
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(ax, by - 9); ctx.lineTo(ax - 6, by + 5); ctx.lineTo(ax + 6, by + 5); ctx.closePath(); ctx.fill();
@@ -953,7 +986,17 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       ctx.beginPath(); ctx.ellipse(cx, c.y, 46 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx + 26 * c.s, c.y - 9 * c.s, 30 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx - 28 * c.s, c.y - 4 * c.s, 26 * c.s, 12 * c.s, 0, 0, 6.3); ctx.fill();
     }
     hills(0.12, GROUND - (def.env === 'mountains' ? 150 : 95), def.env === 'mountains' ? 85 : 38, 210, pal.far);
+    if (WX?.storm) drawStormSky(ctx, VW, GROUND, t, opts.reducedMotion, cam);
+    if (WX?.lightning) { const L = lightningAt(t, def.seed); drawLightning(ctx, opts.reducedMotion ? 0 : L.flash, L.bolt, VW, GROUND, !!opts.reduceFlashing); }
     hills(0.35, GROUND - 40, def.env === 'coast' || def.env === 'highalt' ? 6 : 26, 130, pal.mid);
+    if (TOR) {
+      const sx = TOR.x - cam;
+      if (sx > -320 && sx < VW + 320) {
+        const near = clamp(1 - Math.abs(lat - TOR.lat) / 140, 0, 1);
+        drawTornado(ctx, sx, GROUND, CEIL - 10, t, near, opts.reducedMotion);
+        panel(sx - 74, GROUND - 58, 148, 22); label('TORNADO · STAY CLEAR', sx, GROUND - 42, 11, '#ffb4ad', 'center', 800);
+      }
+    }
 
     // Ground and terrain
     ctx.fillStyle = pal.ground; ctx.beginPath(); ctx.moveTo(0, bot);
@@ -1049,7 +1092,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     }
 
     // Rain, then the aircraft's trail (contrail at speed, glow at night). Drawn from a short history of positions; visual only.
-    drawRain(ctx, def.env, VW, GROUND, t, opts.reducedMotion, lite);
+    if (!WX?.rain) drawRain(ctx, def.env, VW, GROUND, t, opts.reducedMotion, lite);
+    drawPrecip(ctx, WX, VW, GROUND, t, opts.reducedMotion, lite);
     if (!opts.reducedMotion && !lite && ac.kind !== 'single' && ac.kind !== 'twin' && !onGround && state !== 'rollout') {
       if (!trail.length || t - trailT >= 0.06) { trailT = t; trail.push({ x: worldX + PLANE_X - 28 * ac.size, y, age: 0 }); if (trail.length > 24) trail.shift(); }
       trail.forEach((p, i) => { p.age = (trail.length - 1 - i) * 0.06; });
@@ -1068,6 +1112,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
     drawBoosterEffects(cam, px);
     drawBursts(cam);
+    drawFog(ctx, fogAmount, VW, top, VH, px);
     if (!opts.reducedMotion) {
       for (const sm of smoke) {
         const age = t - sm.t0; if (age > 1.5) continue;
@@ -1082,7 +1127,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
     if (fade > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, fade * 0.6)})`; ctx.fillRect(0, top, VW, VH); }
 
-    lookAhead(cam, !view.portrait);
+    lookAhead(cam, !view.portrait || fogAmount >= 0.3);
     if (view.portrait) { portraitHud(); return; }
 
     // HUD. Drawn at screen-readable size: on a phone the world is scaled down, so the HUD is scaled up to a

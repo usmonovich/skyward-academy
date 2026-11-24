@@ -1,3 +1,4 @@
+const WEATHER_COUNT = 6; // weather challenges added after that analysis
 import { describe, expect, it } from 'vitest';
 import { MISSIONS, getTracks, liveLessons } from '../src/content';
 import { validateLesson } from '../src/content/validate';
@@ -29,10 +30,11 @@ describe('curriculum and mission counts (the numbers quoted in the README)', () 
   it('breaks the missions down: lesson missions, challenges, English flights and free flights', () => {
     const kinds = { lesson: 0, challenge: 0, english: 0, free: 0 };
     for (const m of MISSIONS) { if (m.requiresEnglish) kinds.english++; else if (m.lessonId) kinds.lesson++; else if (m.requires) kinds.challenge++; else kinds.free++; }
-    expect(kinds).toEqual({ lesson: 223, challenge: 12, english: 17, free: 2 });
-    expect(MISSIONS).toHaveLength(254);
+    // 12 general challenges + 6 weather challenges (premium update, batch 4).
+    expect(kinds).toEqual({ lesson: 223, challenge: 18, english: 17, free: 2 });
+    expect(MISSIONS).toHaveLength(260);
     // The earlier autopilot analysis covered 216 missions: it ran before the 21 maths and physics lessons (and their missions) and the 17 English flights were added.
-    expect(MISSIONS.length - 21 - 17).toBe(216);
+    expect(MISSIONS.length - 21 - 17 - WEATHER_COUNT).toBe(216);
     expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(MISSIONS.length);
   });
 });

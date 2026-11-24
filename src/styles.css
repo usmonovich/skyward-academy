@@ -718,3 +718,10 @@ a.lesson-row:active, button.lesson-row:active { background: #eef4fb; }
   .brief-facts > div:nth-child(1), .brief-facts > div:nth-child(2) { order: -2; } .brief-facts > div:nth-child(5) { order: -1; }
 }
 @media (max-height: 520px) { .brief-goal { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding: 6px 10px; } .brief-actions { bottom: -12px; } }
+.brief-wx { font-size: .86rem; color: #3d2a12; background: #fdf3e2; border: 1px solid #f1d4a6; border-left: 4px solid var(--orange); border-radius: 12px; padding: 8px 12px; }
+@media (max-height: 520px) { .brief-wx { padding: 6px 10px; font-size: .8rem; } }
+/* Landscape: boosters stack at the far left edge, clear of the aircraft's lane (it flies about a fifth of the way across). */
+@media (orientation: landscape) {
+  .game.full .boost-bar.floating { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; top: calc(max(10px, env(safe-area-inset-top)) + 136px); gap: 5px; }
+  .game.full .boost-bar.floating .boost-slot { width: 42px; height: 42px; }
+}

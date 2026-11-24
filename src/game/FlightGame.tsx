@@ -13,7 +13,7 @@ import { canListen, canSpeak, listen, speak } from '../engine/speech';
 import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
-import { ENV_NOTES, WEATHER_NAME } from './weather';
+import { ENV_NOTES, WEATHER_NAME, WEATHER_NOTES, weatherEffects } from './weather';
 import { learningLine } from './objectives';
 import { PHASES, phasePlan, type PhaseId } from './phases';
 import { ThrottleLever, TouchStick } from './TouchControls';
@@ -129,7 +129,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
 
   useEffect(() => {
     if (run === 0 || !canvasRef.current) return;
-    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: stickOn ? 1 : p.settings.steering, quality: p.settings.quality, canvasDrag: !stickOn }, {
+    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: stickOn ? 1 : p.settings.steering, quality: p.settings.quality, canvasDrag: !stickOn, reduceFlashing: !!p.settings.reduceFlashing || reducedMotion }, {
       onMessage: setMessage,
       onBoosters: setBoost,
       onPhase: setFphase,
@@ -193,7 +193,14 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   };
 
   const canGoAround = phase === 'flying' && !!def.landing && !def.goAround && (fphase === 'approach' || fphase === 'landing');
-  const weatherOf = (m: MissionDef) => `${WEATHER_NAME[m.env] ?? 'Clear'}${m.wind ? ' · gusts' : ''}${m.lateral ? ' · crosswind' : ''}`;
+  const weatherOf = (m: MissionDef) => {
+    const fx = weatherEffects(m.weather);
+    const parts = [...fx.visual, ...fx.handling];
+    const line = `${parts.length ? parts.join(' · ') : WEATHER_NAME[m.env] ?? 'Clear'}${m.wind ? ' · gusts' : ''}${m.lateral ? ' · crosswind' : ''}`;
+    return line.charAt(0).toUpperCase() + line.slice(1);
+  };
+  const wxNote = def.weather?.tornado ? WEATHER_NOTES.tornado : def.weather?.storm || def.weather?.lightning ? WEATHER_NOTES.storm : def.weather?.fog && def.weather.fog >= 0.5 ? WEATHER_NOTES.fog : def.weather?.snow ? WEATHER_NOTES.snow : def.weather?.turbulence ? WEATHER_NOTES.turbulence : def.weather?.rain === 'heavy' ? WEATHER_NOTES.rain : null;
+  const wxFx = weatherEffects(def.weather);
 
   const content = (
     <div className={`game${full ? ' full' : ''}`} ref={rootRef} style={{ ['--hud-extra' as string]: def.lateral ? '52px' : '0px' }}>
@@ -231,6 +238,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                 <div><dt>Reward</dt><dd>up to {def.xp + 75} XP</dd></div>
               </dl>
               <p className="brief-goal">{learningLine(def).replace(/^In the cockpit: /, '')}</p>
+              {wxNote && <p className="brief-wx" role="note"><strong>Weather:</strong> {wxNote}{wxFx.handling.length ? ` Changes the flight: ${wxFx.handling.join(', ')}.` : ' Visual only: the aircraft handles as in clear air.'}</p>}
               <div className="row gap wrap brief-actions">
                 <Btn kind="accent" icon="play" onClick={start}>Start mission</Btn>
                 {full && <Btn kind="ghost" icon="close" href={exitHref}>Back</Btn>}

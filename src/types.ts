@@ -135,6 +135,21 @@ export interface EnglishRing {
 export interface EnglishLayer { topic: string; rings: EnglishRing[] }
 
 /** A flight mission is pure data; the engine in src/game interprets it. */
+/** Weather for a mission. Every value is a simplified game effect, not a meteorological model. */
+export interface WeatherDef {
+  rain?: 'light' | 'moderate' | 'heavy';
+  snow?: boolean;
+  /** Reduced visibility, 0 (clear) to 0.8 (thick fog): the scene fades with distance and distant hazards are not marked. */
+  fog?: number;
+  /** Dark storm cloud base and dimmer light. */
+  storm?: boolean;
+  lightning?: boolean;
+  /** Turbulence strength 0..1: random vertical bumps the pilot has to smooth out. */
+  turbulence?: number;
+  /** Arcade tornado beside the route (needs the sideways track model). at: fraction of the route; lat: track position; radius: danger area. */
+  tornado?: { at: number; lat: number; radius: number };
+}
+
 export interface MissionDef {
   id: string;
   title: string;
@@ -168,6 +183,8 @@ export interface MissionDef {
   goAround?: { at: number };
   /** Storm cells drift up and down, so the safe gap moves. */
   stormDrift?: boolean;
+  /** Weather layered on the scene. Rain, snow, cloud and lightning are visual; fog hides hazards until they are close; turbulence and the tornado change the flight. */
+  weather?: WeatherDef;
   speedBand?: { min: number; max: number };
   energy?: boolean;
   fuel?: boolean;
@@ -206,6 +223,8 @@ export interface MissionStats {
   approach?: { stability: number; goArounds: number };
   /** Where the wheels touched: the first third of the runway is the touchdown zone. */
   touchdownZone?: 'in' | 'long';
+  /** Weather results: closest distance to the tornado (track units) and storm-cell contacts. */
+  weather?: { tornadoMin?: number; stormHits: number };
   /** Radio calls in an English mission: how each skill went. Not an ICAO rating. */
   english?: { asked: number; correct: number; bySkill: Record<'comprehension' | 'phraseology', { asked: number; correct: number }>; byTopic: Record<string, { asked: number; correct: number }>; wrong: { transmission: string; topic: string; safetyCritical: boolean; skill: string }[] };
   /** Wrong operational decisions and wrong safety-critical radio calls. Any of these caps the mission at two stars. */
@@ -234,7 +253,7 @@ export interface ExamRecord {
 
 export interface Settings {
   sfx: boolean; engine: boolean; voice: boolean; volume: number; reducedMotion: boolean;
-  textScale: number; /** Steering sensitivity for climb and descent input, 0.6 to 1.6 (1 is the original feel). */ steering: number; /** Shows a small frame-rate readout during flights, for checking performance on a real device. */ showFps: boolean; /** Picture quality: auto lowers effects if the frame rate drops. */ quality: 'auto' | 'high' | 'low'; /** Touch flight controls: a fixed or floating analog joystick, or the classic hold buttons. */ controls: 'fixed' | 'floating' | 'buttons'; /** Puts the joystick on the right and the throttle on the left. */ leftHanded: boolean; /** Joystick dead zone, 0.05 to 0.3 of its travel. */ deadZone: number; assisted: boolean; jurisdiction: 'ICAO' | 'EASA' | 'FAA'; dailyMinutes: number; speechRate: number;
+  textScale: number; /** Steering sensitivity for climb and descent input, 0.6 to 1.6 (1 is the original feel). */ steering: number; /** Shows a small frame-rate readout during flights, for checking performance on a real device. */ showFps: boolean; /** Picture quality: auto lowers effects if the frame rate drops. */ quality: 'auto' | 'high' | 'low'; /** Touch flight controls: a fixed or floating analog joystick, or the classic hold buttons. */ controls: 'fixed' | 'floating' | 'buttons'; /** Puts the joystick on the right and the throttle on the left. */ leftHanded: boolean; /** Joystick dead zone, 0.05 to 0.3 of its travel. */ deadZone: number; /** Softer lightning: no full-screen flashes in storm weather. */ reduceFlashing: boolean; assisted: boolean; jurisdiction: 'ICAO' | 'EASA' | 'FAA'; dailyMinutes: number; speechRate: number;
 }
 
 export interface Progress {
