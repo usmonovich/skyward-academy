@@ -371,3 +371,8 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - `tests/final-qa.test.ts`: a progress file exported before this update imports with its lessons, missions, XP and the learner's own settings, and gains the new settings with their defaults; every weather challenge, a full take-off-to-landing flight and the coast, mountain and Arctic scenes draw at high and low quality, with and without reduced motion and reduced flashing.
 - Emulated viewports in the in-app browser: no page scrolls sideways at 375×812 or 812×375; the briefing's Start button stays on screen in both.
 - Not tested: physical Android or iPhone devices, real-device frame rate, real multi-finger touch (pointer events were dispatched by script), and listening to the thunder and engine sounds.
+
+### No questions during flights
+- Flights are never interrupted: operational-decision pop-ups and the radio-call rings were removed from the game. The engine has no decision state, the flight screen has no question overlay, and the result screen, debrief and analysis no longer report questions. Stars no longer depend on answers (only rings, contacts, time, speed, landing and the ordered go-around count).
+- The 17 Aviation English flights are now reward flights: passing an exercise opens a plain flight with no questions in the air. The language practice stays in the exercises themselves.
+- Mission objectives that mentioned decisions or questions were rewritten. The written decision scenarios stay in the mission data as teaching material but are not shown in flight.

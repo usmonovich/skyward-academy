@@ -94,7 +94,6 @@ describe('weather in flight (scripted autopilot, not human playtesting)', () => 
     const { g, result } = headless(m);
     for (let i = 0; i < 900 * 60 && !result(); i++) {
       const s = g.snapshot();
-      if (s.state === 'decision') { g.answerDecision(true); continue; }
       g.setInput({ y: (250 - s.y) / 40, h: s.lat < 45 ? 1 : -1 });
       g.step(1 / 60);
     }
@@ -109,7 +108,6 @@ describe('weather in flight (scripted autopilot, not human playtesting)', () => 
     let warnedAt = -1;
     for (let i = 0; i < 600 * 60 && warnedAt < 0; i++) {
       const s = g.snapshot();
-      if (s.state === 'decision') { g.answerDecision(true); continue; }
       if (s.state === 'ended') break;
       g.setInput({ y: (250 - s.y) / 40, h: Math.max(-1, Math.min(1, (-40 - s.lat) / 20 - s.hdg)) });
       g.step(1 / 60);
@@ -135,7 +133,7 @@ describe('weather in flight (scripted autopilot, not human playtesting)', () => 
   it('thunder follows lightning in storm flights', () => {
     const spy = vi.spyOn(audio, 'sfx');
     const { g } = headless(byId('w-thunderstorm-avoidance'));
-    for (let i = 0; i < 60 * 20; i++) { if (g.snapshot().state === 'decision') g.answerDecision(true); g.step(1 / 60); }
+    for (let i = 0; i < 60 * 20; i++) { g.step(1 / 60); }
     g.destroy();
     expect(spy.mock.calls.filter((c) => c[0] === 'thunder').length).toBeGreaterThan(0);
     spy.mockRestore();

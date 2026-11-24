@@ -44,14 +44,14 @@ describe('steering sensitivity and quality (batch 7)', () => {
 describe('reward summary', () => {
   const base: MissionResult = { success: true, time: 134, checkpoints: 17, total: 20, hits: 1, decisionsCorrect: 2, decisionsTotal: 3, assisted: false, score: 800, stars: 2, bonus: 140, ringTypes: { cloud: { hit: 10, total: 12 }, gold: { hit: 4, total: 5 }, special: { hit: 3, total: 3 } }, boosters: { collected: 3, used: { shield: 1, magnet: 2 }, xpTokens: 1, absorbed: 1 } };
 
-  it('reports rings, kinds, bonus, time, boosters and questions from what was measured', () => {
+  it('reports rings, kinds, bonus, time and boosters from what was measured', () => {
     const rows = Object.fromEntries(flightSummary(base).map((r) => [r.label, r.value]));
     expect(rows['Rings collected']).toBe('17 of 20');
     expect(rows['By kind']).toMatch(/Cloud ring 10\/12/);
     expect(rows['Bonus points']).toMatch(/^140 /);
     expect(rows['Flight time']).toBe('2 min 14 s');
     expect(rows['Boosters used']).toBe('Shield ×1, Ring magnet ×2');
-    expect(rows['Questions answered correctly']).toBe('2 of 3');
+    expect(rows['Questions answered correctly']).toBeUndefined(); // the flight asks no questions
   });
 
   it('says "None" when no booster was used and omits the question and radio lines when there were none', () => {
@@ -61,10 +61,6 @@ describe('reward summary', () => {
     expect(rows.some((r) => r.label === 'Radio calls')).toBe(false);
   });
 
-  it('lists comprehension and phraseology separately for radio flights', () => {
-    const e = { asked: 6, correct: 4, bySkill: { comprehension: { asked: 2, correct: 2 }, phraseology: { asked: 4, correct: 2 } }, byTopic: {}, wrong: [] };
-    expect(flightSummary({ ...base, english: e }).find((r) => r.label === 'Radio calls')!.value).toBe('comprehension 2/2 · phraseology 2/4');
-  });
 });
 
 describe('objective to mechanic mapping (priority 9)', () => {
@@ -82,9 +78,9 @@ describe('objective to mechanic mapping (priority 9)', () => {
     const ids = (id: string) => mechanicsOf(byId(id)).map((x) => x.id);
     expect(ids('m-math-windtri')).toContain('wind');
     expect(ids('m-phys-wingload')).toContain('landing');
-    expect(ids('e-atc')).toContain('radio');
     expect(ids('m-math-proportion')).toContain('speed');
     expect(ids('m-math-sinecos')).toContain('terrain');
-    expect(MISSIONS.some((m) => mechanicsOf(m).some((x) => x.id === 'decisions'))).toBe(true);
+    // The flight never stops for a question: no mechanic asks one.
+    expect(MECHANICS.some((x) => x.id === 'decisions' || x.id === 'radio')).toBe(false);
   });
 });

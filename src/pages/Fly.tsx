@@ -12,8 +12,8 @@ const TIERS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
 const TIER_NOTE: Record<string, string> = {
   Beginner: 'Simple aircraft movement and obstacle avoidance.',
   Intermediate: 'Altitude, speed, wind, terrain and landings.',
-  Advanced: 'Longer legs with weather, fuel and operational decisions.',
-  Expert: 'Multi-stage airline-style scenarios with crew decisions.',
+  Advanced: 'Longer legs with weather and fuel.',
+  Expert: 'Long airline-style sectors.',
 };
 /** How many missions of a tier are shown before "Show all". */
 const PAGE = 12;

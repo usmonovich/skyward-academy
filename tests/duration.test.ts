@@ -26,12 +26,6 @@ describe('round duration (scripted autopilot, not human playtesting)', () => {
     for (const m of MISSIONS) if (!flights.get(m.id)!.result?.success) expect(AUTOPILOT_LIMITS).toContain(m.id);
   });
 
-  it('active time excludes the pauses for decisions', () => {
-    const m = MISSIONS.find((x) => (x.decisions?.length ?? 0) >= 2 && !AUTOPILOT_LIMITS.includes(x.id))!;
-    const f = flights.get(m.id)!;
-    expect(f.decisions).toBe(m.decisions!.length);
-    expect(f.result!.time).toBeCloseTo(f.seconds, 5);
-  });
 
   it('keeps every mission valid after lengthening', () => {
     for (const m of MISSIONS) expect(validateMission(m), m.id).toEqual([]);

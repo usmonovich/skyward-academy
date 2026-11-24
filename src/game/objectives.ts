@@ -25,8 +25,6 @@ export const MECHANICS: Mechanic[] = [
   { id: 'takeoff', action: 'Take off', practises: 'Build speed, rotate and climb away.', on: (m) => !!m.takeoff },
   { id: 'landing', action: 'Land on the runway', practises: 'Plan the descent and flare, and arrive at a safe speed.', on: (m) => !!m.landing },
   { id: 'goaround', action: 'Go around when told', practises: 'Decide at once when the runway is not available.', on: (m) => !!m.goAround },
-  { id: 'decisions', action: 'Answer operational decisions', practises: 'Apply the lesson to a real operational choice. A wrong choice caps the stars.', on: (m) => (m.decisions?.length ?? 0) > 0 },
-  { id: 'radio', action: 'Answer radio calls', practises: 'Understand and read back radio calls. A wrong safety-critical call caps the stars.', on: (m) => !!m.english },
 ];
 
 /** The mechanics a mission uses, in the table's order. The ring mechanic is always present. */

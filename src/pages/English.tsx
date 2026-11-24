@@ -15,7 +15,7 @@ function Done({ id, score, detail, onAgain }: { id: string; score: number; detai
       <h3>{score >= 0.6 ? 'Exercise complete' : 'Keep practising'}</h3>
       <p className="big-number">{Math.round(score * 100)}%</p>
       <p className="muted">{detail}</p>
-      {score >= 0.6 && id.startsWith('en-') && <div className="unlock-banner"><Icon name="fly" size={18} /> <span><strong>Flight unlocked.</strong> Use what you just practised on a real route, with radio calls at the purple rings.</span><Btn kind="accent" icon="fly" href={`fly/e-${id.replace(/^en-/, '')}`}>Fly the radio flight</Btn></div>}
+      {score >= 0.6 && id.startsWith('en-') && <div className="unlock-banner"><Icon name="fly" size={18} /> <span><strong>Flight unlocked.</strong> A reward flight for this exercise.</span><Btn kind="accent" icon="fly" href={`fly/e-${id.replace(/^en-/, '')}`}>Fly it</Btn></div>}
       <div className="row gap wrap center"><Btn kind="soft" icon="refresh" onClick={onAgain}>Try again</Btn><Btn kind="accent" href="english">Back to Aviation English</Btn></div>
       <p className="small muted">Exercise id: {id}. Scores are training feedback only.</p>
     </div>
@@ -275,7 +275,7 @@ function AtcSession({ scn, onExit }: { scn: AtcScenario; onExit: () => void }) {
           <div className="card-head"><h3>Scenario complete — training feedback</h3><Chip tone="warn">Provisional · not an ICAO rating</Chip></div>
           <div className="dims">{dimensionFeedback(turns, scn.steps.length).map((d) => <div key={d.dim} className="dim"><strong>{d.dim}</strong><p>{d.note}</p></div>)}</div>
           <More label="How this feedback works" className="inline"><p className="small">This feedback is generated from the text of your transmissions by a rule-based checker. It cannot hear pronunciation or stress and it does not award an ICAO language proficiency level. Official assessment is carried out only by examiners approved by your aviation authority.</p></More>
-          <div className="row gap wrap"><Btn kind="accent" icon="fly" href="fly/e-atc">Fly the radio flight</Btn><Btn kind="soft" onClick={onExit}>Choose another scenario</Btn><Btn kind="ghost" href="english">Back to Aviation English</Btn></div>
+          <div className="row gap wrap"><Btn kind="accent" icon="fly" href="fly/e-atc">Fly the reward flight</Btn><Btn kind="soft" onClick={onExit}>Choose another scenario</Btn><Btn kind="ghost" href="english">Back to Aviation English</Btn></div>
         </div>
       )}
     </div>
@@ -351,7 +351,7 @@ export function English({ exerciseId }: { exerciseId?: string }) {
                   <li key={e.id}><a className={`lesson-row ${st?.done ? 'done' : 'open'}`} href={`#/english/${e.id}`} title={e.blurb}>
                     <span className={`lesson-state ${st?.done ? 'done' : 'open'}`}><Icon name={st?.done ? 'check' : e.kind === 'atc' ? 'mic' : e.kind === 'listening' || e.kind === 'numbers' ? 'sound' : 'play'} size={st?.done ? 16 : 14} /></span>
                     <span className="lesson-main"><span className="lesson-title">{e.title}</span><span className="lesson-meta">{e.minutes} min{st ? ` · Best ${Math.round(st.best * 100)}%` : ''}</span></span>
-                    {st?.done && <span className="tag fly-tag" title="Radio flight unlocked"><Icon name="fly" size={13} /><span className="sr-only">Radio flight unlocked</span></span>}
+                    {st?.done && <span className="tag fly-tag" title="Reward flight unlocked"><Icon name="fly" size={13} /><span className="sr-only">Reward flight unlocked</span></span>}
                   </a></li>
                 ); })}
               </ul>

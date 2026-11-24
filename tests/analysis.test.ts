@@ -33,14 +33,6 @@ describe('flight analysis', () => {
     expect(a.tips.length).toBeGreaterThan(0);
   });
 
-  it('explains a wrong decision with the better choice, and points back to the concept', () => {
-    const def = mission('c-fuel-reserve');
-    const a = analyse(def, result({ decisionsTotal: 2, decisionsCorrect: 1, decisionResults: [false, true], fuelLeft: 0.5 }));
-    expect(a.mistakes.join(' ')).toMatch(/Decision 1 was not the best choice\. Better: Recalculate now/);
-    expect(a.mistakes.join(' ')).not.toMatch(/Decision 2/);
-    expect(a.tips.join(' ')).toMatch(/Revisit the concept/);
-    expect(a.strengths.join(' ')).toMatch(/50%/);
-  });
 
   it('judges a crosswind landing by the centreline and the track', () => {
     const def = mission('c-crosswind-landing');
@@ -66,7 +58,7 @@ describe('flight analysis', () => {
   });
 
   it('never returns more than four tips and no duplicates', () => {
-    const a = analyse(mission('c-fuel-reserve'), result({ success: false, checkpoints: 0, hits: 3, time: 200, fuelLeft: 0.02, decisionResults: [false, false], decisionsTotal: 2 }));
+    const a = analyse(mission('c-fuel-reserve'), result({ success: false, checkpoints: 0, hits: 3, time: 200, fuelLeft: 0.02 }));
     expect(a.tips.length).toBeLessThanOrEqual(4);
     expect(new Set(a.tips).size).toBe(a.tips.length);
   });

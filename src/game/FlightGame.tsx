@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Decision, GameAircraft, MissionDef, MissionResult } from '../types';
+import type { GameAircraft, MissionDef, MissionResult } from '../types';
 import { GAME_AIRCRAFT, LIVERIES } from '../content/reference';
 import { allMissions } from '../content';
 import { actions, useProgress } from '../store/progress';
@@ -9,8 +9,6 @@ import { Btn, Chip, Icon, AircraftArt, More } from '../components/ui';
 import { MissionComplete } from '../components/MissionComplete';
 import { FlightReport } from '../components/FlightReport';
 import { BoosterBar } from '../components/BoosterBar';
-import { canListen, canSpeak, listen, speak } from '../engine/speech';
-import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
 import { ENV_NOTES, WEATHER_NAME, WEATHER_NOTES, weatherEffects } from './weather';
@@ -18,7 +16,7 @@ import { learningLine } from './objectives';
 import { PHASES, phasePlan, type PhaseId } from './phases';
 import { ThrottleLever, TouchStick } from './TouchControls';
 
-type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
+type Phase = 'briefing' | 'flying' | 'paused' | 'debrief';
 type Orientation = { lock?: (o: string) => Promise<void>; unlock?: () => void };
 
 /** Phones and tablets in either orientation, and any narrow or short window, play in a dedicated full-viewport container; wide desktop windows keep the card. */
@@ -59,8 +57,6 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const portrait = useMedia('(orientation: portrait)');
   const [phase, setPhase] = useState<Phase>('briefing');
   const [message, setMessage] = useState('');
-  const [decision, setDecision] = useState<Decision | null>(null);
-  const [decisionFeedback, setDecisionFeedback] = useState<{ text: string; correct: boolean } | null>(null);
   const [result, setResult] = useState<MissionResult | null>(null);
   const [gained, setGained] = useState(0);
   const [prevBest, setPrevBest] = useState<number | null>(null);
@@ -69,8 +65,6 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [isFs, setIsFs] = useState(false);
   const [boost, setBoost] = useState<BoosterView | null>(null);
   const [fps, setFps] = useState<{ fps: number; worst: number } | null>(null);
-  const [heard, setHeard] = useState<{ text: string; missing: string[] } | null>(null);
-  const [listening, setListening] = useState(false);
   const [fphase, setFphase] = useState<PhaseId>('preflight');
   const wantFs = useRef(true);
   const fsOk = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
@@ -99,7 +93,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   }, []);
 
   const start = useCallback(() => {
-    setResult(null); setMessage(''); setDecision(null); setDecisionFeedback(null);
+    setResult(null); setMessage('');
     setPhase('flying'); setRun((r) => r + 1); setBoost(null);
     if (!p.seenTutorial) actions.seenTutorial();
     setShowHelp(false);
@@ -133,7 +127,6 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
       onMessage: setMessage,
       onBoosters: setBoost,
       onPhase: setFphase,
-      onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setHeard(null); setPhase('decision'); },
       onEnd: (r) => { setPrevBest(p.missions[def.id]?.best ?? null); setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
     });
     game.current = g;
@@ -258,9 +251,9 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
               </More>
               <More label="Rings and boosters" icon="star" className="inline">
                 <ul className="guide-list">
-                  {Object.values(RING_STYLE).filter((r) => r.name !== 'English challenge ring' || def.english).map((r) => <li key={r.name}><i className="guide-dot" style={{ background: r.color }} /> <strong>{r.name}.</strong> {r.blurb}</li>)}
+                  {Object.values(RING_STYLE).map((r) => <li key={r.name}><i className="guide-dot" style={{ background: r.color }} /> <strong>{r.name}.</strong> {r.blurb}</li>)}
                 </ul>
-                <p className="small"><strong>Boosters</strong> are arcade power-ups, not real aircraft systems. Tap one (or press 1 to 3) to use it; two at a time at most. They never change a decision or an answer.</p>
+                <p className="small"><strong>Boosters</strong> are arcade power-ups, not real aircraft systems. Tap one (or press 1 to 3) to use it; two at a time at most.</p>
                 <ul className="guide-list">
                   {Object.values(BOOSTERS).map((b) => <li key={b.name}><i className="guide-dot" style={{ background: b.color }} /> <strong>{b.name}.</strong> {b.blurb}</li>)}
                 </ul>
@@ -275,50 +268,6 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             <div className="overlay-card narrow">
               <h2>Paused</h2>
               <div className="row gap wrap"><Btn kind="accent" icon="play" onClick={resume}>Resume</Btn><Btn kind="soft" icon="refresh" onClick={start}>Restart</Btn><Btn kind="ghost" href={exitHref}>Exit mission</Btn></div>
-            </div>
-          </div>
-        )}
-
-        {phase === 'decision' && decision && (
-          <div className="overlay">
-            <div className="overlay-card">
-              <Chip tone="accent">{decision.english ? 'Radio call' : 'Operational decision'}</Chip>
-              {decision.english?.safetyCritical && <Chip tone="warn">Safety-critical call</Chip>}
-              {decision.english && (
-                <div className="radio-call">
-                  {decision.english.transmission && <blockquote>“{decision.english.transmission}”</blockquote>}
-                  <div className="row gap wrap">
-                    {decision.english.transmission && <Btn small kind="soft" icon="sound" onClick={() => { if (canSpeak()) speak(decision.english!.transmission, { rate: p.settings.speechRate }); }}>{canSpeak() ? 'Hear the call' : 'Read the call above'}</Btn>}
-                    {decision.english.voice && canListen() && !decisionFeedback && (
-                      <Btn small kind="soft" icon="mic" onClick={() => {
-                        setListening(true);
-                        listen({
-                          onResult: (text) => {
-                            const ev = evaluate({ kind: 'readback', required: decision.english!.voice!, model: '', style: 'Standard phraseology' }, text);
-                            setHeard({ text, missing: ev.missing });
-                            if (ev.complete) { const ok = decision.options.find((o) => o.correct); if (ok) { setDecisionFeedback({ text: ok.feedback, correct: true }); audio.sfx('ok'); } }
-                          },
-                          onError: () => setHeard({ text: '', missing: [] }),
-                          onEnd: () => setListening(false),
-                        });
-                      }}>{listening ? 'Listening…' : 'Answer by voice'}</Btn>
-                    )}
-                  </div>
-                  <p className="small muted">{decision.english.skill === 'phraseology' ? 'Radiotelephony phraseology: standard words matter.' : 'Language comprehension.'} Tapping an answer always works; voice is optional and checked by your browser, not an official assessment.</p>
-                  {heard && <p className="small" role="status">{heard.text ? `I heard: “${heard.text}”.` : 'I could not hear that.'} {heard.missing.length ? `Missing: ${heard.missing.join(', ')}. Try again or tap an answer.` : heard.text ? 'Complete readback.' : ''}</p>}
-                </div>
-              )}
-              <p className="q-prompt">{decision.prompt}</p>
-              {!decisionFeedback ? (
-                <div className="options">
-                  {decision.options.map((o) => <button key={o.text} type="button" className="option" onClick={() => { setDecisionFeedback({ text: o.feedback, correct: !!o.correct }); audio.sfx(o.correct ? 'ok' : 'bad'); }}><span className="option-dot" />{o.text}</button>)}
-                </div>
-              ) : (
-                <>
-                  <div className={`feedback ${decisionFeedback.correct ? 'ok' : 'bad'}`}><strong>{decisionFeedback.correct ? 'Good decision.' : 'Not the best choice.'}</strong> {decisionFeedback.text}</div>
-                  <Btn kind="accent" icon="play" onClick={() => { game.current?.answerDecision(decisionFeedback.correct); setDecision(null); setPhase('flying'); }}>Continue flight</Btn>
-                </>
-              )}
             </div>
           </div>
         )}

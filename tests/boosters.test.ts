@@ -208,15 +208,6 @@ describe('what each booster does', () => {
 });
 
 describe('balance and educational integrity', () => {
-  it('never changes a decision: a wrong answer is still wrong with every booster in use', () => {
-    const m = MISSIONS.find((x) => (x.decisions?.length ?? 0) >= 1 && !x.landing && !x.takeoff)!;
-    const h = headless(m, { startBoosters: ['shield', 'assist', 'multiplier'] });
-    h.g.activateBooster(0); h.g.activateBooster(0);
-    for (let i = 0; i < 60 * 600 && !h.result(); i++) { if (h.g.snapshot().state === 'decision') h.g.answerDecision(false); h.g.step(1 / 60); }
-    const r = h.result()!;
-    expect(r.decisionsCorrect).toBe(0);
-    expect(r.decisionResults!.every((x) => x === false)).toBe(true);
-  });
   it('does not make failure impossible: ground contact still ends a flight with every booster active', () => {
     const h = headless(calm(), { startBoosters: ['shield', 'slow', 'assist'] });
     h.g.activateBooster(0); h.g.activateBooster(0);

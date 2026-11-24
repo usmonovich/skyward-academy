@@ -29,7 +29,7 @@ export function headless(def: MissionDef, o: Partial<GameOptions> = {}): { g: Ga
   stubBrowser();
   const ac = GAME_AIRCRAFT.find((x) => x.id === def.aircraftId)!;
   const messages: string[] = []; const views: BoosterView[] = []; let result: MissionResult | undefined;
-  const g = createGame(fakeCanvas(), def, ac, { assisted: false, livery: '#f58220', reducedMotion: true, noRender: true, ...o }, { onMessage: (m) => messages.push(m), onBoosters: (v) => views.push(v), onDecision() {}, onEnd: (r) => { result = r; } });
+  const g = createGame(fakeCanvas(), def, ac, { assisted: false, livery: '#f58220', reducedMotion: true, noRender: true, ...o }, { onMessage: (m) => messages.push(m), onBoosters: (v) => views.push(v), onEnd: (r) => { result = r; } });
   return { g, messages, views, result: () => result };
 }
 
@@ -37,8 +37,6 @@ export interface FlightOptions {
   /** good: flies the mission; idle: gives no input at all. */
   mode?: 'good' | 'idle';
   assisted?: boolean;
-  /** Answer every decision wrongly. */
-  wrongDecisions?: boolean;
   /** Aim at this fraction of each ring's own radius above (negative) or below (positive) its centre, to test the edge of the scoring area. */
   ringOffset?: number;
   /** Give up after this many seconds of simulated time. */
@@ -46,7 +44,7 @@ export interface FlightOptions {
   /** Called every step before the autopilot's input, for tests that act during the flight (for example a go-around). */
   onStep?: (g: GameHandle, s: ReturnType<GameHandle['snapshot']>) => void;
 }
-export interface Flight { result?: MissionResult; seconds: number; decisions: number; timedOut: boolean }
+export interface Flight { result?: MissionResult; seconds: number; timedOut: boolean }
 
 export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
   stubBrowser();
@@ -57,7 +55,7 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
   const landMax = ac.minKt + range * 0.5;
   let result: MissionResult | undefined;
   const g = createGame(fakeCanvas(), def, ac, { assisted: !!o.assisted, livery: '#f58220', reducedMotion: true, noRender: true }, {
-    onMessage() {}, onDecision() {}, onEnd: (r) => { result = r; },
+    onMessage() {}, onEnd: (r) => { result = r; },
   });
   const L = def.lateral;
   const planned = (wx: number): number => {
@@ -66,12 +64,11 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
     for (let i = 0; i < level.gates.length && i < w.length; i++) { const gx = level.gates[i].x; if (wx <= gx) return pl + (w[i].lat - pl) * clamp((wx - px) / Math.max(1, gx - px), 0, 1); px = gx; pl = w[i].lat; }
     return pl;
   };
-  let decisions = 0; let steps = 0; const maxSteps = (o.maxSeconds ?? 600) * 60;
+  let steps = 0; const maxSteps = (o.maxSeconds ?? 600) * 60;
   while (!result && steps < maxSteps) {
     steps++;
     const s = g.snapshot();
     o.onStep?.(g, s);
-    if (s.state === 'decision') { decisions++; g.answerDecision(!o.wrongDecisions); continue; }
     if (s.state === 'ended') break;
     if (mode === 'good') {
       const wx = s.worldX + PLANE_X;
@@ -115,5 +112,5 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
     g.step(1 / 60);
   }
   g.destroy();
-  return { result, seconds: result?.time ?? steps / 60, decisions, timedOut: !result };
+  return { result, seconds: result?.time ?? steps / 60, timedOut: !result };
 }

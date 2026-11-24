@@ -9,7 +9,6 @@ function hold(def: MissionDef, height: number | null, assisted: boolean): Missio
   const { g, result } = headless(def, { assisted });
   for (let i = 0; i < 700 * 60 && !result(); i++) {
     const s = g.snapshot();
-    if (s.state === 'decision') { g.answerDecision(true); continue; }
     if (s.state === 'ended') break;
     if (height !== null) g.setInput({ x: s.kt < 100 ? 0.4 : 0, y: Math.max(-1, Math.min(1, (height - s.y) / 35)) });
     g.step(1 / 60);
@@ -38,7 +37,7 @@ describe('passive completion (scripted checks, not human playtesting)', () => {
   });
 
   it('no single height holds enough rings to reach the 65 percent needed, on any mission that has a spread', () => {
-    for (const m of MISSIONS.filter((x) => !x.lateral && !x.stormDrift && !x.english)) {
+    for (const m of MISSIONS.filter((x) => !x.lateral && !x.stormDrift)) {
       const gates = buildLevel(m).gates;
       if (gates.length < 4) continue;
       let best = 0;

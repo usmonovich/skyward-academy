@@ -34,7 +34,7 @@ describe('every new flight draws in every mode (batch 6)', () => {
   it('rain, storm, tornado, fog, snow, phases and scenery draw at every quality, with and without reduced motion and flashes', () => {
     for (const m of sample) for (const quality of ['high', 'low'] as const) for (const reducedMotion of [false, true]) {
       const { g } = headless(m, { noRender: false, quality, reducedMotion, reduceFlashing: reducedMotion });
-      expect(() => { for (let i = 0; i < 90; i++) { if (g.snapshot().state === 'decision') g.answerDecision(true); g.step(1 / 60); } }, `${m.id} ${quality} ${reducedMotion}`).not.toThrow();
+      expect(() => { for (let i = 0; i < 90; i++) { g.step(1 / 60); } }, `${m.id} ${quality} ${reducedMotion}`).not.toThrow();
       g.destroy();
     }
   });

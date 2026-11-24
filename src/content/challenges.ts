@@ -112,7 +112,7 @@ export const CHALLENGES: MissionDef[] = [
   base({ id: 'c-alternate-or-continue', title: 'Alternate or Continue', tier: 'Advanced', requires: ['cpl-weather-related-decisions'], aircraftId: 'albatross', env: 'mountains', seed: 311, length: 12500, parTime: 54, checkpoints: 6, fuel: true, landing: true, xp: 90,
     obstacles: { density: 0.3, types: ['storm', 'balloon'] },
     concept: 'Weather decisions: decide early between continuing and diverting, using the fuel and the forecast you have.',
-    objective: 'Fly the route, make two early weather decisions and land.',
+    objective: 'Fly the route around the weather and land.',
     briefing: 'Weather at the destination is getting worse while your fuel is limited. Good pilots decide early, and they decide with a margin. Educational scenario, not an operational procedure.',
     outcome: 'Weigh weather, fuel and options to decide between continuing and diverting.',
     messages: [{ at: 0.78, text: 'A heavier aircraft is slow to slow down. Reduce power early so you are at approach speed at the runway.' }],
@@ -127,7 +127,7 @@ export const CHALLENGES: MissionDef[] = [
         { text: 'Turn back to the destination', feedback: 'The destination weather is already below limits, so turning back removes your best option.' }] }] }),
   base({ id: 'c-engine-after-takeoff', title: 'Engine Trouble After Take-off', tier: 'Advanced', requires: ['cpl-emergency-decision-making'], seed: 312, length: 8000, parTime: 38, checkpoints: 3, takeoff: true, xp: 90,
     concept: 'In an emergency, fly the aircraft first (aviate), then decide where to go (navigate) and then communicate.',
-    objective: 'Take off, answer the emergency decision correctly and reach the finish line.',
+    objective: 'Take off, keep flying the aircraft and reach the finish line.',
     briefing: 'Shortly after take-off the engine loses power. Training teaches a clear order: aviate, navigate, communicate. Educational scenario: the right action depends on the aircraft, the height and the surroundings; follow your aircraft manual and training.',
     outcome: 'Prioritise flying the aircraft over troubleshooting in an emergency.',
     decisions: [{ at: 0.3, prompt: 'The engine loses power shortly after take-off and you are low. What do you do first?', options: [

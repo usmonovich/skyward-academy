@@ -19,9 +19,6 @@ describe('three stars need excellent flying', () => {
     expect(scoreMission(40, { ...clean, hits: 1 }).stars).toBe(3);
     expect(scoreMission(40, { ...clean, hits: 2 }).stars).toBeLessThanOrEqual(2);
   });
-  it('a wrong safety-critical decision still prevents a perfect rating', () => {
-    expect(scoreMission(40, { ...clean, safetyWrong: 1 }).stars).toBe(2);
-  });
   it('a failed flight earns nothing', () => expect(scoreMission(40, { ...clean, success: false })).toEqual({ score: 0, stars: 0 }));
 });
 
@@ -31,7 +28,6 @@ describe('boosters do not guarantee success', () => {
       const { g, result } = headless(m, { startBoosters: ['shield', 'assist', 'slow'] });
       for (let i = 0; i < 700 * 60 && !result(); i++) {
         const s = g.snapshot();
-        if (s.state === 'decision') { g.answerDecision(true); continue; }
         if (s.state === 'ended') break;
         if (i % 600 === 5) { g.activateBooster(0); g.activateBooster(1); g.activateBooster(2); }
         g.step(1 / 60);

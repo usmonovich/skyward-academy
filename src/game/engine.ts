@@ -1,7 +1,8 @@
 // Reusable 2D mission engine. A mission is plain data (MissionDef); this module turns it into a
-// playable side-scrolling flight with gates, obstacles, wind, terrain, fuel, take-off, landing and decisions.
+// playable side-scrolling flight with gates, obstacles, wind, terrain, fuel, take-off and landing. The flight is never
+// interrupted by questions: decisions and radio calls belong to the lessons, not to the flying.
 // The physics are deliberately simplified arcade physics — this is not a flight training device.
-import type { Decision, EnglishRing, EnvId, GameAircraft, MissionDef, MissionResult, MissionStats, ObstacleType } from '../types';
+import type { EnvId, GameAircraft, MissionDef, MissionResult, MissionStats, ObstacleType } from '../types';
 import { mulberry32 } from '../engine/assessment';
 import { scoreMission } from '../engine/gamification';
 import { isaPressure } from '../content/formulas';
@@ -22,17 +23,16 @@ const TAKEOFF_RUNWAY = 1300;
  * Ring kinds. Each has its own colour, outline pattern and a glyph, so no kind is told apart by colour alone.
  * The drawn opening of every ring is exactly its scoring radius r.
  */
-export type RingKind = 'cloud' | 'gold' | 'precision' | 'nav' | 'english' | 'special';
-export interface RingStyle { name: string; color: string; dash: number[]; glyph: 'none' | 'star' | 'ticks' | 'chevron' | 'bubble' | 'diamond'; blurb: string }
+export type RingKind = 'cloud' | 'gold' | 'precision' | 'nav' | 'special';
+export interface RingStyle { name: string; color: string; dash: number[]; glyph: 'none' | 'star' | 'ticks' | 'chevron' | 'diamond'; blurb: string }
 export const RING_STYLE: Record<RingKind, RingStyle> = {
   cloud: { name: 'Cloud ring', color: '#3a8dde', dash: [], glyph: 'none', blurb: 'A normal checkpoint. Fly through the opening.' },
   gold: { name: 'Golden ring', color: '#f2b705', dash: [], glyph: 'star', blurb: 'A bonus ring: extra points when you fly through it.' },
   precision: { name: 'Precision ring', color: '#f58220', dash: [], glyph: 'ticks', blurb: 'A smaller ring for accurate flying: a bigger bonus.' },
   nav: { name: 'Navigation ring', color: '#12a594', dash: [8, 5], glyph: 'chevron', blurb: 'A waypoint on your route: cross it on the planned track.' },
-  english: { name: 'English challenge ring', color: '#7a5af5', dash: [2, 6], glyph: 'bubble', blurb: 'A radio question ring: answer the call correctly.' },
   special: { name: 'Special ring', color: '#e0457b', dash: [10, 4, 2, 4], glyph: 'diamond', blurb: 'A feature ring for advanced missions: a large bonus.' },
 };
-export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number; /** English rings: index of the radio call this ring carries. */ q?: number }
+export interface Gate { x: number; y: number; r: number; state: 'open' | 'hit' | 'missed'; kind: RingKind; /** Bonus points for flying through it. */ value: number }
 export interface Obstacle { x: number; y: number; r: number; type: ObstacleType; phase: number; h: number }
 /**
  * Arcade boosters. These are game mechanics, not aviation capabilities: no real aircraft has a shield or can slow
@@ -49,7 +49,7 @@ export const BOOSTERS: Record<BoosterKind, BoosterInfo> = {
   speed: { name: 'Speed boost', short: '\u00BB', color: '#f58220', duration: 6, cooldown: 12, blurb: 'A burst of speed. The trade-off: steering is harder while it lasts.' },
   assist: { name: 'Precision assist', short: '\u25CE', color: '#12a594', duration: 10, cooldown: 10, blurb: 'A guide line to the next ring and gentle steering help. You still fly the aircraft.' },
   xp: { name: 'Bonus XP token', short: 'XP', color: '#7a5af5', duration: 0, cooldown: 0, blurb: 'Collected instantly: a small bonus of XP when you complete the mission.' },
-  recovery: { name: 'Recovery', short: '+', color: '#3aa655', duration: 0, cooldown: 20, blurb: 'Brings back one contact light after a minor mistake. It cannot undo a wrong decision.' },
+  recovery: { name: 'Recovery', short: '+', color: '#3aa655', duration: 0, cooldown: 20, blurb: 'Brings back one contact light after a minor mistake.' },
 };
 export interface Pickup { x: number; y: number; kind: BoosterKind; taken: boolean }
 export interface Level { gates: Gate[]; obstacles: Obstacle[]; pickups: Pickup[]; runwayStart: number; runwayEnd: number }
@@ -93,20 +93,6 @@ function assignRings(def: MissionDef, gates: Gate[]) {
     else if (def.tier !== 'Beginner' && i % 5 === 2 && !last) { g.kind = 'precision'; g.r = 36; g.value = 30; }
     g.y = Math.max(g.y, CEIL + g.r + 6);
   });
-}
-
-/** English missions: the radio calls ride on rings spread evenly along the route, never the first or the last. */
-function assignEnglish(def: MissionDef, gates: Gate[]) {
-  const m = def.english?.rings.length ?? 0;
-  if (!m || gates.length < 4) return;
-  const used = new Set<number>();
-  for (let k = 0; k < m; k++) {
-    let idx = clamp(Math.round(((k + 1) / (m + 1)) * (gates.length - 1)), 1, gates.length - 2);
-    while (used.has(idx) && idx < gates.length - 2) idx++;
-    if (used.has(idx)) break;
-    used.add(idx);
-    const g = gates[idx]; g.kind = 'english'; g.value = 40; g.r = 48; g.q = k;
-  }
 }
 
 /** Rings needed to complete a flight: 65 percent, or 50 percent in assisted mode. */
@@ -184,7 +170,6 @@ export function buildLevel(def: MissionDef): Level {
     if (most / gates.length >= 0.6) gates.forEach((g, i) => { g.y = before[i]; });
   }
   assignRings(def, gates);
-  assignEnglish(def, gates);
   const obstacles: Obstacle[] = [];
   const want = Math.round((def.obstacles.density * (x1 - x0)) / 400);
   for (let tries = 0; obstacles.length < want && tries < want * 8; tries++) {
@@ -223,7 +208,6 @@ export interface GameCallbacks {
   onMessage: (text: string) => void;
   /** Called when the booster bar changes, and about four times a second while a booster runs. */
   onBoosters?: (v: BoosterView) => void;
-  onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
   /** Called when the flight moves into a new phase (take-off, climb, cruise, approach, landing, complete). */
   onPhase?: (p: PhaseId) => void;
@@ -242,7 +226,6 @@ export interface GameHandle {
   /** Activates the held booster in slot i. Returns whether it was activated. */
   activateBooster(i: number): boolean;
   boosters(): BoosterView;
-  answerDecision(correct: boolean): void;
   /** Test hook: advances the simulation by one fixed time step and redraws (used when animation frames are throttled). */
   step(dt: number): void;
   /** Debug/test hook: read-only snapshot of the simulation. */
@@ -334,7 +317,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const altScale = def.altScale ?? 10;
   const accel = def.env === 'desert' ? 0.3 : 0.5;
 
-  let state: 'run' | 'paused' | 'decision' | 'rollout' | 'ended' = 'run';
+  let state: 'run' | 'paused' | 'rollout' | 'ended' = 'run';
   let worldX = 0;
   let onGround = !!def.takeoff;
   let y = onGround ? GROUND - 14 : 260;
@@ -350,8 +333,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let fuel = 1;
   let bandIn = 0; let bandAll = 0;
   let landing: MissionStats['landing'];
-  let decisionsCorrect = 0;
-  let nextDecision = 0;
   let nextMessage = 0;
   let stallWarned = 0;
   let raf = 0;
@@ -360,7 +341,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   // Sideways track (lateral missions) and go-around state. Both are optional mission features.
   let lat = 0; let hdg = 0; let latIn = 0; let latAll = 0; let errSum = 0; let maxOff = 0; let touchOff: number | undefined;
   let gaState: 'idle' | 'active' = 'idle'; let gaAt = 0; let gaY = 0; let gaClimbed = false; let gaClimbT = 0; let gaLanded = false;
-  const trace: number[][] = []; let traceT = 0; const decisionLog: boolean[] = [];
+  const trace: number[][] = []; let traceT = 0;
   // Ring bonus and the pass-through effects. Bonus points are shown and rewarded, but never change the star formula.
   let bonus = 0; let ringsHit = 0;
   // Boosters: the held inventory, the active ones with their time left, per-kind cooldowns and the tallies for the debrief.
@@ -371,10 +352,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   let collected = 0; let xpTokens = 0; let absorbed = 0; let emitAcc = 0;
   const ringTally: Partial<Record<RingKind, { hit: number; total: number }>> = {};
   const bursts: { gi: number; x: number; y: number; t0: number; kind: RingKind; text: string }[] = [];
-  // Radio calls (English missions): the call being answered, and the record of every answer.
-  let pendingEnglish: EnglishRing | null = null;
   const trail: { x: number; y: number; age: number }[] = []; let trailT = -1; let visPitch = 0;
-  const englishLog: { ring: EnglishRing; correct: boolean }[] = [];
   for (const g of level.gates) { const k = (ringTally[g.kind] ??= { hit: 0, total: 0 }); k.total++; }
   const keys = new Set<string>();
   const input = { x: 0, y: 0, h: 0 };
@@ -401,7 +379,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (p !== 'cruise' && p !== 'complete' && p !== 'takeoff') say(PHASES[p].cue);
   }
   const messages = [...(def.messages ?? [])].sort((a, b) => a.at - b.at);
-  const decisions = [...(def.decisions ?? [])].sort((a, b) => a.at - b.at);
   const clouds = Array.from({ length: 9 }, (_, i) => ({ x: (i * 173 + def.seed * 37) % 1500, y: 50 + ((i * 97 + def.seed * 13) % 190), s: 0.6 + ((i * 31) % 10) / 12 }));
 
   const pxSpeed = () => (kt < ac.minKt ? 140 * (kt / ac.minKt) : 140 + clamp((kt - ac.minKt) / range, 0, 1.1) * 200) * (isActive('speed') ? 1.35 : 1);
@@ -446,24 +423,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     bursts.push({ gi, x: g.x, y: g.y, t0: t, kind: g.kind, text: g.kind === 'cloud' || g.kind === 'nav' ? `${ringsHit}/${level.gates.length}` : `+${pts}` });
     if (bursts.length > 6) bursts.shift();
   }
-  const decisionResultsWrong = () => decisionLog.filter((x) => !x).length;
-  function englishSummary(): NonNullable<MissionStats['english']> {
-    const out: NonNullable<MissionStats['english']> = { asked: englishLog.length, correct: englishLog.filter((e) => e.correct).length, bySkill: { comprehension: { asked: 0, correct: 0 }, phraseology: { asked: 0, correct: 0 } }, byTopic: {}, wrong: [] };
-    for (const e of englishLog) {
-      const sk = out.bySkill[e.ring.skill]; sk.asked++; if (e.correct) sk.correct++;
-      const tp = (out.byTopic[e.ring.topic] ??= { asked: 0, correct: 0 }); tp.asked++; if (e.correct) tp.correct++;
-      if (!e.correct) out.wrong.push({ transmission: e.ring.transmission, topic: e.ring.topic, safetyCritical: !!e.ring.safetyCritical, skill: e.ring.skill });
-    }
-    return out;
-  }
-  /** Stops the flight for a radio call. The answer arrives through answerDecision, exactly like an operational decision. */
-  function askEnglish(q: number) {
-    const ring = def.english?.rings[q];
-    if (!ring || state !== 'run') return;
-    pendingEnglish = ring;
-    state = 'decision';
-    cb.onDecision({ at: 0, prompt: ring.prompt, options: ring.options, english: { transmission: ring.transmission, skill: ring.skill, topic: ring.topic, safetyCritical: !!ring.safetyCritical, voice: ring.voice } });
-  }
   /** Height of an obstacle right now: birds flap, and storm cells drift when the mission says so. Used by collisions and drawing alike. */
   const obstacleY = (o: { type: string; y: number; phase: number }) => (o.type === 'birds' ? o.y + Math.sin(t * 2 + o.phase) * 40 : o.type === 'storm' && def.stormDrift ? o.y + Math.sin(t * 0.8 + o.phase) * 60 : o.y);
   /** The sideways position the route asks for at the aircraft's distance: straight on, or a line through the waypoints. */
@@ -491,17 +450,15 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const stats: MissionStats = {
       success, reason, time: t, checkpoints: level.gates.filter((g) => g.state === 'hit').length, total: level.gates.length, hits,
       bandFraction: def.speedBand ? (bandAll > 0 ? bandIn / bandAll : 0) : def.lateral ? (latAll > 0 ? latIn / latAll : 0) : undefined, landing,
-      // A go-around counts as one decision: right when the climb started within seven seconds of the call.
-      decisionsCorrect: decisionsCorrect + (def.goAround && gaClimbed && gaClimbT <= 7 ? 1 : 0) + englishLog.filter((e) => e.correct).length, decisionsTotal: decisions.length + (def.goAround ? 1 : 0) + englishLog.length,
-      english: def.english ? englishSummary() : undefined,
-      safetyWrong: decisionResultsWrong() + englishLog.filter((e) => !e.correct && e.ring.safetyCritical).length,
+      // The only in-flight judgement scored is the go-around: right when the climb started within seven seconds of the call.
+      decisionsCorrect: def.goAround && gaClimbed && gaClimbT <= 7 ? 1 : 0, decisionsTotal: def.goAround ? 1 : 0,
       fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
       phases: [...phasesFlown], touchdownZone: tdZone,
       weather: WX ? { tornadoMin: TOR && Number.isFinite(torMin) ? Math.round(torMin) : undefined, stormHits } : undefined,
       approach: def.landing && !def.goAround && (apAll > 0 || goArounds > 0) ? { stability: apAll > 0 ? apStable / apAll : 0, goArounds } : undefined,
-      trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog], bonus, ringTypes: ringTally,
+      trace, gateStates: level.gates.map((g) => g.state), bonus, ringTypes: ringTally,
       boosters: { collected, used: { ...used }, xpTokens, absorbed },
     };
     audio.sfx(success ? 'win' : 'fail');
@@ -569,11 +526,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const wx = worldX + PLANE_X;
 
     while (nextMessage < messages.length && messages[nextMessage].at * def.length <= worldX) say(messages[nextMessage++].text);
-    if (nextDecision < decisions.length && decisions[nextDecision].at * def.length <= worldX) {
-      state = 'decision';
-      cb.onDecision(decisions[nextDecision]);
-      return;
-    }
 
     if (state === 'rollout') {
       kt = Math.max(0, kt - 45 * dt);
@@ -687,9 +639,8 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       if (g.state === 'open' && wx >= g.x) {
         const wp = def.lateral?.waypoints?.[level.gates.indexOf(g)];
         const sideOk = !wp || Math.abs(lat - wp.lat) <= def.lateral!.tol;
-        if (Math.abs(y - g.y) <= ringR(g) && sideOk) { ringHit(g, level.gates.indexOf(g)); if (g.kind === 'english' && g.q !== undefined) { askEnglish(g.q); break; } }
+        if (Math.abs(y - g.y) <= ringR(g) && sideOk) ringHit(g, level.gates.indexOf(g));
         else { g.state = 'missed'; if (wp && !sideOk) say(`Waypoint ${wp.name} missed: you were off the planned track. Turn earlier and hold the heading.`); }
-        if (g.kind === 'english' && g.q !== undefined) { askEnglish(g.q); break; }
       }
     }
     for (const pk of level.pickups) {
@@ -802,7 +753,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       if (st.glyph === 'star') { ctx.beginPath(); for (let k = 0; k < 10; k++) { const rr = k % 2 ? 4.5 : 10; const a = -1.5708 + (k * 3.1416) / 5; ctx.lineTo(sx + Math.cos(a) * rr, top + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
       else if (st.glyph === 'diamond') { ctx.beginPath(); ctx.moveTo(sx, top - 9); ctx.lineTo(sx + 8, top); ctx.lineTo(sx, top + 9); ctx.lineTo(sx - 8, top); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       else if (st.glyph === 'chevron') { ctx.lineWidth = 3; ctx.strokeStyle = st.color; ctx.beginPath(); ctx.moveTo(sx - 5, top - 7); ctx.lineTo(sx + 4, top); ctx.lineTo(sx - 5, top + 7); ctx.stroke(); }
-      else if (st.glyph === 'bubble') { ctx.beginPath(); ctx.arc(sx, top, 8, 0, 6.2832); ctx.fill(); ctx.stroke(); label('?', sx, top + 4, 11, '#ffffff', 'center', 800); }
       else if (st.glyph === 'ticks') { ctx.lineWidth = 2.5; ctx.strokeStyle = st.color; ctx.beginPath(); ctx.ellipse(sx, g.y, Math.max(2, rx * 0.5), ry * 0.5, 0, 0, 6.2832); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx, g.y - ry - 12); ctx.lineTo(sx, g.y - ry - 3); ctx.moveTo(sx, g.y + ry + 3); ctx.lineTo(sx, g.y + ry + 12); ctx.stroke(); }
     }
     ctx.restore();
@@ -1231,12 +1181,6 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
     setThrottle(v) { thrTarget = v === null ? null : clamp(v, 0, 1); },
     goAround: () => goAroundNow(),
-    answerDecision(correct) {
-      if (state !== 'decision') return;
-      if (pendingEnglish) { englishLog.push({ ring: pendingEnglish, correct }); pendingEnglish = null; }
-      else { decisionLog.push(correct); if (correct) decisionsCorrect++; nextDecision++; }
-      state = 'run'; last = performance.now(); keys.clear();
-    },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
     snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus, thr, phase }),
   };
@@ -1254,7 +1198,7 @@ export function debrief(def: MissionDef, r: MissionResult): string[] {
     out.push(`Approach: on the glide path at a safe speed ${st}% of the time.${st < 60 ? ' Settle the descent earlier: two white and two red slope lights, speed in the lower half.' : ''}${r.approach.goArounds ? ` You chose ${r.approach.goArounds === 1 ? 'a go-around' : 'two go-arounds'}: going around from an approach that is not stable is good airmanship.` : ''}`);
   }
   if (r.landing) out.push((r.landing === 'smooth' ? 'Touchdown: smooth.' : r.landing === 'firm' ? 'Touchdown: firm. Reduce the descent rate before the runway.' : 'Touchdown: hard. Begin the descent earlier and arrive slower.') + (r.touchdownZone === 'long' ? ' It was long: aim for the first third of the runway.' : r.touchdownZone === 'in' ? ' In the touchdown zone.' : ''));
-  if (r.decisionsTotal) out.push(`Operational decisions: ${r.decisionsCorrect} of ${r.decisionsTotal} correct.`);
+  if (r.goAround) out.push(r.goAround === 'done' ? 'Go-around started promptly.' : r.goAround === 'late' ? 'Go-around started late: add power and climb as soon as the runway is blocked.' : 'No go-around flown over the blocked runway.');
   if (r.fuelLeft !== undefined) out.push(`Fuel remaining on arrival: ${Math.round(r.fuelLeft * 100)}%.`);
   out.push(r.time <= def.parTime ? `Time ${r.time.toFixed(1)} s — inside the target of ${def.parTime} s.` : `Time ${r.time.toFixed(1)} s — target ${def.parTime} s.`);
   if (r.assisted) out.push('Flown in Assisted mode.');

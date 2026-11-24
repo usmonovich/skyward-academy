@@ -31,11 +31,6 @@ export function flightSummary(result: MissionResult): { label: string; value: st
   if (result.landing) rows.push({ label: 'Touchdown', value: `${result.landing[0].toUpperCase()}${result.landing.slice(1)}${result.touchdownZone ? (result.touchdownZone === 'in' ? ', in the touchdown zone' : ', long') : ''}` });
   const used = Object.entries(result.boosters?.used ?? {}).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `${BOOSTERS[k as keyof typeof BOOSTERS]?.name ?? k} ×${n}`);
   rows.push({ label: 'Boosters used', value: used.length ? used.join(', ') : 'None' });
-  if (result.decisionsTotal > 0) rows.push({ label: 'Questions answered correctly', value: `${result.decisionsCorrect} of ${result.decisionsTotal}` });
-  if (result.english && result.english.asked > 0) {
-    const e = result.english; const part = (k: 'comprehension' | 'phraseology') => (e.bySkill[k].asked ? `${k} ${e.bySkill[k].correct}/${e.bySkill[k].asked}` : '');
-    rows.push({ label: 'Radio calls', value: [part('comprehension'), part('phraseology')].filter(Boolean).join(' · ') });
-  }
   return rows;
 }
 
@@ -117,7 +112,6 @@ export function MissionComplete({ def, result, gained, prevBest, reducedMotion, 
           </div>
           <div className="mc-summary" role="group" aria-label="Flight summary">
             {rows.map((x) => <div key={x.label}><span>{x.label}</span><strong>{x.value}</strong></div>)}
-            {(result.safetyWrong ?? 0) > 0 && <p className="small">A wrong safety-critical decision or radio call keeps this flight at two stars or fewer.</p>}
             {(result.boosters?.collected ?? 0) > 0 && <p className="small muted">Boosters are arcade help. They change bonus points and comfort, never the questions or the educational result.</p>}
             {result.assisted && <p className="small muted">Assisted mode was on: contacts did not end the flight.</p>}
           </div>
