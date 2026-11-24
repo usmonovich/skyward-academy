@@ -366,3 +366,8 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - The aircraft casts a shadow that fades with height, bobs gently in flight (off with reduced motion), and lowers its landing gear only for take-off, the first part of the climb, the approach and the landing.
 - Everything is deterministic (placed from world position), skipped or thinned in low quality, and the 2D flight game stays 2D; the 3D hangar is unchanged.
 - Tested: `tests/scenery.test.ts` (deterministic trees, fewer in low quality, airports only near runways, shadow fade, cloud counts). Measured in the in-app browser on this desktop: about 0.17 ms of script time per frame at the airport with the new scenery.
+
+### Batch 6 — final checks
+- `tests/final-qa.test.ts`: a progress file exported before this update imports with its lessons, missions, XP and the learner's own settings, and gains the new settings with their defaults; every weather challenge, a full take-off-to-landing flight and the coast, mountain and Arctic scenes draw at high and low quality, with and without reduced motion and reduced flashing.
+- Emulated viewports in the in-app browser: no page scrolls sideways at 375×812 or 812×375; the briefing's Start button stays on screen in both.
+- Not tested: physical Android or iPhone devices, real-device frame rate, real multi-finger touch (pointer events were dispatched by script), and listening to the thunder and engine sounds.
