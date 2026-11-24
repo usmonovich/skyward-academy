@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MissionResult } from '../src/types';
 import { MISSIONS } from '../src/content';
-import { scoreMission } from '../src/engine/gamification';
+import { XP, scoreMission } from '../src/engine/gamification';
 import { DAILY_XP_CAP, __resetStore, actions, getProgress } from '../src/store/progress';
 import { headless } from './helpers/autopilot';
 
@@ -46,6 +46,8 @@ describe('repeated play cannot farm XP', () => {
   beforeEach(() => __resetStore());
   const win = (stars: number, score: number): MissionResult => ({ success: true, time: 130, checkpoints: 20, total: 20, hits: 0, decisionsCorrect: 0, decisionsTotal: 0, assisted: false, score, stars });
   const def = byId('m-math-units');
+  // The one-off daily challenge bonus depends on the date (some days it is "review 10 cards"); it is paid once, not farmed.
+  const dailyBonus = () => (getProgress().daily.claimed ? XP.daily : 0);
 
   it('replaying a mission at the same rating pays nothing, and a better rating pays only the difference', () => {
     const first = actions.mission(def, win(1, 500));
@@ -63,13 +65,13 @@ describe('repeated play cannot farm XP', () => {
   it('exam answers pay XP only up to a daily limit', () => {
     const before = getProgress().xp;
     for (let i = 0; i < 20; i++) actions.exam({ correct: 20, total: 20 } as never);
-    expect(getProgress().xp - before).toBe(DAILY_XP_CAP.exam);
+    expect(getProgress().xp - before - dailyBonus()).toBe(DAILY_XP_CAP.exam);
   });
 
   it('card reviews pay XP only up to a daily limit', () => {
     const before = getProgress().xp;
     for (let i = 0; i < 100; i++) actions.reviewCard('any-term', 5);
-    expect(getProgress().xp - before).toBe(DAILY_XP_CAP.card);
+    expect(getProgress().xp - before - dailyBonus()).toBe(DAILY_XP_CAP.card);
   });
 
   it('lesson XP is paid once, and the perfect bonus once', () => {

@@ -113,8 +113,8 @@ export function App() {
         <div className="side-links">
           {NAV.map(([href, name, icon]) => <a key={name} href={`#/${href}`} className={active === href ? 'side-link on' : 'side-link'} aria-current={active === href ? 'page' : undefined}><Icon name={icon} />{name}</a>)}
           <div className="side-sep" />
-          <a href="#/exams" className={head === 'exams' ? 'side-link on' : 'side-link'}><Icon name="exam" />Exam Center</a>
-          <a href="#/admin" className={head === 'admin' ? 'side-link on' : 'side-link'}><Icon name="admin" />Content Admin</a>
+          <a href="#/exams" className={head === 'exams' ? 'side-link on' : 'side-link'} aria-current={head === 'exams' ? 'page' : undefined}><Icon name="exam" />Exam Center</a>
+          <a href="#/admin" className={head === 'admin' ? 'side-link on' : 'side-link'} aria-current={head === 'admin' ? 'page' : undefined}><Icon name="admin" />Content Admin</a>
         </div>
         <a className="side-user" href="#/profile">
           <span className="avatar">{p.name.slice(0, 1).toUpperCase()}</span>

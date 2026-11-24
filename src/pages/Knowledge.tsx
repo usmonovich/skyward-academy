@@ -5,7 +5,7 @@ import { ENCYCLOPEDIA, FORMULAS, GAME_AIRCRAFT, LIVERIES, findLesson, getTerms, 
 import { GRADES, isDue } from '../engine/srs';
 import { dueCards, revisionLessons, weakTopics } from '../engine/personalize';
 import { canSpeak, speak } from '../engine/speech';
-import { AircraftArt, Bar, Btn, Chip, Empty, Icon, PageHead, Tabs } from '../components/ui';
+import { AircraftArt, Bar, Btn, Chip, Empty, Icon, More, PageHead, Tabs } from '../components/ui';
 import { FormulaLab } from '../components/Labs';
 import { QuizRunner } from '../components/Quiz';
 
@@ -114,7 +114,7 @@ function Flashcards() {
         </div>
         {deckIds(deck).length === 0 ? <Empty>{deck === 'due' ? 'No cards are due. Study a topic deck below, or add terms from the Dictionary.' : 'This deck is empty. Add terms from the Dictionary with “Add to Flashcards”.'}</Empty>
           : <Btn kind="accent" icon="play" onClick={start}>Study {Math.min(20, deckIds(deck).length)} card{deckIds(deck).length === 1 ? '' : 's'}</Btn>}
-        <p className="small muted">Scheduling uses the SM-2 spaced-repetition algorithm: a card you remember returns after 1 day, then 6 days, then at growing intervals; a card you forget returns in 10 minutes. Topic decks add the cards you review to your collection. “My cards” is your custom deck — build it from the Dictionary.</p>
+        <More label="How card scheduling works" icon="clock" className="inline"><p className="small">Scheduling uses the SM-2 spaced-repetition algorithm: a card you remember returns after 1 day, then 6 days, then at growing intervals; a card you forget returns in 10 minutes. Topic decks add the cards you review to your collection. “My cards” is your custom deck — build it from the Dictionary.</p></More>
       </div>
       {mine.length > 0 && (
         <div className="card">
@@ -290,7 +290,7 @@ export function Knowledge({ tab }: { tab?: string }) {
   const current = (TABS.find(([id]) => id === tab)?.[0] ?? 'dictionary') as Tab;
   return (
     <div className="stack">
-      <PageHead title="Pilot Knowledge Hub" sub="Dictionary, flashcards, formulas, aircraft and your personal revision centre." right={<Btn kind="soft" href="exams" icon="exam">Exam Center</Btn>} />
+      <PageHead title="Knowledge Hub" sub="Dictionary, flashcards, formulas and aircraft." right={<Btn kind="soft" href="exams" icon="exam">Exam Center</Btn>} />
       <Tabs tabs={TABS} value={current} onChange={(t) => { window.location.hash = `#/knowledge/${t}`; }} />
       {current === 'dictionary' && <Dictionary />}
       {current === 'flashcards' && <Flashcards />}

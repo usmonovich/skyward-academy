@@ -6,7 +6,7 @@ import { parseNum, shuffle } from '../engine/assessment';
 import { XP } from '../engine/gamification';
 import { audio } from '../engine/audio';
 import { canListen, canSpeak, listen, speak, stopSpeaking } from '../engine/speech';
-import { Bar, Btn, Chip, Icon, PageHead, Slider } from '../components/ui';
+import { Bar, Btn, Chip, Icon, More, PageHead, PathHead, Slider } from '../components/ui';
 import { QuizRunner } from '../components/Quiz';
 
 function Done({ id, score, detail, onAgain }: { id: string; score: number; detail: string; onAgain: () => void }) {
@@ -146,7 +146,6 @@ function Listening({ ex }: { ex: EnglishExercise }) {
         </div>
         <Slider label="Speech rate" value={rate} min={0.7} max={1.3} step={0.05} onChange={setRate} format={(v) => `${Math.round(v * 100)}%`} />
         {!canSpeak() && <p className="small muted">Speech output is not available in this browser. Use the transcript instead.</p>}
-        <p className="small muted">Voices and accents depend on the English voices installed on your device. The transcript is always available as a text alternative.</p>
         {(transcript || !canSpeak()) && <div className="transcript">{passage.lines.map((l, i) => <p key={i}><strong>{l.who}:</strong> {l.text}</p>)}</div>}
       </div>
       <div className="card">
@@ -257,16 +256,16 @@ function AtcSession({ scn, onExit }: { scn: AtcScenario; onExit: () => void }) {
         {!finished && step && (
           <div className="radio-input">
             <div className="row between wrap"><Chip tone="navy">{step.style}</Chip><span className="small muted">{step.kind === 'readback' ? 'Read back the instruction' : 'Make your call'} · exchange {stepIdx + 1} of {scn.steps.length}</span></div>
-            <label className="field"><span>Your transmission — review and correct the transcript before you transmit</span>
+            <label className="field"><span>Your transmission</span>
               <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={canListen() ? 'Press Speak, or type your transmission here' : 'Type your transmission here'} /></label>
-            {meta.spoken && <p className="small muted">Transcribed by your browser{meta.confidence ? ` (recogniser confidence ${Math.round(meta.confidence * 100)}%)` : ''}. Automatic transcripts can be wrong — edit the text so it matches what you actually said.</p>}
+            {meta.spoken && <p className="small muted">Transcribed by your browser{meta.confidence ? ` (${Math.round(meta.confidence * 100)}% confidence)` : ''}. Check it before you transmit.</p>}
             {error && <p className="bad-text" role="alert">{error}</p>}
             <div className="row gap wrap">
               {canListen() && <Btn kind={listening ? 'danger' : 'soft'} icon="mic" onClick={mic}>{listening ? 'Listening… press to stop' : 'Speak'}</Btn>}
               <Btn kind="accent" onClick={transmit} icon="arrow">Transmit</Btn>
               {step.kind === 'readback' && <Btn kind="ghost" icon="sound" onClick={() => atcSay(step.atc!)} disabled={!canSpeak()}>Replay ATC</Btn>}
             </div>
-            <p className="small muted">{canListen() ? 'Microphone: permission is requested only when you press Speak. Audio is transcribed by your browser\'s speech service (in Chrome and Edge it is sent to the browser vendor). Skyward Academy does not record or store audio, and transcripts are discarded when you leave this page.' : 'Speech recognition is not available in this browser, so this exercise uses typed transmissions. It works fully in Chrome or Edge.'}</p>
+            <More label={canListen() ? 'Microphone and privacy' : 'Why can I only type?'} icon="mic" className="inline"><p className="small">{canListen() ? 'Microphone: permission is requested only when you press Speak. Audio is transcribed by your browser\'s speech service (in Chrome and Edge it is sent to the browser vendor). Skyward Academy does not record or store audio, and transcripts are discarded when you leave this page.' : 'Speech recognition is not available in this browser, so this exercise uses typed transmissions. It works fully in Chrome or Edge.'}</p></More>
           </div>
         )}
       </div>
@@ -275,7 +274,7 @@ function AtcSession({ scn, onExit }: { scn: AtcScenario; onExit: () => void }) {
         <div className="card">
           <div className="card-head"><h3>Scenario complete — training feedback</h3><Chip tone="warn">Provisional · not an ICAO rating</Chip></div>
           <div className="dims">{dimensionFeedback(turns, scn.steps.length).map((d) => <div key={d.dim} className="dim"><strong>{d.dim}</strong><p>{d.note}</p></div>)}</div>
-          <p className="small muted">This feedback is generated from the text of your transmissions by a rule-based checker. It cannot hear pronunciation or stress and it does not award an ICAO language proficiency level. Official assessment is carried out only by examiners approved by your aviation authority.</p>
+          <More label="How this feedback works" className="inline"><p className="small">This feedback is generated from the text of your transmissions by a rule-based checker. It cannot hear pronunciation or stress and it does not award an ICAO language proficiency level. Official assessment is carried out only by examiners approved by your aviation authority.</p></More>
           <div className="row gap wrap"><Btn kind="accent" icon="fly" href="fly/e-atc">Fly the radio flight</Btn><Btn kind="soft" onClick={onExit}>Choose another scenario</Btn><Btn kind="ghost" href="english">Back to Aviation English</Btn></div>
         </div>
       )}
@@ -289,7 +288,7 @@ function Atc() {
   if (scn) return <AtcSession key={scn.id} scn={scn} onExit={() => setScn(null)} />;
   return (
     <div className="stack">
-      <div className="note"><Icon name="mic" size={18} /><div><p>The virtual controller reads each transmission you make and decides what to say next: it accepts a correct readback, corrects a wrong one, repeats when you say “say again”, and moves on. Standard phraseology and plain language are labelled separately.</p><p className="small">The controller is a rule-based dialogue engine, not a generative AI model. Not yet covered: radio communication failure procedures.</p></div></div>
+      <More label="How the virtual controller works" icon="mic"><p>The virtual controller reads each transmission you make and decides what to say next: it accepts a correct readback, corrects a wrong one, repeats when you say “say again”, and moves on. Standard phraseology and plain language are labelled separately.</p><p className="small muted">The controller is a rule-based dialogue engine, not a generative AI model. Not yet covered: radio communication failure procedures.</p></More>
       <div className="mission-grid">
         {ATC_SCENARIOS.map((s) => {
           const st = p.english[`atc:${s.id}`];
@@ -335,27 +334,28 @@ export function English({ exerciseId }: { exerciseId?: string }) {
   const done = EN_EXERCISES.filter((e) => p.english[e.id]?.done).length;
   return (
     <div className="stack">
-      <PageHead title="ICAO Aviation English" sub="From first English sentences to confident radiotelephony. A separate pathway you can study alongside pilot theory."
-        right={<div className="track-meter"><strong>{done}/{EN_EXERCISES.length}</strong><span className="small muted">exercises complete</span></div>} />
-      <div className="note"><Icon name="book" size={18} /><div><p>ICAO rates language proficiency in six areas: {ICAO_DIMENSIONS.join(', ')}. Level 4 (Operational) is the minimum for international operations and Level 6 is Expert. Memorising phraseology alone is not enough at any level — pilots must also handle unexpected situations in plain English.</p><p className="small">Skyward Academy provides training and provisional feedback only. It cannot issue an ICAO language endorsement.</p></div></div>
+      <PathHead eyebrow="Aviation English" title="ICAO Aviation English" done={done} total={EN_EXERCISES.length} unit="exercises" color="#12a594" />
+      <More label="About ICAO language proficiency"><p>ICAO rates language proficiency in six areas: {ICAO_DIMENSIONS.join(', ')}. Level 4 (Operational) is the minimum for international operations and Level 6 is Expert. Memorising phraseology alone is not enough at any level — pilots must also handle unexpected situations in plain English.</p><p className="small muted">Skyward Academy provides training and provisional feedback only. It cannot issue an ICAO language endorsement.</p></More>
       {EN_STAGES.map((s) => {
         const list = EN_EXERCISES.filter((e) => e.stage === s.n);
         return (
-          <section key={s.n} className="card module">
-            <div className="card-head"><h3><span className="code">Stage {s.n}</span>{s.title}</h3><Chip tone={s.focus === 'General English' ? 'default' : 'navy'}>{s.focus}</Chip></div>
-            <p className="small muted">Topics: {s.topics.join(' · ')}</p>
+          <section key={s.n} className="module-block" aria-label={`Stage ${s.n}: ${s.title}`}>
+            <div className="module-head">
+              <h3><span className="code">Stage {s.n}</span>{s.title}</h3>
+              <span className="module-count">{list.filter((e) => p.english[e.id]?.done).length}/{list.length}</span>
+            </div>
+            <p className="module-sub" title={s.topics.join(', ')}>{s.focus} · {s.topics.join(' · ')}</p>
             {list.length ? (
               <ul className="lessons">
                 {list.map((e) => { const st = p.english[e.id]; return (
-                  <li key={e.id}><a className="lesson-row" href={`#/english/${e.id}`}>
-                    <span className={`lesson-state${st?.done ? ' done' : ' open'}`}><Icon name={st?.done ? 'check' : e.kind === 'atc' ? 'mic' : e.kind === 'listening' || e.kind === 'numbers' ? 'sound' : 'play'} size={18} /></span>
-                    <span className="grow"><strong>{e.title}</strong><span className="small muted"> · {e.minutes} min</span><br /><span className="small muted">{e.blurb}</span></span>
-                    {st && <span className="small muted">Best {Math.round(st.best * 100)}%</span>}
-                    <Chip tone={st?.done ? 'accent' : 'default'}>{st?.done ? 'Flight unlocked' : 'Flight locked'}</Chip>
+                  <li key={e.id}><a className={`lesson-row ${st?.done ? 'done' : 'open'}`} href={`#/english/${e.id}`} title={e.blurb}>
+                    <span className={`lesson-state ${st?.done ? 'done' : 'open'}`}><Icon name={st?.done ? 'check' : e.kind === 'atc' ? 'mic' : e.kind === 'listening' || e.kind === 'numbers' ? 'sound' : 'play'} size={st?.done ? 16 : 14} /></span>
+                    <span className="lesson-main"><span className="lesson-title">{e.title}</span><span className="lesson-meta">{e.minutes} min{st ? ` · Best ${Math.round(st.best * 100)}%` : ''}</span></span>
+                    {st?.done && <span className="tag fly-tag" title="Radio flight unlocked"><Icon name="fly" size={13} /><span className="sr-only">Radio flight unlocked</span></span>}
                   </a></li>
                 ); })}
               </ul>
-            ) : <p className="lesson-row planned"><span className="lesson-state"><Icon name="clock" size={18} /></span><span className="grow">Interactive exercises for this stage</span><Chip>In development</Chip></p>}
+            ) : <p className="lesson-row planned"><span className="lesson-state"><Icon name="clock" size={16} /></span><span className="lesson-main"><span className="lesson-title">Interactive exercises for this stage</span><span className="lesson-meta">In development</span></span></p>}
           </section>
         );
       })}

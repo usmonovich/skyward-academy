@@ -323,3 +323,13 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 **Aircraft**
 - Per-aircraft visual details (winglets, fan faces, striped fins, lamps), smoother pitch easing, a card with the aircraft and its specs when a flight unlocks one, and an original synthesised engine sound with a different character for single, twin, turboprop, jet and airliner (no audio files; it follows the existing engine-sound setting).
 - The unlock card is covered by a unit test of the unlock logic; I did not see it on screen.
+
+## Premium UI redesign and immersive flight update
+
+### Batch 1 — interface minimalism
+- Pathway pages (Mathematics, Physics, PPL, CPL, ATPL, Aviation English) open with a compact header: label, title, `Progress: n / m lessons` and one bar. The framework, syllabus notes and the licence disclaimer moved into one **Curriculum & Sources** disclosure; nothing was deleted.
+- Lesson cards are single compact rows: status icon (green check, orange play, muted lock), title, minutes and difficulty, best score and earned stars. Locked lessons say why when tapped and in their screen-reader label; one short line at the top explains the order.
+- Lesson pages show the key idea and objectives first. Prerequisites, source references, formula validity and common mistakes open on request. Accuracy and safety notes inside lessons stay visible.
+- English, Knowledge Hub, Exam Center, Profile and Fly lost their long helper paragraphs; privacy, scheduling and assessment explanations open on request.
+- `useProgress` gained a server snapshot so pages can be rendered in tests; `tests/ui-minimal.test.tsx` checks the compact headers, the disclosure and the locked-row labels.
+- Before and after screenshots (emulated phone viewport): `docs/screens/`.

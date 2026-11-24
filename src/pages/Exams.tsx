@@ -4,7 +4,7 @@ import { actions, useProgress } from '../store/progress';
 import { EXAM_POOLS, examPool, type ExamPool } from '../content';
 import { byTopic, grade, isAnswered, isCorrect, pickQuestions } from '../engine/assessment';
 import { audio } from '../engine/audio';
-import { Bar, Btn, Chip, Empty, Icon, PageHead } from '../components/ui';
+import { Bar, Btn, Chip, Empty, Icon, More, PageHead } from '../components/ui';
 import { Feedback, QuestionView } from '../components/Quiz';
 
 interface Config { pool: ExamPool; count: number; mode: 'practice' | 'exam'; minutes: number; topic: string }
@@ -100,8 +100,8 @@ export function Exams() {
   const history = p.exams;
   return (
     <div className="stack">
-      <PageHead title="Examination Center" sub="Timed and untimed practice with randomised question sets, bookmarking and detailed review." back="knowledge" />
-      <div className="note"><Icon name="exam" size={18} /><div><p>These are <strong>practice examinations</strong>. Every question is an original practice question or a scenario-based training question written for Skyward Academy. None is an official examination question, and results have no official standing.</p></div></div>
+      <PageHead title="Exam Center" sub="Timed or untimed practice with full review." back="knowledge" />
+      <More label="About these questions" icon="exam"><p>These are <strong>practice examinations</strong>. Every question is an original practice question or a scenario-based training question written for Skyward Academy. None is an official examination question, and results have no official standing.</p></More>
       <div className="card">
         <h3>Set up your exam</h3>
         <div className="form-grid">

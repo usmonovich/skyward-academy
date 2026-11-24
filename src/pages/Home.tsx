@@ -65,7 +65,7 @@ export function Home() {
       <LessonFinder />
 
       <section className="card">
-        <div className="card-head"><h2>Your career map</h2><span className="small muted">Select a destination to open it</span></div>
+        <div className="card-head"><h2>Your career map</h2></div>
         <div className="map-wrap">
           <svg viewBox="0 0 800 220" className="career-map" role="group" aria-label="Career progression map">
             <defs><linearGradient id="mapsky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#dff0ff" /><stop offset="1" stopColor="#f6fbff" /></linearGradient></defs>
@@ -94,7 +94,7 @@ export function Home() {
           <div className="card-head"><h2>Daily challenge</h2>{dailyDone ? <Chip tone="ok">Completed</Chip> : <Chip tone="accent">+40 XP</Chip>}</div>
           <p>{daily.text}</p>
           <Bar value={dailyDone ? 1 : dailyCount / daily.target} color="#12a594" label="Daily challenge progress" />
-          <div className="row between"><span className="small muted">{dailyDone ? 'Come back tomorrow for a new one.' : `${dailyCount} of ${daily.target} — optional, no penalty for skipping`}</span>{!dailyDone && <Btn small kind="soft" href={daily.link}>Start</Btn>}</div>
+          <div className="row between"><span className="small muted">{dailyDone ? 'Come back tomorrow for a new one.' : `${dailyCount} of ${daily.target} · optional`}</span>{!dailyDone && <Btn small kind="soft" href={daily.link}>Start</Btn>}</div>
         </section>
         <section className="card">
           <div className="card-head"><h2>Daily aviation fact</h2><Icon name="book" /></div>

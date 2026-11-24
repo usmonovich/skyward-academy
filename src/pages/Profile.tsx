@@ -5,7 +5,7 @@ import { ACHIEVEMENTS, RANKS, dayKey, rankFor, stageFor, streak } from '../engin
 import { getTracks, liveLessons, trackProgress } from '../content';
 import { audio } from '../engine/audio';
 import { AccountPanel, InstallPanel } from '../cloud/Panels';
-import { Bar, Btn, Chip, Icon, PageHead, Slider } from '../components/ui';
+import { Bar, Btn, Chip, Icon, More, PageHead, Slider } from '../components/ui';
 
 function Toggle({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return <label className="toggle"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /><span><strong>{label}</strong>{hint && <span className="small muted">{hint}</span>}</span></label>;
@@ -74,12 +74,12 @@ export function Profile() {
           <div className="activity" role="img" aria-label="XP earned per day over the last 14 days">
             {days.map((d) => <div key={d.key} className="activity-col" title={`${d.label}: ${p.activity[d.key] ?? 0} XP`}><div className="activity-bar" style={{ height: `${((p.activity[d.key] ?? 0) / maxXp) * 100}%` }} /><span>{d.label.split(' ')[0]}</span></div>)}
           </div>
-          <p className="small muted">Streaks are for motivation only. Missing a day never removes XP, ranks or unlocked content.</p>
+          <p className="small muted">Missing a day never removes XP or unlocks.</p>
         </section>
         <section className="card">
           <h2>Pilot knowledge ranks</h2>
           <ol className="ranks">{RANKS.map((r, i) => <li key={r.name} className={i === rank.index ? 'on' : i < rank.index ? 'done' : ''}><span>{r.name}</span><span className="small muted">{r.xp} XP</span></li>)}</ol>
-          <p className="small muted">These are in-game educational ranks. They are not pilot licences or aviation qualifications.</p>
+          <p className="small muted">In-game ranks, not aviation qualifications.</p>
         </section>
       </div>
 
@@ -92,7 +92,7 @@ export function Profile() {
 
       <section className="card">
         <div className="card-head"><h2>Progress certificates</h2></div>
-        {certificates.length === 0 ? <p className="muted">Pass every published lesson in a pathway to receive a Skyward Academy milestone certificate for it. Certificates are issued only for pathways that already have at least four published lessons.</p> : certificates.map(({ t, pr }) => (
+        {certificates.length === 0 ? <p className="muted">Complete a pathway to earn its certificate.</p> : certificates.map(({ t, pr }) => (
           <div key={t.id} className="certificate">
             <p className="eyebrow">{APP.name} · Educational completion certificate</p>
             <h3>{p.name}</h3>
@@ -150,7 +150,7 @@ export function Profile() {
       <section className="card">
         <h2>Your data and privacy</h2>
         <p>All progress is stored only in this browser on this device. Nothing is sent to a server. To continue on another device, export your progress and import it there.</p>
-        <p className="small muted">Voice: the microphone is used only in speaking exercises, only while you press Speak. Speech is transcribed by your browser's own speech service; Skyward Academy does not record, store or upload audio, and transcripts are not saved.</p>
+        <More label="Microphone and voice" icon="mic" className="inline"><p className="small">The microphone is used only in speaking exercises, only while you press Speak. Speech is transcribed by your browser's own speech service; Skyward Academy does not record, store or upload audio, and transcripts are not saved.</p></More>
         <div className="row gap wrap">
           <Btn kind="soft" onClick={exportData}>Export my progress</Btn>
           <Btn kind="soft" onClick={() => file.current?.click()}>Import progress</Btn>
@@ -163,8 +163,8 @@ export function Profile() {
 
       <section className="card">
         <div className="card-head"><h2>Backups and recovery</h2><Btn small kind="soft" onClick={() => { actions.backupNow('Manual'); setTick((t) => t + 1); setMsg('Backup saved on this device.'); }}>Back up now</Btn></div>
-        <p className="small">Skyward Academy keeps the {3} newest automatic backups of your progress in this browser and restores the latest one by itself if the saved data ever becomes unreadable. Backups live on this device, so they do not replace an exported file: browsers can clear site data.</p>
-        <p className="small muted">{lastExport ? `Last exported file: ${new Date(lastExport).toLocaleString('en-GB')}.` : 'You have not exported a progress file yet. Exporting a copy now keeps your progress safe if this device is lost or its browser data is cleared.'}</p>
+        <More label="How backups work" icon="refresh" className="inline"><p className="small">Skyward Academy keeps the {3} newest automatic backups of your progress in this browser and restores the latest one by itself if the saved data ever becomes unreadable. Backups live on this device, so they do not replace an exported file: browsers can clear site data.</p></More>
+        <p className="small muted">{lastExport ? `Last exported file: ${new Date(lastExport).toLocaleString('en-GB')}.` : 'No exported file yet. Export a copy to keep your progress safe.'}</p>
         {backups.length === 0 ? <p className="muted">No backups yet. One is created automatically as you study.</p> : (
           <ul className="backup-list">
             {backups.map((b) => (

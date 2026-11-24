@@ -7,12 +7,12 @@ import { grade, isAnswered, mulberry32, shuffle, type GradeResult } from '../eng
 import { ACHIEVEMENTS } from '../engine/gamification';
 import { audio } from '../engine/audio';
 import { canSpeak, speak, stopSpeaking } from '../engine/speech';
-import { Bar, Btn, Chip, Icon, PageHead, Rich, Stars } from '../components/ui';
+import { Bar, Btn, Chip, Icon, More, PageHead, Rich, Stars } from '../components/ui';
 import { Feedback, QuestionView, QuizRunner, answerText } from '../components/Quiz';
 import { Lab } from '../components/Labs';
 import { setTutorCtx } from '../components/Tutor';
 
-const STEPS = ['Introduction', 'Concept', 'Demonstration', 'Practice', 'Assessment', 'Mission', 'Complete'] as const;
+const STEPS = ['Overview', 'Concept', 'Examples', 'Practice', 'Assessment', 'Mission', 'Complete'] as const;
 const LEVEL = ['', 'Foundation', 'Intermediate', 'Advanced'];
 
 function FormulaCard({ id }: { id: string }) {
@@ -27,8 +27,10 @@ function FormulaCard({ id }: { id: string }) {
         <li><code className="fx">{f.out.sym}</code> = {f.out.name}{f.out.unit && ` (${f.out.unit})`}</li>
         {f.vars.map((v) => <li key={v.sym}><code className="fx">{v.sym}</code> = {v.name}{v.unit && ` (${v.unit})`}</li>)}
       </ul>
-      <p className="small"><strong>Valid when:</strong> {f.valid}</p>
-      <p className="small"><strong>Common mistakes:</strong> {f.mistakes.join(' ')}</p>
+      <More label="Technical notes & common mistakes" icon="tutor" className="inline">
+        <p><strong>Valid when:</strong> {f.valid}</p>
+        <p><strong>Common mistakes:</strong> {f.mistakes.join(' ')}</p>
+      </More>
     </div>
   );
 }
@@ -59,10 +61,10 @@ function Assessment({ lesson, onPassed }: { lesson: Lesson; onPassed: () => void
   return (
     <div className="stack">
       {!result && (
-        <div className="note">
-          <Icon name="exam" size={18} />
-          <div><p><strong>Lesson assessment.</strong> {questions.length} questions. Pass mark {Math.round(APP.passMark * 100)}%. Feedback is shown after you submit. Question and option order change on every attempt.</p>
-            {already?.passed && <p className="small">You have already passed this assessment (best {Math.round(already.best * 100)}%). Retaking it cannot lower your result.</p>}</div>
+        <div className="facts" aria-label="Assessment details">
+          <span><Icon name="exam" size={15} /> {questions.length} questions</span>
+          <span>Pass mark {Math.round(APP.passMark * 100)}%</span>
+          {already?.passed && <span className="ok-text">Passed · best {Math.round(already.best * 100)}%</span>}
         </div>
       )}
       {result && (
@@ -99,7 +101,7 @@ function Examples({ lesson }: { lesson: Lesson }) {
   const [shown, setShown] = useState<Record<number, number>>({});
   return (
     <div className="stack">
-      <p className="muted">Work through each example one step at a time. Try to predict the next step before you reveal it.</p>
+      <p className="hint-line">Predict each step before you reveal it.</p>
       {lesson.examples.map((ex, i) => {
         const n = shown[i] ?? 1;
         return (
@@ -166,26 +168,24 @@ export function LessonPage({ id, view }: { id: string; view?: string }) {
 
       {step === 0 && (
         <div className="stack">
-          <div className="lesson-hero" style={{ ['--dest' as string]: track.color }}>
-            <svg viewBox="0 0 400 140" aria-hidden="true"><path d="M0 110 Q 100 60 200 95 T 400 70 V140 H0Z" fill="rgba(255,255,255,0.14)" /><path d="M40 92l92-12 56-58h20l-22 58 58-6 22-22h16l-10 36 10 36h-16l-22-22-58-6 22 58h-20l-56-58-92-12z" fill="rgba(255,255,255,0.9)" transform="translate(150 6) scale(0.55)" /><circle cx="60" cy="40" r="22" fill="rgba(255,255,255,0.18)" /></svg>
-            <div><p className="eyebrow light">{track.short} · {LEVEL[lesson.level]}</p><h2>{lesson.title}</h2></div>
+          <div className="facts" aria-label="Lesson details">
+            <span><Icon name="clock" size={15} /> {lesson.minutes} min</span>
+            <span>{LEVEL[lesson.level]}</span>
+            {passed && <span className="ok-text">Passed · best {Math.round((state?.best ?? 0) * 100)}%</span>}
+            <span className="draft" title="Written for Skyward Academy and awaiting independent expert review">Draft · pending expert review</span>
           </div>
-          <div className="row gap wrap">
-            <Chip tone="navy"><Icon name="clock" size={14} /> About {lesson.minutes} minutes</Chip>
-            <Chip>Difficulty: {LEVEL[lesson.level]}</Chip>
-            {passed && <Chip tone="ok">Passed · best {Math.round((state?.best ?? 0) * 100)}%</Chip>}
-            <Chip tone="warn">Draft content — pending independent expert review</Chip>
+          <div className="card lesson-key">
+            <p className="eyebrow">Key idea</p>
+            <p className="lead">{lesson.intro}</p>
+            <h3>You will be able to</h3>
+            <ul className="ticks">{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul>
           </div>
-          <div className="card"><p className="lead">{lesson.intro}</p></div>
-          <div className="grid-2">
-            <div className="card"><h3>Learning objectives</h3><ul className="ticks">{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul></div>
-            <div className="card">
-              <h3>Prerequisites</h3>
-              {lesson.prereqs?.length ? <ul className="ticks plain">{lesson.prereqs.map((pid) => { const f = findLesson(pid); return f ? <li key={pid}><a href={`#/lesson/${pid}`}>{f.lesson.title}</a> {p.lessons[pid]?.passed ? <Chip tone="ok">Passed</Chip> : <Chip>Recommended first</Chip>}</li> : null; })}</ul> : <p className="muted">None. This lesson starts from zero.</p>}
-              <h3>Sources</h3>
-              <ul className="sources">{lesson.sources.map((sid) => { const s = SOURCES.find((x) => x.id === sid); return s ? <li key={sid}>{s.title} — {s.org} ({s.ref}). <span className="muted">{s.jurisdiction}.</span></li> : null; })}</ul>
-            </div>
-          </div>
+          <More label={`Prerequisites & source references (${lesson.sources.length})`}>
+            <h4>Prerequisites</h4>
+            {lesson.prereqs?.length ? <ul className="ticks plain">{lesson.prereqs.map((pid) => { const f = findLesson(pid); return f ? <li key={pid}><a href={`#/lesson/${pid}`}>{f.lesson.title}</a> {p.lessons[pid]?.passed ? <Chip tone="ok">Passed</Chip> : <Chip>Recommended first</Chip>}</li> : null; })}</ul> : <p className="muted">None. This lesson starts from zero.</p>}
+            <h4>Sources</h4>
+            <ul className="sources">{lesson.sources.map((sid) => { const s = SOURCES.find((x) => x.id === sid); return s ? <li key={sid}>{s.title} — {s.org} ({s.ref}). <span className="muted">{s.jurisdiction}.</span></li> : null; })}</ul>
+          </More>
           <div className="row gap"><Btn kind="accent" icon="arrow" onClick={() => go(1)}>Start lesson</Btn></div>
         </div>
       )}
@@ -234,15 +234,14 @@ export function LessonPage({ id, view }: { id: string; view?: string }) {
           <div className="card mission-unlock">
             <Chip tone="accent">Flight mission unlocked</Chip>
             <h2>{mission.title}</h2>
-            <p>{mission.briefing}</p>
             <p><strong>Objective:</strong> {mission.objective}</p>
-            <p><strong>What you will practise:</strong> {mission.outcome}</p>
+            <More label="Mission briefing" icon="fly" className="inline"><p>{mission.briefing}</p><p><strong>What you will practise:</strong> {mission.outcome}</p></More>
             <div className="row gap wrap">
               <Btn kind="accent" icon="fly" href={`fly/${mission.id}/${id}`}>{missionState ? 'Fly again' : 'Start mission'}</Btn>
               <Btn kind="ghost" onClick={() => go(6)}>{missionState ? 'Continue' : 'Skip the mission for now'}</Btn>
               {missionState && <Stars n={missionState.stars} size={22} />}
             </div>
-            <p className="small muted">The mission is a bonus activity. Your lesson is already complete because you passed the assessment, so progress never depends on reflexes. Assisted mode is available in the mission briefing.</p>
+            <p className="small muted">Optional. Your lesson is already complete; assisted mode is in the briefing.</p>
           </div>
         </div>
       )}

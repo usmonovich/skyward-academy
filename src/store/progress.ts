@@ -102,8 +102,9 @@ const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.
 export const getProgress = (): Progress => root.profiles[root.active];
 /** Lets non-React code (cloud sync) react to every saved change. */
 export const subscribeProgress = subscribe;
-export const useProgress = (): Progress => useSyncExternalStore(subscribe, getProgress);
-export const useProfiles = () => useSyncExternalStore(subscribe, () => root);
+// The third argument (server snapshot) is the same store; it lets pages render in tests with react-dom/server.
+export const useProgress = (): Progress => useSyncExternalStore(subscribe, getProgress, getProgress);
+export const useProfiles = () => useSyncExternalStore(subscribe, () => root, () => root);
 
 /* ---------------------------------------------------------------- toasts */
 export interface Toast { id: number; kind: 'xp' | 'badge' | 'unlock' | 'info'; title: string; text?: string }

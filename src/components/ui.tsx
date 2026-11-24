@@ -96,6 +96,31 @@ export function PageHead({ title, sub, back, right }: { title: string; sub?: str
   );
 }
 
+/** Progressive disclosure: secondary information (sources, frameworks, technical notes) that opens on request. */
+export function More({ label, children, icon = 'book', open, className }: { label: string; children: ReactNode; icon?: string; open?: boolean; className?: string }) {
+  return (
+    <details className={`more${className ? ` ${className}` : ''}`} open={open}>
+      <summary><Icon name={icon} size={16} /><span className="grow">{label}</span><span className="more-chev" aria-hidden="true" /></summary>
+      <div className="more-body">{children}</div>
+    </details>
+  );
+}
+
+/** Compact pathway header: a short label, the title, "Progress: n / m" and one bar. Nothing else sits above the lessons. */
+export function PathHead({ eyebrow, title, done, total, unit = 'lessons', color, back, right }: { eyebrow: string; title: string; done: number; total: number; unit?: string; color?: string; back?: string; right?: ReactNode }) {
+  return (
+    <header className="path-head">
+      {back !== undefined && <a className="back-link" href={`#/${back}`}><Icon name="back" size={16} /> Back</a>}
+      <div className="path-top">
+        <div className="grow"><p className="eyebrow" style={color ? { color } : undefined}>{eyebrow}</p><h1>{title}</h1></div>
+        {right}
+      </div>
+      <div className="path-progress"><span>Progress</span><strong>{done} / {total} {unit}</strong></div>
+      <Bar value={total ? done / total : 0} color={color} label={`${title} progress`} />
+    </header>
+  );
+}
+
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: readonly (readonly [T, string])[]; value: T; onChange: (t: T) => void }) {
   return (
     <div className="tabs" role="tablist">

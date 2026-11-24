@@ -55,7 +55,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
 
   return (
     <div className="stack">
-      <PageHead title="Fly" sub="Every passed lesson unlocks a flight mission. Missions are simplified games and educational scenarios — not flight training."
+      <PageHead title="Fly" sub="Lessons unlock missions. Simplified games, not flight training."
         right={<div className="track-meter"><strong>{stars}</strong><span className="small muted">stars · {summary.flown} missions flown</span></div>} />
 
       {upNext && (
@@ -91,7 +91,7 @@ export function Fly({ missionId, from }: { missionId?: string; from?: string }) 
       </section>
 
       <section className="card">
-        <div className="card-head"><h2>Virtual hangar</h2><span className="small muted">Your selected aircraft is used in Free Flight missions. Lesson missions provide their own aircraft.</span></div>
+        <div className="card-head"><h2>Virtual hangar</h2><span className="small muted">Used in free flights</span></div>
         {view3d && (() => {
           const a3 = GAME_AIRCRAFT.find((a) => a.id === view3d);
           return a3 ? (
