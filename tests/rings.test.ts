@@ -59,7 +59,7 @@ describe('the visible opening is the scoring area', () => {
   // With no input the aircraft holds one height (260) for the whole flight, so every ring's result must be exactly
   // |260 - ring.y| <= ring.r, using that ring's own radius, whatever its kind. A ring drawn with an opening of radius r
   // therefore counts as hit exactly when the aircraft is inside that opening, and as missed when it is outside.
-  const flat = (def: MissionDef): MissionDef => ({ ...def, obstacles: { density: 0, types: ['balloon'] }, wind: undefined, lateral: undefined, takeoff: false, landing: false, fuel: false, energy: false, decisions: undefined, goAround: undefined, speedBand: undefined, terrain: undefined });
+  const flat = (def: MissionDef): MissionDef => ({ ...def, obstacles: { density: 0, types: ['balloon'] }, wind: undefined, lateral: undefined, takeoff: false, landing: false, fuel: false, energy: false, goAround: undefined, speedBand: undefined, terrain: undefined });
   const sample = MISSIONS.filter((m, i) => i % 6 === 0).slice(0, 30);
 
   it.each(sample.map((m) => [m.id, m] as const))('%s: every ring counts exactly when the aircraft is inside its drawn opening', (_, m) => {

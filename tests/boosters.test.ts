@@ -6,7 +6,7 @@ import { fly, headless } from './helpers/autopilot';
 
 const base = MISSIONS.find((m) => m.id === 'm-math-units')!;
 /** A plain mission: no hazards, wind or take-off, so each booster can be tested on its own. */
-const calm = (over: Partial<MissionDef> = {}): MissionDef => ({ ...base, obstacles: { density: 0, types: ['balloon'] }, wind: undefined, lateral: undefined, takeoff: false, landing: false, fuel: false, decisions: undefined, ...over });
+const calm = (over: Partial<MissionDef> = {}): MissionDef => ({ ...base, obstacles: { density: 0, types: ['balloon'] }, wind: undefined, lateral: undefined, takeoff: false, landing: false, fuel: false, ...over });
 const run = (g: { step(dt: number): void }, seconds: number) => { for (let i = 0; i < seconds * 60; i++) g.step(1 / 60); };
 
 describe('booster pickups in the level', () => {

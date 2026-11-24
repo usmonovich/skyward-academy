@@ -150,7 +150,7 @@ export function Admin() {
       {tab === 'missions' && (
         <div className="card">
           <h3>Flight missions ({allMissions().length})</h3>
-          <p className="small muted">Missions are pure data: environment, aircraft, length, gates, obstacles, wind, fuel, take-off, landing, messages and decisions. Edit the data to reconfigure a mission; the engine needs no code change.</p>
+          <p className="small muted">Missions are pure data: environment, aircraft, length, gates, obstacles, wind, fuel, take-off, landing and messages. Edit the data to reconfigure a mission; the engine needs no code change.</p>
           <table className="table"><thead><tr><th scope="col">Mission</th><th scope="col">Tier</th><th scope="col">Lesson</th><th scope="col">Environment</th><th scope="col" /></tr></thead>
             <tbody>{allMissions().map((m) => <tr key={m.id}><th scope="row">{m.title}<div className="small muted">{m.id}{getCms().missions[m.id] ? ' · edited locally' : ''}</div></th><td>{m.tier}</td><td>{m.lessonId ?? 'Free flight'}</td><td>{m.env}</td><td><Btn small kind="ghost" onClick={() => setEdit({ kind: 'mission', mission: m })}>Configure</Btn></td></tr>)}</tbody></table>
         </div>

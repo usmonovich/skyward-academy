@@ -27,17 +27,6 @@ describe('weather missions: content', () => {
       expect(m.concept!.length, m.id).toBeGreaterThan(40);
       expect(m.briefing, m.id).toMatch(/approximation|simplified/i);
       expect(m.weather, m.id).toBeDefined();
-      for (const d of m.decisions ?? []) {
-        expect(d.options.filter((o) => o.correct), m.id).toHaveLength(1);
-        for (const o of d.options) expect(o.feedback.length, `${m.id}: ${o.text}`).toBeGreaterThan(30);
-      }
-    }
-  });
-  it('the right answers keep clear, divert or do not continue: none of them flies into severe weather', () => {
-    for (const m of WEATHER_CHALLENGES) for (const d of m.decisions ?? []) {
-      const right = d.options.find((o) => o.correct)!.text;
-      expect(right, m.id).toMatch(/clear|around|divert|do not continue|leave|slow|margin/i);
-      expect(right, m.id).not.toMatch(/through|underneath|closer/i);
     }
   });
   it('the tornado sits off the route and the diversion route bends away from it', () => {
@@ -120,7 +109,7 @@ describe('weather in flight (scripted autopilot, not human playtesting)', () => 
 
   it('turbulence moves the aircraft with no input; the same mission in calm air does not', () => {
     const drift = (turb: boolean) => {
-      const def = { ...byId('w-turbulence'), obstacles: { density: 0, types: ['balloon' as const] }, decisions: [], weather: turb ? { turbulence: 0.8 } : undefined };
+      const def = { ...byId('w-turbulence'), obstacles: { density: 0, types: ['balloon' as const] }, weather: turb ? { turbulence: 0.8 } : undefined };
       const { g } = headless(def);
       let lo = Infinity; let hi = -Infinity;
       for (let i = 0; i < 60 * 8; i++) { g.step(1 / 60); const y = g.snapshot().y; lo = Math.min(lo, y); hi = Math.max(hi, y); }

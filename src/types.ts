@@ -92,10 +92,6 @@ export interface EncyclopediaEntry {
 
 export type EnvId = 'sky' | 'countryside' | 'mountains' | 'coast' | 'desert' | 'sunset' | 'airfield' | 'highalt' | 'overcast' | 'rain' | 'night' | 'golden' | 'arctic';
 export type ObstacleType = 'storm' | 'balloon' | 'birds' | 'tower';
-/** An operational decision scenario written for a mission. It is never asked during the flight (the flight is not interrupted by questions); the text is kept as teaching material. */
-export interface Decision {
-  at: number; prompt: string; options: { text: string; correct?: boolean; feedback: string }[];
-}
 
 /**
  * Simplified sideways-wind model for track-keeping missions. The game is a side view, so the sideways position ("track
@@ -173,7 +169,6 @@ export interface MissionDef {
   landing?: boolean;
   showPressure?: boolean;
   messages?: { at: number; text: string }[];
-  decisions?: Decision[];
   xp: number;
 }
 

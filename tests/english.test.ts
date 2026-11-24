@@ -44,10 +44,9 @@ describe('Aviation English reward flights', () => {
 });
 
 describe('no questions during the flight', () => {
-  it('missions that carry decision scenarios fly straight through: nothing is asked and nothing is scored as a question', () => {
-    const withScenarios = MISSIONS.filter((m) => (m.decisions?.length ?? 0) > 0 && !m.goAround);
-    expect(withScenarios.length).toBeGreaterThan(50);
-    for (const m of withScenarios.filter((_, i) => i % 8 === 0)) {
+  it('no mission carries question data any more, and flights score no questions', () => {
+    for (const m of MISSIONS) expect('decisions' in m || 'english' in m, m.id).toBe(false);
+    for (const m of MISSIONS.filter((x) => !x.goAround && x.tier === 'Expert').slice(0, 6)) {
       const r = fly(m).result!;
       expect(r.success, m.id).toBe(true);
       expect(r.decisionsTotal, m.id).toBe(0);

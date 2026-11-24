@@ -375,4 +375,4 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 ### No questions during flights
 - Flights are never interrupted: operational-decision pop-ups and the radio-call rings were removed from the game. The engine has no decision state, the flight screen has no question overlay, and the result screen, debrief and analysis no longer report questions. Stars no longer depend on answers (only rings, contacts, time, speed, landing and the ordered go-around count).
 - The 17 Aviation English flights are now reward flights: passing an exercise opens a plain flight with no questions in the air. The language practice stays in the exercises themselves.
-- Mission objectives that mentioned decisions or questions were rewritten. The written decision scenarios stay in the mission data as teaching material but are not shown in flight.
+- Mission objectives that mentioned decisions or questions were rewritten, and the 86 written decision scenarios were deleted from the mission data (the `Decision` type and the `decisions` field are gone).

@@ -69,16 +69,7 @@ export const CHALLENGES: MissionDef[] = [
     objective: 'Reach the runway with fuel left. Use a moderate power setting and decide early when the forecast changes.',
     briefing: 'Fuel use rises steeply with power. Fly at a moderate setting, watch the fuel bar and take decisions early when the situation changes. Educational scenario, not a fuel-planning procedure: follow your authority\'s rules and the aircraft manual.',
     outcome: 'Manage power to protect fuel and decide early when fuel becomes a concern.',
-    messages: [{ at: 0.05, text: 'Fuel use rises quickly at high power. Cruise at a moderate setting.' }],
-    decisions: [
-      { at: 0.4, prompt: 'A stronger headwind than forecast is slowing you down. At this rate you will reach the runway with much less fuel than planned. What is the best decision now?', options: [
-        { text: 'Recalculate now with the real groundspeed and, if the fuel will not cover the plan, divert while you still have a choice', correct: true, feedback: 'Correct. A fuel problem is easiest to solve early, while you still have options such as a closer airfield.' },
-        { text: 'Carry on and hope the headwind drops', feedback: 'Hope is not a plan. If the wind does not change, you will have fewer choices later.' },
-        { text: 'Fly as slowly as possible to save fuel', feedback: 'Slowing far below the efficient speed can burn more fuel per mile and shrinks your safety margin.' }] },
-      { at: 0.72, prompt: 'The fuel is lower than you would like. What should you do about it?', options: [
-        { text: 'Tell air traffic control about your fuel situation early so they can help, and keep flying the aircraft', correct: true, feedback: 'Correct. Telling ATC early gives them time to help. Keep flying the aircraft while you communicate.' },
-        { text: 'Say nothing so as not to cause a fuss', feedback: 'ATC cannot help with a problem they do not know about. Speak up early.' },
-        { text: 'Descend as low as possible to save fuel', feedback: 'Descending low does not solve a fuel shortage and takes away options and terrain margin.' }] }] }),
+    messages: [{ at: 0.05, text: 'Fuel use rises quickly at high power. Cruise at a moderate setting.' }] }),
 
   // ---- Weather avoidance ------------------------------------------------------------------------------------------
   base({ id: 'c-storm-deviation', title: 'Storm Deviation', requires: ['ppl-storms'], aircraftId: 'gemini', env: 'sunset', seed: 308, length: 11000, parTime: 50, checkpoints: 6, stormDrift: true, xp: 80,
@@ -87,11 +78,7 @@ export const CHALLENGES: MissionDef[] = [
     objective: 'Fly through the gates while staying well clear of the drifting storm cells.',
     briefing: 'The storm cells drift up and down, so the gap you picked can close. Look further ahead than you would in clear weather and keep a wide margin. Educational scenario: real storm avoidance depends on radar, ATC and your aircraft\'s limits.',
     outcome: 'Plan a path around moving storm cells and keep a generous margin.',
-    messages: [{ at: 0.05, text: 'Storm cells drift. Choose your gap early and keep a wide margin.' }],
-    decisions: [{ at: 0.35, prompt: 'A line of storm cells lies ahead. One gap looks narrow and is closing. What is the best decision?', options: [
-      { text: 'Deviate early around the line, keeping well clear of every cell', correct: true, feedback: 'Correct. Thunderstorms are avoided by a wide margin. Deciding early keeps your options open.' },
-      { text: 'Squeeze through the narrow gap before it closes', feedback: 'A closing gap is a trap. Storm cells and the air around them are hazardous well beyond the visible edge.' },
-      { text: 'Fly straight through the weakest-looking cell', feedback: 'A cell that looks weak can hide severe turbulence and hail. Do not penetrate storms.' }] }] }),
+    messages: [{ at: 0.05, text: 'Storm cells drift. Choose your gap early and keep a wide margin.' }] }),
 
   // ---- Go-around --------------------------------------------------------------------------------------------------
   base({ id: 'c-go-around', title: 'Go-Around', requires: ['ppl-take-off-and-landing-performance'], seed: 309, length: 8500, parTime: 40, checkpoints: 3, landing: true, goAround: { at: 800 },
@@ -115,23 +102,10 @@ export const CHALLENGES: MissionDef[] = [
     objective: 'Fly the route around the weather and land.',
     briefing: 'Weather at the destination is getting worse while your fuel is limited. Good pilots decide early, and they decide with a margin. Educational scenario, not an operational procedure.',
     outcome: 'Weigh weather, fuel and options to decide between continuing and diverting.',
-    messages: [{ at: 0.78, text: 'A heavier aircraft is slow to slow down. Reduce power early so you are at approach speed at the runway.' }],
-    decisions: [
-      { at: 0.35, prompt: 'The destination forecast has worsened to below the limits you need. You have enough fuel to reach the alternate comfortably. What do you do?', options: [
-        { text: 'Divert to the alternate now while the fuel is comfortable', correct: true, feedback: 'Correct. Deciding early, with fuel in hand, keeps your choices open.' },
-        { text: 'Continue and look when you get there', feedback: 'Arriving to find the weather below limits leaves you less fuel and fewer choices.' },
-        { text: 'Descend now to look for a way through below the cloud', feedback: 'Flying lower to hunt for a gap adds terrain risk and burns time and fuel.' }] },
-      { at: 0.7, prompt: 'On the way to the alternate, the fuel is still comfortable but a new storm cell appears on your track. What is the best action?', options: [
-        { text: 'Route around the storm early, keeping a wide margin, and tell ATC what you are doing', correct: true, feedback: 'Correct. Avoid storms by a wide margin and tell ATC your plan.' },
-        { text: 'Fly straight through to save time', feedback: 'Do not penetrate storms. Time saved is never worth the risk.' },
-        { text: 'Turn back to the destination', feedback: 'The destination weather is already below limits, so turning back removes your best option.' }] }] }),
+    messages: [{ at: 0.78, text: 'A heavier aircraft is slow to slow down. Reduce power early so you are at approach speed at the runway.' }] }),
   base({ id: 'c-engine-after-takeoff', title: 'Engine Trouble After Take-off', tier: 'Advanced', requires: ['cpl-emergency-decision-making'], seed: 312, length: 8000, parTime: 38, checkpoints: 3, takeoff: true, xp: 90,
     concept: 'In an emergency, fly the aircraft first (aviate), then decide where to go (navigate) and then communicate.',
     objective: 'Take off, keep flying the aircraft and reach the finish line.',
     briefing: 'Shortly after take-off the engine loses power. Training teaches a clear order: aviate, navigate, communicate. Educational scenario: the right action depends on the aircraft, the height and the surroundings; follow your aircraft manual and training.',
-    outcome: 'Prioritise flying the aircraft over troubleshooting in an emergency.',
-    decisions: [{ at: 0.3, prompt: 'The engine loses power shortly after take-off and you are low. What do you do first?', options: [
-      { text: 'Fly the aircraft: lower the nose to keep flying speed, then pick a landing area ahead', correct: true, feedback: 'Correct. Aviate first. Keeping flying speed gives you control, and a landing area ahead gives you a plan.' },
-      { text: 'Try to find out what is wrong with the engine', feedback: 'Troubleshooting comes later. If you stop flying the aircraft, the situation can get much worse.' },
-      { text: 'Turn back to the runway straight away', feedback: 'A turn back at low height and low speed can lead to a stall. Only a briefed height and plan make it safe.' }] }] }),
+    outcome: 'Prioritise flying the aircraft over troubleshooting in an emergency.' }),
 ];

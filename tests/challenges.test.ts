@@ -14,10 +14,9 @@ describe('challenge missions: content', () => {
     expect(has((m) => !!m.lateral?.runwayHalf && !!m.landing), 'crosswind landing').toBe(true);
     expect(has((m) => !!m.lateral?.waypoints), 'navigation checkpoints').toBe(true);
     expect(has((m) => !!m.lateral && !m.landing && !m.lateral.waypoints), 'wind compensation').toBe(true);
-    expect(has((m) => !!m.fuel && !!m.decisions?.length), 'fuel management').toBe(true);
+    expect(has((m) => !!m.fuel), 'fuel management').toBe(true);
     expect(has((m) => !!m.stormDrift), 'weather avoidance').toBe(true);
     expect(has((m) => !!m.goAround), 'go-around').toBe(true);
-    expect(has((m) => (m.decisions?.length ?? 0) >= 1), 'decision making').toBe(true);
   });
 
   it.each(CHALLENGES.map((m) => [m.id, m] as const))('%s names its concept, its prerequisite lessons and its simplifications', (_, m) => {
@@ -30,7 +29,7 @@ describe('challenge missions: content', () => {
     expect(m.style).toBe('Educational simulation');
     // Anything with a sideways wind says it is an approximation, and decision scenarios say they are not procedures.
     if (m.lateral) expect(m.briefing).toMatch(/Educational approximation/);
-    if (m.decisions || m.goAround || m.stormDrift) expect(m.briefing).toMatch(/Educational scenario|simplified|Educational/i);
+    if (m.goAround || m.stormDrift) expect(m.briefing).toMatch(/Educational scenario|simplified|Educational/i);
   });
 
   it.each(CHALLENGES.map((m) => [m.id, m] as const))('%s is internally consistent', (_, m) => {
@@ -41,15 +40,11 @@ describe('challenge missions: content', () => {
       if (L.runwayHalf !== undefined) { expect(m.landing).toBe(true); expect(L.runwayHalf).toBeLessThan(L.tol); }
     }
     if (m.goAround) { expect(m.landing).toBe(true); expect(m.goAround.at).toBeGreaterThan(300); }
-    for (const d of m.decisions ?? []) expect(d.options.filter((o) => o.correct)).toHaveLength(1);
     // Landing missions need a fair approach: the last gate must leave room to descend to the runway.
     // A last ring on the glide path (the approach fix) is a fair descent by construction.
     if (m.landing) { const l = buildLevel(m); const last = l.gates[l.gates.length - 1]; const onGlide = last.x >= approachStart(m) && Math.abs(last.y - glideY(m, last.x, GROUND - 14)) < 0.5; expect(onGlide || last.y > 260, 'last gate leaves a descent to the runway').toBe(true); }
   });
 
-  it('every decision has a clearly wrong alternative that explains why', () => {
-    for (const m of CHALLENGES) for (const d of m.decisions ?? []) for (const o of d.options) expect(o.feedback.length, `${m.id}: ${o.text}`).toBeGreaterThan(30);
-  });
 });
 
 describe('challenge missions: unlocking', () => {

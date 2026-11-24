@@ -56,7 +56,6 @@ export function validateMission(value: unknown): string[] {
   if (typeof m.checkpoints !== 'number' || m.checkpoints < 0 || m.checkpoints > 20) e.push('"checkpoints" must be from 0 to 20.');
   if (!m.obstacles || typeof m.obstacles.density !== 'number' || !isArr(m.obstacles.types) || !m.obstacles.types.length) e.push('"obstacles" needs a "density" number and at least one obstacle type.');
   if (typeof m.xp !== 'number' || m.xp < 0) e.push('"xp" must be a non-negative number.');
-  if (m.decisions) for (const [i, d] of (m.decisions as { options?: { correct?: boolean }[] }[]).entries()) if (!isArr(d.options) || d.options.filter((o) => o.correct).length !== 1) e.push(`Decision ${i + 1}: exactly one option must be marked correct.`);
   return e;
 }
 
