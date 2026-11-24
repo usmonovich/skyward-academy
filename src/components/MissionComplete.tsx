@@ -17,6 +17,8 @@ export function unlockedBetween(before: number, after: number) {
 }
 
 /** What the flight earned, in plain numbers. Everything here is measured by the flight; nothing is estimated. */
+const PHASE_NAME: Record<string, string> = { takeoff: 'Take-off', climb: 'Climb', cruise: 'Cruise', approach: 'Approach', landing: 'Landing' };
+
 export function flightSummary(result: MissionResult): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [];
   rows.push({ label: 'Rings collected', value: `${result.checkpoints} of ${result.total}` });
@@ -24,6 +26,9 @@ export function flightSummary(result: MissionResult): { label: string; value: st
   if (kinds.length > 1) rows.push({ label: 'By kind', value: kinds.join(' · ') });
   if (result.bonus) rows.push({ label: 'Bonus points', value: `${result.bonus} (not part of the stars)` });
   rows.push({ label: 'Flight time', value: `${Math.floor(result.time / 60)} min ${Math.round(result.time % 60)} s` });
+  if (result.phases && result.phases.length > 1) rows.push({ label: 'Flight phases', value: result.phases.map((p) => PHASE_NAME[p] ?? p).join(' › ') });
+  if (result.approach) rows.push({ label: 'Approach', value: `${Math.round(result.approach.stability * 100)}% stable${result.approach.goArounds ? ` · ${result.approach.goArounds} go-around${result.approach.goArounds > 1 ? 's' : ''}` : ''}` });
+  if (result.landing) rows.push({ label: 'Touchdown', value: `${result.landing[0].toUpperCase()}${result.landing.slice(1)}${result.touchdownZone ? (result.touchdownZone === 'in' ? ', in the touchdown zone' : ', long') : ''}` });
   const used = Object.entries(result.boosters?.used ?? {}).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `${BOOSTERS[k as keyof typeof BOOSTERS]?.name ?? k} ×${n}`);
   rows.push({ label: 'Boosters used', value: used.length ? used.join(', ') : 'None' });
   if (result.decisionsTotal > 0) rows.push({ label: 'Questions answered correctly', value: `${result.decisionsCorrect} of ${result.decisionsTotal}` });

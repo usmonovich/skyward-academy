@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { MISSIONS, findLesson } from '../src/content';
 import { GAME_AIRCRAFT } from '../src/content/reference';
 import { CHALLENGES } from '../src/content/challenges';
-import { buildLevel } from '../src/game/engine';
+import { GROUND, buildLevel } from '../src/game/engine';
+import { approachStart, glideY } from '../src/game/phases';
 import { filterMissions, firstUnmet, gateLessons, isOpen, nextMission, trackOf } from '../src/game/browse';
 import { freshProgress } from '../src/store/progress';
 
@@ -42,7 +43,8 @@ describe('challenge missions: content', () => {
     if (m.goAround) { expect(m.landing).toBe(true); expect(m.goAround.at).toBeGreaterThan(300); }
     for (const d of m.decisions ?? []) expect(d.options.filter((o) => o.correct)).toHaveLength(1);
     // Landing missions need a fair approach: the last gate must leave room to descend to the runway.
-    if (m.landing) { const l = buildLevel(m); expect(l.gates[l.gates.length - 1].y, 'last gate leaves a descent to the runway').toBeGreaterThan(260); }
+    // A last ring on the glide path (the approach fix) is a fair descent by construction.
+    if (m.landing) { const l = buildLevel(m); const last = l.gates[l.gates.length - 1]; const onGlide = last.x >= approachStart(m) && Math.abs(last.y - glideY(m, last.x, GROUND - 14)) < 0.5; expect(onGlide || last.y > 260, 'last gate leaves a descent to the runway').toBe(true); }
   });
 
   it('every decision has a clearly wrong alternative that explains why', () => {

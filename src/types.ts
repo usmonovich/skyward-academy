@@ -200,6 +200,12 @@ export interface MissionStats {
   touchdownOffset?: number;
   /** How the go-around went. */
   goAround?: 'done' | 'late' | 'landed' | 'missed';
+  /** Flight phases flown, in order (take-off, climb, cruise, approach, landing). */
+  phases?: string[];
+  /** Approach phase: share of the time on the glide path at a safe approach speed (0..1), and go-arounds the pilot chose. */
+  approach?: { stability: number; goArounds: number };
+  /** Where the wheels touched: the first third of the runway is the touchdown zone. */
+  touchdownZone?: 'in' | 'long';
   /** Radio calls in an English mission: how each skill went. Not an ICAO rating. */
   english?: { asked: number; correct: number; bySkill: Record<'comprehension' | 'phraseology', { asked: number; correct: number }>; byTopic: Record<string, { asked: number; correct: number }>; wrong: { transmission: string; topic: string; safetyCritical: boolean; skill: string }[] };
   /** Wrong operational decisions and wrong safety-critical radio calls. Any of these caps the mission at two stars. */

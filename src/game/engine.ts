@@ -8,6 +8,7 @@ import { isaPressure } from '../content/formulas';
 import { audio } from '../engine/audio';
 import { drawAircraft } from './art';
 import { cloudColor, drawRain, drawRunwayLights, drawSkyExtras, drawTrail, isLowLight, isNight } from './weather';
+import { AIM, PHASES, approachStart, glideY, phaseAt, phasePlan, slopeLights, touchdownZone, type PhaseId } from './phases';
 
 export const W = 960;
 export const H = 540;
@@ -172,6 +173,15 @@ export function buildLevel(def: MissionDef): Level {
     gates.push({ x, y, r: 48, state: 'open', kind: 'cloud', value: 10 });
   }
   spreadGates(def, gates);
+  // Approach: the last two rings sit on the glide path, so the final rings teach the descent to the runway.
+  // Missions with a blocked runway (go-around) and crosswind routes keep their designed rings.
+  if (def.landing && !def.goAround && !def.lateral && gates.length >= 4) {
+    const before = gates.map((g) => g.y);
+    for (const g of gates) if (g.x >= approachStart(def)) g.y = clamp(glideY(def, g.x, GROUND - 14), 95, Math.min(400, GROUND - terrainHeight(def, g.x) - 95));
+    // Never at the price of a flat route: if one height would now hold 60 percent of the rings, keep the designed heights.
+    let most = 0; for (let h = 95; h <= 400; h += 5) most = Math.max(most, gates.filter((g) => Math.abs(g.y - h) <= 56).length);
+    if (most / gates.length >= 0.6) gates.forEach((g, i) => { g.y = before[i]; });
+  }
   assignRings(def, gates);
   assignEnglish(def, gates);
   const obstacles: Obstacle[] = [];
@@ -214,6 +224,8 @@ export interface GameCallbacks {
   onBoosters?: (v: BoosterView) => void;
   onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
+  /** Called when the flight moves into a new phase (take-off, climb, cruise, approach, landing, complete). */
+  onPhase?: (p: PhaseId) => void;
 }
 export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low'; /** Drag on the canvas to steer (default true). Off while the touch joystick is shown, so two inputs never fight. */ canvasDrag?: boolean }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
@@ -224,6 +236,8 @@ export interface GameHandle {
   setInput(i: { x?: number; y?: number; h?: number }): void;
   /** Throttle lever position 0..1 that the engine moves towards smoothly; null hands control back to thrust input. */
   setThrottle(v: number | null): void;
+  /** The pilot's own go-around during the approach: climb away and fly the approach again (at most twice). */
+  goAround(): boolean;
   /** Activates the held booster in slot i. Returns whether it was activated. */
   activateBooster(i: number): boolean;
   boosters(): BoosterView;
@@ -233,7 +247,7 @@ export interface GameHandle {
   /** Debug/test hook: read-only snapshot of the simulation. */
   /** Fits the camera to the canvas's CSS size and the screen insets. Called on every size or orientation change. */
   resize(cssWidth: number, cssHeight: number, safe?: Safe): void;
-  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string; strikes: number; bonus: number; thr: number };
+  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string; strikes: number; bonus: number; thr: number; phase: PhaseId };
 }
 
 const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: string; ground: string; sun: string }> = {
@@ -365,6 +379,21 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const input = { x: 0, y: 0, h: 0 };
   let touchY: number | null = null;
   let thrTarget: number | null = null;
+  // Flight phases: where the approach starts, when the wheels left the ground, approach stability and the pilot's go-arounds.
+  const apStart = approachStart(def);
+  let airborneAt: number | null = def.takeoff ? null : 0;
+  let phase: PhaseId = 'cruise'; const phasesFlown: PhaseId[] = [];
+  let apAll = 0; let apStable = 0; let goArounds = 0; let tdZone: 'in' | 'long' | undefined; let fade = 0;
+  const smoke: { x: number; t0: number; k: number }[] = [];
+  const phaseNow = (): PhaseId => phaseAt(def, { wx: worldX + PLANE_X, onGround, airborneAt, rollout: state === 'rollout', ended: state === 'ended', approachFrom: apStart });
+  function trackPhase() {
+    const p = phaseNow();
+    if (p === phase && phasesFlown.length) return;
+    phase = p;
+    if (phasesFlown[phasesFlown.length - 1] !== p) phasesFlown.push(p);
+    cb.onPhase?.(p);
+    if (p !== 'cruise' && p !== 'complete' && p !== 'takeoff') say(PHASES[p].cue);
+  }
   const messages = [...(def.messages ?? [])].sort((a, b) => a.at - b.at);
   const decisions = [...(def.decisions ?? [])].sort((a, b) => a.at - b.at);
   const clouds = Array.from({ length: 9 }, (_, i) => ({ x: (i * 173 + def.seed * 37) % 1500, y: 50 + ((i * 97 + def.seed * 13) % 190), s: 0.6 + ((i * 31) % 10) / 12 }));
@@ -463,11 +492,36 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       fuelLeft: def.fuel ? Math.max(0, fuel) : undefined, assisted: opts.assisted,
       trackError: def.lateral && latAll > 0 ? errSum / latAll : undefined, maxOffset: def.lateral ? maxOff : undefined, touchdownOffset: touchOff,
       goAround: def.goAround ? (gaLanded ? 'landed' : gaClimbed ? (gaClimbT <= 7 ? 'done' : 'late') : 'missed') : undefined,
+      phases: [...phasesFlown], touchdownZone: tdZone,
+      approach: def.landing && !def.goAround && (apAll > 0 || goArounds > 0) ? { stability: apAll > 0 ? apStable / apAll : 0, goArounds } : undefined,
       trace, gateStates: level.gates.map((g) => g.state), decisionResults: [...decisionLog], bonus, ringTypes: ringTally,
       boosters: { collected, used: { ...used }, xpTokens, absorbed },
     };
     audio.sfx(success ? 'win' : 'fail');
+    phase = 'complete'; cb.onPhase?.('complete');
     cb.onEnd({ ...stats, ...scoreMission(def.parTime, stats) });
+  }
+
+  /**
+   * The pilot's go-around: available on the approach and over the runway before touchdown, at most twice. The aircraft climbs
+   * away and is positioned behind the approach to fly it again; rings missed on that stretch can be flown again, rings
+   * already collected stay collected. Choosing it is good airmanship when the approach is not stable.
+   */
+  function goAroundNow(): boolean {
+    if (!def.landing || def.goAround || state !== 'run' || onGround || goArounds >= 2) return false;
+    if (phase !== 'approach' && phase !== 'landing') return false;
+    const wasStable = apAll > 0 ? apStable / apAll : 0;
+    goArounds++;
+    const back = apStart - 700;
+    worldX = back - PLANE_X;
+    y = clamp(glideY(def, apStart, GROUND - 14) - 40, CEIL + 40, GROUND - 140); vy = 0;
+    kt = clamp(kt, ac.minKt + range * 0.25, landMax);
+    for (const g of level.gates) if (g.x > back && g.state === 'missed') g.state = 'open';
+    apAll = 0; apStable = 0; fade = 1; invuln = Math.max(invuln, 1);
+    audio.sfx('unlock');
+    say(`Going around${wasStable < 0.6 ? ' — a good call from an unstable approach' : ''}. You are positioned for another approach: follow the slope lights and keep the speed down.`);
+    trackPhase();
+    return true;
   }
 
   function hit(text: string, minor = false) {
@@ -490,7 +544,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     t += dt;
     invuln = Math.max(0, invuln - dt);
     if (strikes > 0 && (cleanFor += dt) >= 30) { strikes--; cleanFor = 0; say('Contact light restored after 30 seconds of clean flying.'); }
-    flash = Math.max(0, flash - dt);
+    flash = Math.max(0, flash - dt); fade = Math.max(0, fade - dt * 1.6);
     const up = keys.has('ArrowUp') || keys.has('w') || keys.has('W');
     const down = keys.has('ArrowDown') || keys.has('s') || keys.has('S');
     const left = keys.has('ArrowLeft') || keys.has('a') || keys.has('A');
@@ -533,7 +587,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       kt += (thr * (ac.minKt + range * 0.8) - kt) * accel * dt;
       y = GROUND - 14;
       worldX += pxSpeed() * dt;
-      if (kt >= vr && (inY < -0.2 || opts.assisted)) { onGround = false; vy = -130; say('Airborne. Climb away gently.'); }
+      if (kt >= vr && (inY < -0.2 || opts.assisted)) { onGround = false; vy = -130; airborneAt = wx; trackPhase(); say('Airborne. Climb away gently.'); }
       else if (kt >= vr && stallWarned === 0) { stallWarned = 1; say('Rotate speed reached — pull up now.'); }
       if (wx > TAKEOFF_RUNWAY + 150) end(false, 'You ran out of runway. Add full thrust early and rotate at the rotate speed.');
       audio.engineSet(thr);
@@ -577,6 +631,13 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
         if (!gaClimbed && y <= Math.min(GROUND - 110, gaY - 60)) { gaClimbed = true; gaClimbT = t - gaAt; say(gaClimbT <= 7 ? 'Positive climb. Go-around flown correctly.' : 'You are climbing, but a go-around has to start sooner.'); }
         if (wxa >= level.runwayStart && wxa <= level.runwayEnd && y > GROUND - 70) hit('Too low over an occupied runway.');
       }
+    }
+    trackPhase();
+    if (phase === 'approach') {
+      apAll += dt;
+      const onPath = Math.abs(glideY(def, wx, GROUND - 14) - y) <= 40;
+      const onSpeed = kt <= landMax && kt >= ac.minKt + range * 0.08;
+      if (onPath && onSpeed) apStable += dt;
     }
     traceT += dt;
     if (traceT >= 0.25) { traceT = 0; trace.push([Math.round(t * 100) / 100, Math.round(worldX + PLANE_X), Math.round(y), Math.round(lat * 10) / 10, Math.round(kt)]); }
@@ -633,6 +694,9 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
           else lateralNote = ' Centreline touchdown.';
         }
         if (landing === 'hard') { hits++; audio.sfx('hit'); }
+        tdZone = touchdownZone(def, wx);
+        if (tdZone === 'long') lateralNote += ' You touched down long: aim for the first third of the runway.';
+        smoke.push({ x: wx, t0: t, k: landing === 'smooth' ? 0.6 : landing === 'firm' ? 1 : 1.4 });
         say((landing === 'smooth' ? 'Smooth touchdown. Well done.' : landing === 'firm' ? 'Firm touchdown. Reduce your descent rate and speed a little earlier.' : 'Hard landing. Flare earlier and descend more gently.') + lateralNote);
         y = gy - 14; vy = 0; state = 'rollout';
       } else if (opts.assisted) { y = gy - 16; vy = -170; hit('Too low — assisted mode lifted you clear of the ground.'); }
@@ -782,6 +846,27 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (!ringsOnly) for (const o of level.obstacles) mark(o.x, o.type === 'tower' ? o.y + o.h / 2 : o.y, 'hazard');
   }
 
+  /** The approach-slope lights as a HUD instrument (the runway lights are often off screen during the approach). */
+  function slopeHud(x: number, yy: number) {
+    const n = (phase === 'approach' || phase === 'landing') && !onGround && state === 'run' && def.landing && !def.goAround ? slopeLights(glideY(def, worldX + PLANE_X, GROUND - 14) - y) : -1;
+    if (n < 0) return false;
+    for (let i = 0; i < 4; i++) { ctx.fillStyle = i < n ? '#ffffff' : '#ef4444'; ctx.beginPath(); ctx.arc(x + i * 12, yy, 4.5, 0, 6.3); ctx.fill(); }
+    return true;
+  }
+  /** Landscape HUD row: the current flight phase, the next one, and the slope lights on the approach. */
+  function phaseRow(x: number, yy: number, w: number) {
+    const plan: PhaseId[] = phasePlan(def).filter((p) => p !== 'preflight' && p !== 'complete');
+    if (plan.length < 2) return;
+    panel(x, yy, w, 22);
+    const i = plan.indexOf(phase);
+    label(`${i >= 0 ? `${i + 1}/${plan.length}  ` : ''}${PHASES[phase].name.toUpperCase()}`, x + 10, yy + 15, 10, '#ffcf9f', 'left', 800);
+    if (!slopeHud(x + w - 54, yy + 11) && i >= 0 && i < plan.length - 1) label(`NEXT: ${PHASES[plan[i + 1]].name.toUpperCase()}`, x + w - 10, yy + 15, 9, '#9fc3ea', 'right');
+  }
+  function phaseChip(cx: number, cy: number, cwid: number) {
+    label(PHASES[phase].name.toUpperCase(), cx + 8, cy + 17, 10, '#ffcf9f', 'left', 800);
+    slopeHud(cx + cwid - 46, cy + 13);
+  }
+
   /** Portrait HUD in screen pixels: one instrument panel, the speed tape, the route bar, then a row of mission chips. */
   function portraitHud() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -816,6 +901,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     const chipTop = y2 + 14 + (def.lateral ? TRACK_PANEL : 0);
     if (def.lateral) trackPanel(x0, y2 + 14, w, TRACK_PANEL - 6);
     const chip = (draw: (cx: number, cy: number) => void) => { const cx = x0 + (ci % 3) * (cwid + 6); const cy = chipTop + Math.floor(ci / 3) * 30; panel(cx, cy, cwid, 26); draw(cx, cy); ci++; };
+    chip((cx, cy) => { phaseChip(cx, cy, cwid); });
     if (def.fuel) chip((cx, cy) => { label('FUEL', cx + 8, cy + 17, 10, '#9fc3ea'); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(cx + 42, cy + 10, cwid - 52, 7); ctx.fillStyle = fuel < 0.2 ? '#ff6b5e' : '#5ee6c8'; ctx.fillRect(cx + 42, cy + 10, (cwid - 52) * clamp(fuel, 0, 1), 7); });
     if (def.showPressure) chip((cx, cy) => { label(`${Math.round(isaPressure(alt))} hPa`, cx + cwid / 2, cy + 17, 12, '#ffffff', 'center'); });
     if (def.wind) chip((cx, cy) => { const wd = def.wind!.vy + Math.sin(t * 1.3) * def.wind!.gust; label(`WIND ${wd > 0 ? '▼' : '▲'} ${Math.abs(Math.round(wd / 4))} kt`, cx + cwid / 2, cy + 17, 11, '#ffffff', 'center'); });
@@ -895,6 +981,21 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
         ctx.fillStyle = '#d6453d'; ctx.fillRect(ox - 24, GROUND - 14, 48, 14); ctx.fillStyle = '#ffffff'; ctx.fillRect(ox - 14, GROUND - 22, 24, 8);
         label('RUNWAY OCCUPIED', ox, GROUND - 32, 12, '#ffffff', 'center', 800);
       }
+      if (!def.goAround) {
+        const guiding = (phase === 'approach' || phase === 'landing') && !onGround && state === 'run';
+        // The glide path to the aim point, faint and dashed: descent guidance for the approach.
+        if (guiding) {
+          ctx.save(); ctx.setLineDash([10, 12]); ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(apStart - cam, glideY(def, apStart, GROUND - 14)); ctx.lineTo(level.runwayStart + AIM - cam, GROUND - 14); ctx.stroke(); ctx.restore();
+        }
+        // Approach-slope lights beside the threshold (a simplified version of the real lights): white over red is on the path.
+        const lx = level.runwayStart - 46 - cam;
+        if (lx > -60 && lx < VW + 20) {
+          const n = guiding ? slopeLights(glideY(def, worldX + PLANE_X, GROUND - 14) - y) : -1;
+          ctx.fillStyle = '#1f2937'; ctx.fillRect(lx - 4, GROUND - 16, 46, 12);
+          for (let i = 0; i < 4; i++) { ctx.fillStyle = n < 0 ? '#6b7280' : i < n ? '#ffffff' : '#ef4444'; ctx.beginPath(); ctx.arc(lx + 4 + i * 11, GROUND - 10, 4, 0, 6.3); ctx.fill(); }
+        }
+      }
     }
     else {
       const fx = def.length - cam;
@@ -967,7 +1068,19 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
     drawBoosterEffects(cam, px);
     drawBursts(cam);
+    if (!opts.reducedMotion) {
+      for (const sm of smoke) {
+        const age = t - sm.t0; if (age > 1.5) continue;
+        const a = (1 - age / 1.5) * 0.55;
+        for (let i = 0; i < 5; i++) {
+          const r = (5 + age * 20 * sm.k) * (1 - i * 0.12);
+          ctx.fillStyle = `rgba(235,235,235,${a * (1 - i * 0.15)})`;
+          ctx.beginPath(); ctx.arc(sm.x - cam - i * 10 * sm.k - age * 12, GROUND - 6 - age * 10 * (i % 2 ? 1 : 0.6), r, 0, 6.3); ctx.fill();
+        }
+      }
+    }
     if (flash > 0) { ctx.fillStyle = `rgba(214,69,61,${flash})`; ctx.fillRect(0, top, VW, VH); }
+    if (fade > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, fade * 0.6)})`; ctx.fillRect(0, top, VW, VH); }
 
     lookAhead(cam, !view.portrait);
     if (view.portrait) { portraitHud(); return; }
@@ -991,11 +1104,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     if (def.speedBand) { ctx.fillStyle = '#12a594'; ctx.fillRect(tx(def.speedBand.min), 87, tx(def.speedBand.max) - tx(def.speedBand.min), 8); }
     if (def.takeoff && onGround) { ctx.fillStyle = '#f58220'; ctx.fillRect(tx(vr) - 1, 84, 3, 14); label('ROTATE', tx(vr) + 6, 96, 9, '#ffcf9f'); }
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(tx(kt), 86); ctx.lineTo(tx(kt) - 5, 99); ctx.lineTo(tx(kt) + 5, 99); ctx.closePath(); ctx.fill();
+    phaseRow(14, 108, 318);
     ctx.restore();
 
     ctx.save(); ctx.translate(0, top + view.safeT); ctx.scale(hk, hk);
     const RX = (VW - view.safeR) / hk;
-    let ry = stack ? 112 : 12;
+    let ry = stack ? 138 : 12;
     panel(RX - 214, ry, 200, 34);
     label(`RINGS ${level.gates.filter((g) => g.state === 'hit').length}/${level.gates.length}`, RX - 200, ry + 22, 13);
     for (let i = 0; i < 3; i++) { ctx.fillStyle = opts.assisted ? '#5ee6c8' : i < 3 - strikes ? '#f58220' : 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(RX - 74 + i * 20, ry + 17, 7, 0, 6.3); ctx.fill(); }
@@ -1026,6 +1140,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const onKey = (e: KeyboardEvent) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
     if (e.type === 'keydown' && /^[1-3]$/.test(e.key)) { activate(Number(e.key) - 1); return; }
+    if (e.type === 'keydown' && (e.key === 'g' || e.key === 'G')) { goAroundNow(); return; }
     if (e.type === 'keydown') keys.add(e.key); else keys.delete(e.key);
   };
   const toCanvasY = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return ((e.clientY - r.top) / r.height) * view.VH - view.oy; };
@@ -1033,6 +1148,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const onMove = (e: PointerEvent) => { if (touchY !== null) touchY = toCanvasY(e); };
   const onUp = () => { touchY = null; };
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKey);
+  trackPhase();
   const drag = opts.canvasDrag !== false;
   if (drag) {
     canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
@@ -1056,6 +1172,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     boosters: boosterView,
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
     setThrottle(v) { thrTarget = v === null ? null : clamp(v, 0, 1); },
+    goAround: () => goAroundNow(),
     answerDecision(correct) {
       if (state !== 'decision') return;
       if (pendingEnglish) { englishLog.push({ ring: pendingEnglish, correct }); pendingEnglish = null; }
@@ -1063,7 +1180,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       state = 'run'; last = performance.now(); keys.clear();
     },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
-    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus, thr }),
+    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus, thr, phase }),
   };
 }
 
@@ -1074,7 +1191,11 @@ export function debrief(def: MissionDef, r: MissionResult): string[] {
   out.push(r.checkpoints === r.total ? `All ${r.total} gates collected — accurate flying.` : `You collected ${r.checkpoints} of ${r.total} gates. Look further ahead and start each correction earlier.`);
   out.push(r.hits === 0 ? 'No obstacle or terrain contact. Good lookout.' : `${r.hits} contact${r.hits === 1 ? '' : 's'}. Leave a wider margin around hazards.`);
   if (r.bandFraction !== undefined) out.push(`You held the target speed ${Math.round(r.bandFraction * 100)}% of the time.${r.bandFraction < 0.7 ? ' Make smaller power changes and wait for the speed to settle.' : ''}`);
-  if (r.landing) out.push(r.landing === 'smooth' ? 'Touchdown: smooth.' : r.landing === 'firm' ? 'Touchdown: firm. Reduce the descent rate before the runway.' : 'Touchdown: hard. Begin the descent earlier and arrive slower.');
+  if (r.approach) {
+    const st = Math.round(r.approach.stability * 100);
+    out.push(`Approach: on the glide path at a safe speed ${st}% of the time.${st < 60 ? ' Settle the descent earlier: two white and two red slope lights, speed in the lower half.' : ''}${r.approach.goArounds ? ` You chose ${r.approach.goArounds === 1 ? 'a go-around' : 'two go-arounds'}: going around from an approach that is not stable is good airmanship.` : ''}`);
+  }
+  if (r.landing) out.push((r.landing === 'smooth' ? 'Touchdown: smooth.' : r.landing === 'firm' ? 'Touchdown: firm. Reduce the descent rate before the runway.' : 'Touchdown: hard. Begin the descent earlier and arrive slower.') + (r.touchdownZone === 'long' ? ' It was long: aim for the first third of the runway.' : r.touchdownZone === 'in' ? ' In the touchdown zone.' : ''));
   if (r.decisionsTotal) out.push(`Operational decisions: ${r.decisionsCorrect} of ${r.decisionsTotal} correct.`);
   if (r.fuelLeft !== undefined) out.push(`Fuel remaining on arrival: ${Math.round(r.fuelLeft * 100)}%.`);
   out.push(r.time <= def.parTime ? `Time ${r.time.toFixed(1)} s — inside the target of ${def.parTime} s.` : `Time ${r.time.toFixed(1)} s — target ${def.parTime} s.`);

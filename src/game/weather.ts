@@ -84,3 +84,10 @@ export function drawTrail(ctx: CanvasRenderingContext2D, pts: { x: number; y: nu
   }
   ctx.restore();
 }
+
+/** Short weather line for the preflight briefing. */
+export const WEATHER_NAME: Record<EnvId, string> = {
+  sky: 'Clear skies', countryside: 'Clear, light wind', mountains: 'Mountain air', coast: 'Sea breeze', desert: 'Hot, rising air',
+  sunset: 'Clear, low sun', airfield: 'Clear, light wind', highalt: 'High altitude, cold', overcast: 'Overcast', rain: 'Rain',
+  night: 'Night, clear', golden: 'Golden hour', arctic: 'Cold, snow cover',
+};

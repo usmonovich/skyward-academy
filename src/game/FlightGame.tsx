@@ -5,7 +5,7 @@ import { GAME_AIRCRAFT, LIVERIES } from '../content/reference';
 import { allMissions } from '../content';
 import { actions, useProgress } from '../store/progress';
 import { audio } from '../engine/audio';
-import { Btn, Chip, Icon, AircraftArt } from '../components/ui';
+import { Btn, Chip, Icon, AircraftArt, More } from '../components/ui';
 import { MissionComplete } from '../components/MissionComplete';
 import { FlightReport } from '../components/FlightReport';
 import { BoosterBar } from '../components/BoosterBar';
@@ -13,8 +13,9 @@ import { canListen, canSpeak, listen, speak } from '../engine/speech';
 import { evaluate } from '../engine/atc';
 import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameHandle, type Safe } from './engine';
 import { nextMission } from './browse';
-import { ENV_NOTES } from './weather';
+import { ENV_NOTES, WEATHER_NAME } from './weather';
 import { learningLine } from './objectives';
+import { PHASES, phasePlan, type PhaseId } from './phases';
 import { ThrottleLever, TouchStick } from './TouchControls';
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
@@ -70,6 +71,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const [fps, setFps] = useState<{ fps: number; worst: number } | null>(null);
   const [heard, setHeard] = useState<{ text: string; missing: string[] } | null>(null);
   const [listening, setListening] = useState(false);
+  const [fphase, setFphase] = useState<PhaseId>('preflight');
   const wantFs = useRef(true);
   const fsOk = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
 
@@ -130,6 +132,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: stickOn ? 1 : p.settings.steering, quality: p.settings.quality, canvasDrag: !stickOn }, {
       onMessage: setMessage,
       onBoosters: setBoost,
+      onPhase: setFphase,
       onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setHeard(null); setPhase('decision'); },
       onEnd: (r) => { setPrevBest(p.missions[def.id]?.best ?? null); setResult(r); setGained(actions.mission(def, r)); setPhase('debrief'); },
     });
@@ -189,12 +192,16 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
     };
   };
 
+  const canGoAround = phase === 'flying' && !!def.landing && !def.goAround && (fphase === 'approach' || fphase === 'landing');
+  const weatherOf = (m: MissionDef) => `${WEATHER_NAME[m.env] ?? 'Clear'}${m.wind ? ' · gusts' : ''}${m.lateral ? ' · crosswind' : ''}`;
+
   const content = (
     <div className={`game${full ? ' full' : ''}`} ref={rootRef} style={{ ['--hud-extra' as string]: def.lateral ? '52px' : '0px' }}>
       {!full && (
         <div className="game-bar">
           <div><strong>{def.title}</strong> <Chip tone="navy">{def.tier}</Chip> <Chip>{def.style}</Chip>{assisted && <Chip tone="ok">Assisted</Chip>}</div>
           <div className="row gap">
+            {canGoAround && <Btn small kind="accent" onClick={() => game.current?.goAround()}>Go around (G)</Btn>}
             {phase === 'flying' && <Btn small kind="soft" icon="pause" onClick={pause}>Pause</Btn>}
             {(phase === 'flying' || phase === 'paused') && <Btn small kind="soft" icon="refresh" onClick={start}>Restart</Btn>}
             <Btn small kind="ghost" href={exitHref} icon="close">Exit</Btn>
@@ -210,50 +217,47 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
 
         {phase === 'briefing' && (
           <div className="overlay">
-            <div className="overlay-card">
-              <Chip tone="accent">Mission briefing</Chip>
-              <h2>{def.title}</h2>
-              <div className="brief-grid">
-                <AircraftArt ac={ac} color={livery} width={200} />
-                <div>
-                  <p>{def.briefing}</p>
-                  <p><strong>Objective:</strong> {def.objective}</p>
-                  <p className="small muted">Aircraft: {ac.name} ({ac.cls}) · Target time {def.parTime} s · Reward up to {def.xp + 75} XP</p>
-                </div>
+            <div className="overlay-card brief">
+              <div className="brief-top">
+                <div><p className="eyebrow">Preflight briefing · {def.tier}</p><h2>{def.title}</h2></div>
+                <AircraftArt ac={ac} color={livery} width={150} />
               </div>
-              {showHelp && (
-                <div className="controls-help">
-                  <strong>How to fly</strong>
-                  <ul>
-                    <li><kbd>↑</kbd>/<kbd>W</kbd> climb · <kbd>↓</kbd>/<kbd>S</kbd> descend · <kbd>→</kbd>/<kbd>D</kbd> more thrust · <kbd>←</kbd>/<kbd>A</kbd> less thrust</li>
-                    <li><kbd>Space</kbd> hold level · <kbd>P</kbd> or <kbd>Esc</kbd> pause</li>
-                    {def.lateral && <li><kbd>Q</kbd>/<kbd>E</kbd> or the heading buttons: hold a heading correction to counter the sideways wind. The track panel shows where you are across the planned track.</li>}
-                    <li>{stickOn ? `Touch: drag the joystick (${stickSide} thumb) up to climb, down to descend${def.lateral ? ', sideways for heading' : ''}; slide the throttle lever to set power. Change the layout in Profile → Settings.` : 'Touch: drag on the screen to steer, or use the large buttons at the screen edges.'}</li>
-                    <li>Fly through the orange gates, avoid obstacles, reach the finish. Three contacts end the mission.</li>
-                  </ul>
-                </div>
-              )}
-              <p className="small muted env-note">{learningLine(def)}</p>
-              {ENV_NOTES[def.env] && <p className="small muted env-note">Scene: {ENV_NOTES[def.env]}</p>}
-              <details className="guide">
-                <summary>Rings and boosters guide</summary>
+              <dl className="brief-facts">
+                <div><dt>Aircraft</dt><dd>{ac.name} <span className="muted">· {ac.cls}</span></dd></div>
+                <div><dt>Weather</dt><dd>{weatherOf(def)}</dd></div>
+                <div className="wide"><dt>Route</dt><dd className="route">{phasePlan(def).filter((x) => x !== 'preflight' && x !== 'complete').map((x, i) => <span key={x}>{i > 0 && <i aria-hidden="true">›</i>}{PHASES[x].name}</span>)}</dd></div>
+                <div className="wide"><dt>Objective</dt><dd>{def.objective}</dd></div>
+                <div><dt>Target time</dt><dd>{Math.floor(def.parTime / 60)}:{String(Math.round(def.parTime % 60)).padStart(2, '0')}</dd></div>
+                <div><dt>Reward</dt><dd>up to {def.xp + 75} XP</dd></div>
+              </dl>
+              <p className="brief-goal">{learningLine(def).replace(/^In the cockpit: /, '')}</p>
+              <div className="row gap wrap brief-actions">
+                <Btn kind="accent" icon="play" onClick={start}>Start mission</Btn>
+                {full && <Btn kind="ghost" icon="close" href={exitHref}>Back</Btn>}
+                <label className="check"><input type="checkbox" checked={assisted} onChange={(e) => actions.settings({ assisted: e.target.checked })} /> Assisted mode</label>
+              </div>
+              {full && portrait && <p className="small rotate-tip">Tip: turn your phone sideways for a wider view of the route ahead.</p>}
+              <More label="Mission story" icon="book" className="inline"><p className="small">{def.briefing}</p>{ENV_NOTES[def.env] && <p className="small muted">Scene: {ENV_NOTES[def.env]}</p>}</More>
+              <More label="How to fly" icon="fly" className="inline" open={showHelp}>
+                <ul className="brief-help">
+                  {stickOn && <li>Touch: drag the joystick ({stickSide} thumb) up to climb, down to descend{def.lateral ? ', sideways for heading' : ''}. Slide the throttle lever to set power. Layout: Profile → Flight controls.</li>}
+                  {!stickOn && <li>Touch: drag on the screen to steer, or use the large buttons at the screen edges.</li>}
+                  <li><kbd>↑</kbd>/<kbd>W</kbd> climb · <kbd>↓</kbd>/<kbd>S</kbd> descend · <kbd>→</kbd>/<kbd>D</kbd> more thrust · <kbd>←</kbd>/<kbd>A</kbd> less thrust · <kbd>Space</kbd> hold level · <kbd>P</kbd> pause</li>
+                  {def.lateral && <li><kbd>Q</kbd>/<kbd>E</kbd> or the heading control: hold a correction against the sideways wind.</li>}
+                  {def.landing && !def.goAround && <li>Approach: two white and two red slope lights means on the glide path. Not stable? Press <kbd>G</kbd> or Go around and fly the approach again (twice at most).</li>}
+                  <li>Fly through the rings, avoid hazards, reach the finish. Three contacts end the mission.</li>
+                </ul>
+              </More>
+              <More label="Rings and boosters" icon="star" className="inline">
                 <ul className="guide-list">
                   {Object.values(RING_STYLE).filter((r) => r.name !== 'English challenge ring' || def.english).map((r) => <li key={r.name}><i className="guide-dot" style={{ background: r.color }} /> <strong>{r.name}.</strong> {r.blurb}</li>)}
                 </ul>
-                <p className="small"><strong>Boosters</strong> are arcade power-ups you collect in flight, not real aircraft systems. Tap a collected booster (or press 1 to 3) to use it. Two at a time at most. They never change a decision or an answer.</p>
+                <p className="small"><strong>Boosters</strong> are arcade power-ups, not real aircraft systems. Tap one (or press 1 to 3) to use it; two at a time at most. They never change a decision or an answer.</p>
                 <ul className="guide-list">
                   {Object.values(BOOSTERS).map((b) => <li key={b.name}><i className="guide-dot" style={{ background: b.color }} /> <strong>{b.name}.</strong> {b.blurb}</li>)}
                 </ul>
-              </details>
-              {full && portrait && <p className="small rotate-tip">Tip: turn your phone sideways for a wider view of the route ahead. The game works in both orientations.</p>}
-              {full && !fsOk && <p className="small muted">This browser keeps its own toolbar. The game fills the visible screen instead.</p>}
-              <div className="row gap wrap">
-                <Btn kind="accent" icon="play" onClick={start}>Start mission</Btn>
-                {!showHelp && <Btn kind="ghost" onClick={() => setShowHelp(true)}>Show controls</Btn>}
-                {full && <Btn kind="ghost" icon="close" href={exitHref}>Back</Btn>}
-                <label className="check"><input type="checkbox" checked={assisted} onChange={(e) => actions.settings({ assisted: e.target.checked })} /> Assisted mode (no mission failure from contacts, landing help)</label>
-              </div>
-              <p className="small muted">{def.style === 'Arcade' ? 'This is a simplified arcade game.' : 'This is a simplified educational simulation.'} It is not flight training and does not represent real aircraft handling or procedures.</p>
+              </More>
+              <p className="small muted">{def.style === 'Arcade' ? 'Simplified arcade game.' : 'Simplified educational simulation.'} Not flight training; speeds and handling are not real aircraft values.{full && !fsOk ? ' This browser keeps its own toolbar.' : ''}</p>
             </div>
           </div>
         )}
@@ -351,6 +355,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
             </div>
           )}
           </>)}
+          {canGoAround && <button type="button" className={`ga-call ${stickOn ? (stickSide === 'left' ? 'right' : 'left') : 'center'}`} onClick={() => game.current?.goAround()}>Go around</button>}
           <div className="game-actions" role="group" aria-label="Game controls">
             <button type="button" className="ga-btn" aria-label="Pause" onClick={pause}><Icon name="pause" size={22} /></button>
             <button type="button" className="ga-btn" aria-label="Restart mission" onClick={start}><Icon name="refresh" size={22} /></button>

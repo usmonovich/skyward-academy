@@ -4,6 +4,7 @@
 import type { MissionDef, MissionResult } from '../../src/types';
 import { GAME_AIRCRAFT } from '../../src/content/reference';
 import { GROUND, PLANE_X, buildLevel, createGame, terrainHeight, type BoosterView, type GameHandle, type GameOptions } from '../../src/game/engine';
+import { approachStart, glideY } from '../../src/game/phases';
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -42,6 +43,8 @@ export interface FlightOptions {
   ringOffset?: number;
   /** Give up after this many seconds of simulated time. */
   maxSeconds?: number;
+  /** Called every step before the autopilot's input, for tests that act during the flight (for example a go-around). */
+  onStep?: (g: GameHandle, s: ReturnType<GameHandle['snapshot']>) => void;
 }
 export interface Flight { result?: MissionResult; seconds: number; decisions: number; timedOut: boolean }
 
@@ -67,6 +70,7 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
   while (!result && steps < maxSteps) {
     steps++;
     const s = g.snapshot();
+    o.onStep?.(g, s);
     if (s.state === 'decision') { decisions++; g.answerDecision(!o.wrongDecisions); continue; }
     if (s.state === 'ended') break;
     if (mode === 'good') {
@@ -90,7 +94,13 @@ export function fly(def: MissionDef, o: FlightOptions = {}): Flight {
       }
       ty = Math.min(ty, gmin - 90);
       let inY: number; let inX = 0;
-      if (def.landing && (!gate || wx > level.runwayStart - 1100) && !(def.goAround && s.ga === 'active')) {
+      const glide = def.landing && !def.goAround && !def.lateral;
+      if (glide && wx >= approachStart(def) && level.runwayStart - wx > 230 && !(def.goAround && s.ga === 'active')) {
+        // On the approach: follow the glide path (what a player does with the slope lights), then flare as before.
+        const h = glideY(def, wx, GROUND - 14) + 4 - s.y;
+        inY = clamp(h / 60 + ff, -0.6, 0.5);
+        inX = s.kt > landMax - 6 ? -1 : 0.2;
+      } else if (def.landing && (glide ? wx >= approachStart(def) : (!gate || wx > level.runwayStart - 1100)) && !(def.goAround && s.ga === 'active')) {
         const dist = level.runwayStart - wx; const tgt = GROUND - 14 + 10 - clamp((dist - 200) / 5, 0, 70); const h = tgt - s.y;
         inY = clamp(h / Math.max(250, dist * 0.9) + ff, -0.4, 0.3); if (s.y < tgt - 120 && dist > 700) inY = clamp((tgt - 100 - s.y) / 250 + ff, -0.2, 0.25);
         inX = s.kt > landMax - 6 ? -1 : 0.2;
