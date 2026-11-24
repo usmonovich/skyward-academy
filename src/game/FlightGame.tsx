@@ -15,6 +15,7 @@ import { BOOSTERS, RING_STYLE, createGame, debrief, type BoosterView, type GameH
 import { nextMission } from './browse';
 import { ENV_NOTES } from './weather';
 import { learningLine } from './objectives';
+import { ThrottleLever, TouchStick } from './TouchControls';
 
 type Phase = 'briefing' | 'flying' | 'paused' | 'decision' | 'debrief';
 type Orientation = { lock?: (o: string) => Promise<void>; unlock?: () => void };
@@ -77,6 +78,10 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
   const livery = LIVERIES.find((l) => l.id === p.livery)?.color ?? LIVERIES[0].color;
   const assisted = p.settings.assisted;
   const reducedMotion = p.settings.reducedMotion;
+  const controls = p.settings.controls ?? 'floating';
+  const stickOn = full && controls !== 'buttons';
+  const stickSide: 'left' | 'right' = p.settings.leftHanded ? 'right' : 'left';
+  const readThr = useCallback(() => game.current?.snapshot().thr ?? 0, []);
 
   /** Browser full screen, then landscape where the browser allows it. Both need a user gesture and may be refused (iPhone Safari). */
   const enterFs = useCallback(() => {
@@ -122,7 +127,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
 
   useEffect(() => {
     if (run === 0 || !canvasRef.current) return;
-    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: p.settings.steering, quality: p.settings.quality }, {
+    const g = createGame(canvasRef.current, def, ac, { assisted, livery, reducedMotion, steer: stickOn ? 1 : p.settings.steering, quality: p.settings.quality, canvasDrag: !stickOn }, {
       onMessage: setMessage,
       onBoosters: setBoost,
       onDecision: (d) => { setDecision(d); setDecisionFeedback(null); setHeard(null); setPhase('decision'); },
@@ -223,7 +228,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
                     <li><kbd>↑</kbd>/<kbd>W</kbd> climb · <kbd>↓</kbd>/<kbd>S</kbd> descend · <kbd>→</kbd>/<kbd>D</kbd> more thrust · <kbd>←</kbd>/<kbd>A</kbd> less thrust</li>
                     <li><kbd>Space</kbd> hold level · <kbd>P</kbd> or <kbd>Esc</kbd> pause</li>
                     {def.lateral && <li><kbd>Q</kbd>/<kbd>E</kbd> or the heading buttons: hold a heading correction to counter the sideways wind. The track panel shows where you are across the planned track.</li>}
-                    <li>Touch: drag on the screen to steer, or use the large buttons at the screen edges.</li>
+                    <li>{stickOn ? `Touch: drag the joystick (${stickSide} thumb) up to climb, down to descend${def.lateral ? ', sideways for heading' : ''}; slide the throttle lever to set power. Change the layout in Profile → Settings.` : 'Touch: drag on the screen to steer, or use the large buttons at the screen edges.'}</li>
                     <li>Fly through the orange gates, avoid obstacles, reach the finish. Three contacts end the mission.</li>
                   </ul>
                 </div>
@@ -324,6 +329,13 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
       {full && (phase === 'flying' || phase === 'paused') && boost && <BoosterBar floating view={boost} onUse={(i) => game.current?.activateBooster(i)} />}
       {full && phase === 'flying' && (
         <>
+          {stickOn ? (
+            <>
+              <TouchStick key={`stick-${run}`} mode={controls === 'fixed' ? 'fixed' : 'floating'} side={stickSide} deadZone={p.settings.deadZone ?? 0.12} sensitivity={p.settings.steering ?? 1}
+                heading={!!def.lateral} reducedMotion={reducedMotion} onStick={(x, y) => game.current?.setInput({ y, h: def.lateral ? x : undefined })} />
+              {!def.energy && <ThrottleLever key={`thr-${run}`} side={stickSide === 'left' ? 'right' : 'left'} read={readThr} onSet={(v) => game.current?.setThrottle(v)} />}
+            </>
+          ) : (<>
           <div className="tc tc-left" role="group" aria-label="Pitch controls">
             <button type="button" className="tc-btn" aria-label="Climb" {...hold({ y: -1 })}><Icon name="up" size={36} /></button>
             <button type="button" className="tc-btn" aria-label="Descend" {...hold({ y: 1 })}><Icon name="down" size={36} /></button>
@@ -338,6 +350,7 @@ export function FlightGame({ def, exitHref, nextHref, nextLabel }: { def: Missio
               <button type="button" className="tc-hdg" aria-label="Heading right" {...hold({ h: 1 })}>HDG ▶</button>
             </div>
           )}
+          </>)}
           <div className="game-actions" role="group" aria-label="Game controls">
             <button type="button" className="ga-btn" aria-label="Pause" onClick={pause}><Icon name="pause" size={22} /></button>
             <button type="button" className="ga-btn" aria-label="Restart mission" onClick={start}><Icon name="refresh" size={22} /></button>

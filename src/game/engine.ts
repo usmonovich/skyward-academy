@@ -215,13 +215,15 @@ export interface GameCallbacks {
   onDecision: (d: Decision) => void;
   onEnd: (r: MissionResult) => void;
 }
-export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low' }
+export interface GameOptions { assisted: boolean; livery: string; reducedMotion: boolean; /** Scripted tests: skip drawing. */ noRender?: boolean; /** Boosters held at the start (tests and practice). */ startBoosters?: BoosterKind[]; /** Steering sensitivity multiplier (default 1). */ steer?: number; /** Effects level: auto drops to low when the frame rate stays poor. */ quality?: 'auto' | 'high' | 'low'; /** Drag on the canvas to steer (default true). Off while the touch joystick is shown, so two inputs never fight. */ canvasDrag?: boolean }
 /** Screen insets (CSS pixels) such as a phone notch or home indicator, kept clear of the HUD. */
 export interface Safe { top: number; right: number; bottom: number; left: number }
 export interface GameHandle {
   pause(): void; resume(): void; destroy(): void;
   /** x: thrust, y: pitch, h: heading correction (crosswind and navigation missions). */
   setInput(i: { x?: number; y?: number; h?: number }): void;
+  /** Throttle lever position 0..1 that the engine moves towards smoothly; null hands control back to thrust input. */
+  setThrottle(v: number | null): void;
   /** Activates the held booster in slot i. Returns whether it was activated. */
   activateBooster(i: number): boolean;
   boosters(): BoosterView;
@@ -231,7 +233,7 @@ export interface GameHandle {
   /** Debug/test hook: read-only snapshot of the simulation. */
   /** Fits the camera to the canvas's CSS size and the screen insets. Called on every size or orientation change. */
   resize(cssWidth: number, cssHeight: number, safe?: Safe): void;
-  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string; strikes: number; bonus: number };
+  snapshot(): { worldX: number; y: number; kt: number; state: string; hits: number; gates: number; onGround: boolean; lat: number; hdg: number; ga: string; strikes: number; bonus: number; thr: number };
 }
 
 const PALETTE: Record<EnvId, { top: string; bottom: string; far: string; mid: string; ground: string; sun: string }> = {
@@ -362,6 +364,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const keys = new Set<string>();
   const input = { x: 0, y: 0, h: 0 };
   let touchY: number | null = null;
+  let thrTarget: number | null = null;
   const messages = [...(def.messages ?? [])].sort((a, b) => a.at - b.at);
   const decisions = [...(def.decisions ?? [])].sort((a, b) => a.at - b.at);
   const clouds = Array.from({ length: 9 }, (_, i) => ({ x: (i * 173 + def.seed * 37) % 1500, y: 50 + ((i * 97 + def.seed * 13) % 190), s: 0.6 + ((i * 31) % 10) / 12 }));
@@ -519,7 +522,12 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       return;
     }
 
-    if (!def.energy) thr = clamp(thr + inX * 0.7 * dt, 0, 1);
+    if (!def.energy) {
+      // Keyboard or thrust buttons take over from the lever; the lever moves the throttle at a steady, engine-like rate.
+      if (inX !== 0) thrTarget = null;
+      if (thrTarget !== null) thr = clamp(thr + clamp(thrTarget - thr, -0.9 * dt, 0.9 * dt), 0, 1);
+      else thr = clamp(thr + inX * 0.7 * dt, 0, 1);
+    }
 
     if (onGround) {
       kt += (thr * (ac.minKt + range * 0.8) - kt) * accel * dt;
@@ -1025,8 +1033,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   const onMove = (e: PointerEvent) => { if (touchY !== null) touchY = toCanvasY(e); };
   const onUp = () => { touchY = null; };
   window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKey);
-  canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
-  canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
+  const drag = opts.canvasDrag !== false;
+  if (drag) {
+    canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
+  }
   audio.engineStart(ac.kind);
   emitBoosters();
   raf = requestAnimationFrame((n) => { last = n; frame(n); });
@@ -1044,6 +1055,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     activateBooster: (i) => activate(i),
     boosters: boosterView,
     setInput(i) { if (i.x !== undefined) input.x = i.x; if (i.y !== undefined) input.y = i.y; if (i.h !== undefined) input.h = i.h; },
+    setThrottle(v) { thrTarget = v === null ? null : clamp(v, 0, 1); },
     answerDecision(correct) {
       if (state !== 'decision') return;
       if (pendingEnglish) { englishLog.push({ ring: pendingEnglish, correct }); pendingEnglish = null; }
@@ -1051,7 +1063,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       state = 'run'; last = performance.now(); keys.clear();
     },
     step(dt) { if (state === 'run' || state === 'rollout') update(Math.min(0.05, dt)); if (!opts.noRender) render(); },
-    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus }),
+    snapshot: () => ({ worldX, y, kt, state, hits, gates: level.gates.filter((g) => g.state === 'hit').length, onGround, lat, hdg, ga: gaState, strikes, bonus, thr }),
   };
 }
 

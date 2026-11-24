@@ -117,13 +117,24 @@ export function Profile() {
           <Slider label="Speech rate" value={s.speechRate} min={0.7} max={1.3} step={0.05} onChange={(v) => actions.settings({ speechRate: v })} format={(v) => `${Math.round(v * 100)}%`} />
           <Toggle label="Show frame rate in flights" checked={s.showFps} onChange={(v) => actions.settings({ showFps: v })} hint="A small readout of frames per second, for checking performance on your own device" />
           <Slider label="Steering sensitivity" value={s.steering} min={0.6} max={1.6} step={0.1} onChange={(v) => actions.settings({ steering: v })} format={(v) => `${Math.round(v * 100)}%`} />
-          <div className="toggle"><span><strong>Picture quality</strong><span className="small muted">Auto lowers rain, stars and contrails if the frame rate drops. Low always keeps effects light.</span></span><span className="row gap" role="radiogroup" aria-label="Picture quality">{(["auto", "high", "low"] as const).map((q) => <Btn key={q} small kind={s.quality === q ? "accent" : "soft"} onClick={() => actions.settings({ quality: q })}>{q[0].toUpperCase() + q.slice(1)}</Btn>)}</span></div>
+          <div className="choice"><span><strong>Picture quality</strong><span className="small muted">Auto lowers effects if the frame rate drops.</span></span><span className="segmented" role="group" aria-label="Picture quality">{(["auto", "high", "low"] as const).map((q) => <button key={q} type="button" className={s.quality === q ? 'seg on' : 'seg'} aria-pressed={s.quality === q} onClick={() => actions.settings({ quality: q })}>{q[0].toUpperCase() + q.slice(1)}</button>)}</span></div>
           <Slider label="Text size" value={s.textScale} min={0.9} max={1.3} step={0.05} onChange={(v) => actions.settings({ textScale: v })} format={(v) => `${Math.round(v * 100)}%`} />
           <Slider label="Daily study goal" value={s.dailyMinutes} min={10} max={90} step={5} unit="min" onChange={(v) => actions.settings({ dailyMinutes: v })} />
           <label className="field"><span>Licensing framework shown in the pathways</span>
             <select value={s.jurisdiction} onChange={(e) => actions.settings({ jurisdiction: e.target.value as typeof s.jurisdiction })}>
               <option value="ICAO">ICAO — international reference</option><option value="EASA">EASA — Europe</option><option value="FAA">FAA — United States</option>
             </select></label>
+        </div>
+      </section>
+
+      <section className="card" aria-labelledby="controls-h">
+        <h2 id="controls-h">Flight controls</h2>
+        <div className="settings">
+          <div className="choice"><span><strong>Touch controls</strong><span className="small muted">{{ floating: 'The joystick appears where your thumb lands.', fixed: 'The joystick stays in the corner.', buttons: 'Classic climb, descend and thrust buttons.' }[s.controls ?? 'floating']}</span></span>
+            <span className="segmented" role="group" aria-label="Touch controls">{([['floating', 'Floating stick'], ['fixed', 'Fixed stick'], ['buttons', 'Buttons']] as const).map(([k, name]) => <button key={k} type="button" className={(s.controls ?? 'floating') === k ? 'seg on' : 'seg'} aria-pressed={(s.controls ?? 'floating') === k} onClick={() => actions.settings({ controls: k })}>{name}</button>)}</span></div>
+          <Toggle label="Left-handed layout" checked={!!s.leftHanded} onChange={(v) => actions.settings({ leftHanded: v })} hint="Joystick on the right, throttle on the left" />
+          <Slider label="Joystick dead zone" value={s.deadZone ?? 0.12} min={0.05} max={0.3} step={0.01} onChange={(v) => actions.settings({ deadZone: v })} format={(v) => `${Math.round(v * 100)}%`} />
+          <p className="small muted">Steering sensitivity (above) also sets how strongly the joystick responds. Keyboard controls always work on a computer.</p>
         </div>
       </section>
 

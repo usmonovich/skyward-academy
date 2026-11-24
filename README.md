@@ -333,3 +333,10 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - English, Knowledge Hub, Exam Center, Profile and Fly lost their long helper paragraphs; privacy, scheduling and assessment explanations open on request.
 - `useProgress` gained a server snapshot so pages can be rendered in tests; `tests/ui-minimal.test.tsx` checks the compact headers, the disclosure and the locked-row labels.
 - Before and after screenshots (emulated phone viewport): `docs/screens/`.
+
+### Batch 2 — analog joystick
+- Phones and tablets fly with a virtual analog joystick and a throttle lever instead of up/down buttons. The stick has a semi-transparent base, an orange thumbstick, a glow while held and a spring-back on release (no animation with reduced motion).
+- The vertical axis is analog pitch (climb and descend in proportion to deflection). On crosswind and navigation missions the horizontal axis is the heading correction; elsewhere it does nothing, because the side-scrolling model has no other axis. The throttle lever stays where it is set and the engine moves towards it at a steady rate; keyboard and thrust buttons still take over.
+- Profile → Flight controls: floating stick (appears under the thumb), fixed stick, or the classic buttons; left-handed layout; joystick dead zone. The steering sensitivity setting scales the stick. Saved locally with the profile; existing profiles get the defaults (floating, right-handed, 12 percent).
+- Every control tracks its own pointer, so stick and throttle work together. Lift, browser cancellation, lost capture, app switch, rotation, pause, restart and unmount all return the stick to neutral.
+- Tested: `tests/joystick.test.ts` (dead zone, analog response, travel limit, sensitivity, multi-touch, cancel and reset, lever mapping, engine throttle). Dispatched pointer events in the in-app browser (emulated phone viewport): two-finger stick plus throttle, release far outside, cancel, app switch, restart. Not tested on a physical phone.
