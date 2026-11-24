@@ -1,4 +1,5 @@
 import { FORMULAS_EXPANSION } from './formulas2';
+import { FORMULAS_BATCH3 } from './formulas3';
 import type { Formula } from '../types';
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -1599,6 +1600,6 @@ const BASE_FORMULAS: Formula[] = [
   },
 ];
 
-export const FORMULAS: Formula[] = [...BASE_FORMULAS, ...FORMULAS_EXPANSION];
+export const FORMULAS: Formula[] = [...BASE_FORMULAS, ...FORMULAS_EXPANSION, ...FORMULAS_BATCH3];
 
 export const formulaById = (id: string) => FORMULAS.find((f) => f.id === id);

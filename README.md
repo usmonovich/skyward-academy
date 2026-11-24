@@ -376,3 +376,10 @@ Audit: 30 mathematics and 36 physics lessons before this batch, 40 and 47 now (2
 - Flights are never interrupted: operational-decision pop-ups and the radio-call rings were removed from the game. The engine has no decision state, the flight screen has no question overlay, and the result screen, debrief and analysis no longer report questions. Stars no longer depend on answers (only rings, contacts, time, speed, landing and the ordered go-around count).
 - The 17 Aviation English flights are now reward flights: passing an exercise opens a plain flight with no questions in the air. The language practice stays in the exercises themselves.
 - Mission objectives that mentioned decisions or questions were rewritten, and the 86 written decision scenarios were deleted from the mission data (the `Decision` type and the `decisions` field are gone).
+
+### More mathematics and physics lessons
+- 8 new mathematics lessons (`src/content/math6.ts`): Map Scales and Chart Distances, Simultaneous Equations, Inequalities and Operating Limits, Logarithms and Decibels, Averages and Weighted Averages, Angles of Elevation and Depression, Sequences and Patterns, Reading Performance Charts and Tables.
+- 8 new physics lessons (`src/content/physics7.ts`): Motion Graphs, Relative Velocity, Stress Strain and Elasticity, Air Resistance and Terminal Velocity, Oscillations Resonance and Damping, Light Reflection and Refraction, Batteries and Electrical Endurance, Gyroscopes and Precession.
+- Each lesson has sections, an interactive calculator (14 new formulas in `src/content/formulas3.ts`, plus the existing interpolation and acceleration calculators), two worked examples, 5 practice and 6 assessment questions (all original), sources and its own flight mission. New lessons sit at the end of their modules, so existing progress and unlocks are unchanged.
+- Counts now: Mathematics 48, Physics 55, **239** unique published lessons (243 pathway entries; four lessons are shared with PPL), **276** missions (239 lesson missions + 18 challenges + 17 English flights + 2 free flights).
+- This content is draft and needs independent expert review, like the rest of the curriculum.

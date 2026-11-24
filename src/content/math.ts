@@ -4,6 +4,7 @@ import { angles, arithmetic, estimation, fractions, negatives, percentages, powe
 import { algebra, decimals, equations, geometry, sciNotation, triangles } from './math3';
 import { calculus, coordinates, fuelMath, functions, gradients, linearRel, oneInSixty, quadratics, rateOfChange, statistics } from './math4';
 import { accuracy, areaVolume, circles, exponentialDecay, moments, probability, proportion, sineCosine, timeUtc, windTriangle } from './math5';
+import { chartScales, elevation, inequalities, logarithms, readingCharts, sequences, simultaneous, weightedAverage } from './math6';
 
 const SRC = ['si-brochure', 'phak'];
 
@@ -277,11 +278,11 @@ export const mathTrack: Track = {
   blurb: 'From arithmetic to vectors — the calculation skills every pilot uses.',
   modules: [
     { id: 'math-numbers', title: 'Numbers and Arithmetic', lessons: [arithmetic, negatives, fractions, decimals, percentages, ratios, estimation] },
-    { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, sciNotation] },
-    { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange, proportion] },
-    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, circles, areaVolume, triangles, pythagoras, trig, sineCosine] },
+    { id: 'math-measure', title: 'Units and Measurement', lessons: [units, powers, sciNotation, chartScales] },
+    { id: 'math-algebra', title: 'Algebra', lessons: [algebra, equations, rearrange, proportion, simultaneous, inequalities] },
+    { id: 'math-geometry', title: 'Geometry and Trigonometry', lessons: [angles, geometry, circles, areaVolume, triangles, pythagoras, trig, sineCosine, elevation] },
     { id: 'math-vectors-m', title: 'Vectors and Coordinates', lessons: [vectors, coordinates] },
-    { id: 'math-functions', title: 'Functions and Change', lessons: [functions, linearRel, quadratics, exponentialDecay, rateOfChange, calculus, statistics] },
+    { id: 'math-functions', title: 'Functions and Change', lessons: [functions, linearRel, quadratics, exponentialDecay, rateOfChange, calculus, statistics, weightedAverage, logarithms, sequences, readingCharts] },
     { id: 'math-aviation', title: 'Aviation Mathematics', lessons: [dst, oneInSixty, gradients, fuelMath, windTriangle, moments, timeUtc] },
     { id: 'math-applied', title: 'Accuracy and Risk', lessons: [accuracy, probability] },
   ],
