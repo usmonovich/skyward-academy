@@ -722,6 +722,6 @@ a.lesson-row:active, button.lesson-row:active { background: #eef4fb; }
 @media (max-height: 520px) { .brief-wx { padding: 6px 10px; font-size: .8rem; } }
 /* Landscape: boosters stack at the far left edge, clear of the aircraft's lane (it flies about a fifth of the way across). */
 @media (orientation: landscape) {
-  .game.full .boost-bar.floating { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; top: calc(max(10px, env(safe-area-inset-top)) + 136px); gap: 5px; }
-  .game.full .boost-bar.floating .boost-slot { width: 42px; height: 42px; }
+  .game.full .boost-bar.floating { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; top: calc(env(safe-area-inset-top) + clamp(122px, 27vh, 220px)); gap: 3px; }
+  .game.full .boost-bar.floating .boost-slot { width: 39px; height: 39px; }
 }

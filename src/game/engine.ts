@@ -8,6 +8,7 @@ import { isaPressure } from '../content/formulas';
 import { audio } from '../engine/audio';
 import { drawAircraft } from './art';
 import { cloudColor, drawFog, drawLightning, drawPrecip, drawRain, drawRunwayLights, drawSkyExtras, drawStormSky, drawTornado, drawTrail, isLowLight, isNight, lightningAt } from './weather';
+import { drawAirport, drawCloudLayer, drawForest, drawSeaGlints, drawShadow, drawSnowCaps, type Edge } from './scenery';
 import { AIM, PHASES, approachStart, glideY, phaseAt, phasePlan, slopeLights, touchdownZone, type PhaseId } from './phases';
 
 export const W = 960;
@@ -745,13 +746,14 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
   }
 
   /* -------------------------------------------------------------- render */
-  function hills(par: number, base: number, amp: number, wave: number, color: string) {
+  function hills(par: number, base: number, amp: number, wave: number, color: string): Edge {
     const bot = view.VH - view.oy;
     ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, bot);
     const edge = (x: number) => base - amp * (0.6 * Math.sin((x + (worldX + view.camShift) * par) / wave) + 0.4 * Math.sin((x + (worldX + view.camShift) * par) / (wave * 0.37) + 2));
     for (let x = 0; x <= view.VW; x += 16) ctx.lineTo(x, edge(x));
     ctx.lineTo(view.VW, edge(view.VW)); // the last step may stop short of the edge on screens whose width is not a multiple of the step
     ctx.lineTo(view.VW, bot); ctx.closePath(); ctx.fill();
+    return edge;
   }
   function panel(x: number, yy: number, w: number, h: number) {
     ctx.fillStyle = 'rgba(11,37,69,0.78)'; ctx.beginPath(); ctx.roundRect(x, yy, w, h, 10); ctx.fill();
@@ -980,15 +982,19 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
     ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, H);
     ctx.fillStyle = pal.sun; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(Math.min(780, VW - 110), def.env === 'sunset' || def.env === 'golden' ? 330 : 90, def.env === 'sunset' || def.env === 'golden' ? 54 : def.env === 'night' ? 26 : 36, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
     drawSkyExtras(ctx, def.env, VW, GROUND, t, opts.reducedMotion, lite);
+    if (!lite) drawCloudLayer(ctx, VW, cam, cloudColor(def.env), false, def.seed);
     for (const c of clouds) {
       const cx = ((c.x - cam * 0.25) % 1500 + 1500) % 1500 - 200;
       ctx.fillStyle = cloudColor(def.env);
       ctx.beginPath(); ctx.ellipse(cx, c.y, 46 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx + 26 * c.s, c.y - 9 * c.s, 30 * c.s, 15 * c.s, 0, 0, 6.3); ctx.ellipse(cx - 28 * c.s, c.y - 4 * c.s, 26 * c.s, 12 * c.s, 0, 0, 6.3); ctx.fill();
     }
-    hills(0.12, GROUND - (def.env === 'mountains' ? 150 : 95), def.env === 'mountains' ? 85 : 38, 210, pal.far);
+    const farEdge = hills(0.12, GROUND - (def.env === 'mountains' ? 150 : 95), def.env === 'mountains' ? 85 : 38, 210, pal.far);
+    if (def.env === 'mountains' || def.env === 'arctic') drawSnowCaps(ctx, farEdge, VW, def.env === 'mountains' ? GROUND - 190 : GROUND - 105, bot);
     if (WX?.storm) drawStormSky(ctx, VW, GROUND, t, opts.reducedMotion, cam);
     if (WX?.lightning) { const L = lightningAt(t, def.seed); drawLightning(ctx, opts.reducedMotion ? 0 : L.flash, L.bolt, VW, GROUND, !!opts.reduceFlashing); }
-    hills(0.35, GROUND - 40, def.env === 'coast' || def.env === 'highalt' ? 6 : 26, 130, pal.mid);
+    const midEdge = hills(0.35, GROUND - 40, def.env === 'coast' || def.env === 'highalt' ? 6 : 26, 130, pal.mid);
+    if (def.env === 'coast') drawSeaGlints(ctx, VW, GROUND - 44, GROUND - 6, cam, t, opts.reducedMotion);
+    else drawForest(ctx, def.env, midEdge, VW, cam, 0.35, lite);
     if (TOR) {
       const sx = TOR.x - cam;
       if (sx > -320 && sx < VW + 320) {
@@ -1016,9 +1022,11 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       ctx.fillRect(sx + 4, GROUND - 1, 8, 10); ctx.fillRect(ex - 12, GROUND - 1, 8, 10);
       if (isLowLight(def.env)) drawRunwayLights(ctx, Math.max(sx, -20), Math.min(ex, VW + 20), GROUND - 3, t, opts.reducedMotion);
     };
-    if (def.takeoff) runway(60, TAKEOFF_RUNWAY);
+    const windDir = def.lateral && def.lateral.wind < 0 ? -1 : 1;
+    if (def.takeoff) { runway(60, TAKEOFF_RUNWAY); drawAirport(ctx, 60, TAKEOFF_RUNWAY, cam, GROUND, VW, t, windDir, isLowLight(def.env), opts.reducedMotion); }
     if (def.landing) {
       runway(level.runwayStart, level.runwayEnd);
+      drawAirport(ctx, level.runwayStart, level.runwayEnd, cam, GROUND, VW, t, windDir, isLowLight(def.env), opts.reducedMotion);
       if (def.goAround && gaState === 'active') {
         const ox = (level.runwayStart + level.runwayEnd) / 2 - cam;
         ctx.fillStyle = '#d6453d'; ctx.fillRect(ox - 24, GROUND - 14, 48, 14); ctx.fillStyle = '#ffffff'; ctx.fillRect(ox - 14, GROUND - 22, 24, 8);
@@ -1049,6 +1057,7 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       }
     }
 
+    if (!lite) drawCloudLayer(ctx, VW, cam, cloudColor(def.env), true, def.seed + 3);
     // Gates
     for (const [gi, g] of level.gates.entries()) {
       const sx = g.x - cam;
@@ -1099,15 +1108,19 @@ export function createGame(canvas: HTMLCanvasElement, def: MissionDef, ac: GameA
       trail.forEach((p, i) => { p.age = (trail.length - 1 - i) * 0.06; });
       drawTrail(ctx, trail, worldX, isNight(def.env));
     } else trail.length = 0;
-    // Aircraft
+    // Aircraft: its shadow on the ground, a gentle bob in flight, and the landing gear only when it is needed.
+    const gy0 = groundY(worldX + PLANE_X);
+    drawShadow(ctx, px, gy0, Math.max(0, gy0 - 14 - y), 60 * ac.size, isNight(def.env));
+    const flying = !onGround && state !== 'rollout';
+    const gear = !flying || phase === 'takeoff' || phase === 'approach' || phase === 'landing' || (phase === 'climb' && airborneAt !== null && worldX + PLANE_X < airborneAt + 500);
     ctx.save();
-    ctx.translate(px, y);
+    ctx.translate(px, y + (opts.reducedMotion || !flying ? 0 : Math.sin(t * 1.7) * 1.2));
     // The visible pitch eases towards the target, so the nose follows the climb smoothly (drawing only; the simulation never reads it).
     const wantPitch = onGround || state === 'rollout' ? 0 : clamp(vy / 520, -0.45, 0.45);
     visPitch = opts.reducedMotion ? wantPitch : visPitch + (wantPitch - visPitch) * 0.2;
     ctx.rotate(visPitch);
     if (invuln > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = 0.45;
-    drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, onGround || state === 'rollout' || !!def.landing, isLowLight(def.env));
+    drawAircraft(ctx, ac, opts.livery, opts.reducedMotion ? 0 : t, gear, isLowLight(def.env));
     ctx.restore(); ctx.globalAlpha = 1;
     for (const [gi, g] of level.gates.entries()) { const sx = g.x - cam; if (sx > -60 && sx < VW + 60) drawRing(g, sx, gi, 'front'); }
     drawBoosterEffects(cam, px);
